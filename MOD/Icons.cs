@@ -26,7 +26,7 @@ namespace ExtraDetailingTools
 
             if (prefab is null) return $"{COUIBaseLocation}/Icons/Misc/placeholder.svg";
 
-            if (File.Exists($"{Mod.ResourcesIcons}/{prefab.GetType().Name}/{prefab.name}.svg")) return $"{COUIBaseLocation}/Icons/{prefab.GetType().Name}/{prefab.name}.svg";
+            if (File.Exists($"{EDT.ResourcesIcons}/{prefab.GetType().Name}/{prefab.name}.svg")) return $"{COUIBaseLocation}/Icons/{prefab.GetType().Name}/{prefab.name}.svg";
 
             if (prefab is SurfacePrefab)
             {
