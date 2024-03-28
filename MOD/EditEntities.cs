@@ -3,6 +3,7 @@ using Extra.Lib;
 using Game.Prefabs;
 using Unity.Collections;
 using Unity.Entities;
+using static Colossal.AssetPipeline.Diagnostic.Report;
 
 namespace ExtraDetailingTools
 {
@@ -26,8 +27,25 @@ namespace ExtraDetailingTools
 				None = [ComponentType.ReadOnly<PlaceholderObjectElement>()]
 			};
 
+			EntityQueryDesc netLaneEntityQueryDesc = new()
+			{
+				All = [
+					ComponentType.ReadOnly<NetLaneData>(),
+				],
+				Any = [
+					ComponentType.ReadOnly<LaneDeteriorationData>(),
+					ComponentType.ReadOnly<SpawnableObjectData>(),
+					ComponentType.ReadOnly<SecondaryLaneData>(),
+				],
+				None = [
+					ComponentType.ReadOnly<PlaceholderObjectElement>(),
+					//ComponentType.ReadOnly<TrackLaneData>(),
+				]
+			};
+
 			ExtraLib.AddOnEditEnities(new(OnEditSurfacesEntities, surfaceEntityQueryDesc));
 			ExtraLib.AddOnEditEnities(new(OnEditDecalsEntities, decalsEntityQueryDesc));
+			ExtraLib.AddOnEditEnities(new(OnEditNetLaneEntities, netLaneEntityQueryDesc));
 		}
 
 		private static void OnEditSurfacesEntities(NativeArray<Entity> entities)
@@ -37,21 +55,21 @@ namespace ExtraDetailingTools
 				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
 				{
 
-					var SurfaceUI = prefab.GetComponent<UIObject>();
-					if (SurfaceUI == null)
+					var prefabUI = prefab.GetComponent<UIObject>();
+					if (prefabUI == null)
 					{
-						SurfaceUI = prefab.AddComponent<UIObject>();
-						SurfaceUI.active = true;
-						SurfaceUI.m_IsDebugObject = false;
-						SurfaceUI.m_Icon = Icons.GetIcon(prefab);
-						SurfaceUI.m_Priority = 1;
+						prefabUI = prefab.AddComponent<UIObject>();
+						prefabUI.active = true;
+						prefabUI.m_IsDebugObject = false;
+						prefabUI.m_Icon = Icons.GetIcon(prefab);
+						prefabUI.m_Priority = 1;
 					}
 
-					SurfaceUI.m_Group?.RemoveElement(entity);
-					SurfaceUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "Surfaces", Icons.GetIcon, "Terraforming");
-					SurfaceUI.m_Group.AddElement(entity);
+					prefabUI.m_Group?.RemoveElement(entity);
+					prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "Surfaces", Icons.GetIcon, "Terraforming");
+					prefabUI.m_Group.AddElement(entity);
 
-					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, SurfaceUI.ToComponentData());
+					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
 				}
 			}
 		}
@@ -65,23 +83,50 @@ namespace ExtraDetailingTools
 
 					if (!prefab.name.ToLower().Contains("decal") && !prefab.name.ToLower().Contains("roadarrow") && !prefab.name.ToLower().Contains("lanemarkings")) continue;
 
-					var DecalUI = prefab.GetComponent<UIObject>();
-					if (DecalUI == null)
+					var prefabUI = prefab.GetComponent<UIObject>();
+					if (prefabUI == null)
 					{
-						DecalUI = prefab.AddComponent<UIObject>();
-						DecalUI.active = true;
-						DecalUI.m_IsDebugObject = false;
-						DecalUI.m_Icon = Icons.GetIcon(prefab);
-						DecalUI.m_Priority = 1;
+						prefabUI = prefab.AddComponent<UIObject>();
+						prefabUI.active = true;
+						prefabUI.m_IsDebugObject = false;
+						prefabUI.m_Icon = Icons.GetIcon(prefab);
+						prefabUI.m_Priority = 1;
 					}
 
-					DecalUI.m_Group?.RemoveElement(entity);
-					DecalUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "Decals", Icons.GetIcon, "Pathways");
-					DecalUI.m_Group.AddElement(entity);
+					prefabUI.m_Group?.RemoveElement(entity);
+					prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "Decals", Icons.GetIcon, "Pathways");
+					prefabUI.m_Group.AddElement(entity);
 
-					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, DecalUI.ToComponentData());
+					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
 				}
 			}
 		}
+
+		private static void OnEditNetLaneEntities(NativeArray<Entity> entities)
+		{
+			foreach (Entity entity in entities)
+			{
+				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out NetLanePrefab prefab))
+				{
+
+					var prefabUI = prefab.GetComponent<UIObject>();
+					if (prefabUI == null)
+					{
+						prefabUI = prefab.AddComponent<UIObject>();
+						prefabUI.active = true;
+						prefabUI.m_IsDebugObject = false;
+						prefabUI.m_Icon = Icons.GetIcon(prefab);
+						prefabUI.m_Priority = 1;
+					}
+
+					prefabUI.m_Group?.RemoveElement(entity);
+					prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "NetLane", Icons.GetIcon, "Pathways");
+					prefabUI.m_Group.AddElement(entity);
+
+					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
+				}
+			}
+		}
+
 	}
 }
