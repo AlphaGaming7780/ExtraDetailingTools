@@ -3,7 +3,8 @@ using Extra.Lib;
 using Game.Prefabs;
 using Unity.Collections;
 using Unity.Entities;
-using static Colossal.AssetPipeline.Diagnostic.Report;
+using Colossal.Entities;
+using Game.Objects;
 
 namespace ExtraDetailingTools
 {
@@ -82,6 +83,12 @@ namespace ExtraDetailingTools
 				{
 
 					if (!prefab.name.ToLower().Contains("decal") && !prefab.name.ToLower().Contains("roadarrow") && !prefab.name.ToLower().Contains("lanemarkings")) continue;
+
+					if(ExtraLib.m_EntityManager.TryGetComponent(entity, out ObjectGeometryData objectGeometryData))
+					{
+                        objectGeometryData.m_Flags &= ~GeometryFlags.Overridable;
+                        ExtraLib.m_EntityManager.SetComponentData(entity, objectGeometryData);
+                    }
 
 					var prefabUI = prefab.GetComponent<UIObject>();
 					if (prefabUI == null)
