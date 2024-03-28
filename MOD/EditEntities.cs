@@ -1,15 +1,8 @@
 ﻿using Extra.Lib.Helper;
 using Extra.Lib;
 using Game.Prefabs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Unity.Collections;
 using Unity.Entities;
-using Game.Objects;
-using ExtraDetailingTools.Decals;
 
 namespace ExtraDetailingTools
 {
@@ -20,7 +13,7 @@ namespace ExtraDetailingTools
 			EntityQueryDesc surfaceEntityQueryDesc = new()
 			{
 				All = [ComponentType.ReadOnly<SurfaceData>()],
-				None = [ComponentType.ReadOnly<PlaceholderObjectData>()]
+				None = [ComponentType.ReadOnly<PlaceholderObjectElement>()]
 				
 			};
 
@@ -30,7 +23,7 @@ namespace ExtraDetailingTools
 					ComponentType.ReadOnly<StaticObjectData>(),
 					ComponentType.ReadOnly<SpawnableObjectData>(),
 				],
-				None = [ComponentType.ReadOnly<PlaceholderObjectData>()]
+				None = [ComponentType.ReadOnly<PlaceholderObjectElement>()]
 			};
 
 			ExtraLib.AddOnEditEnities(new(OnEditSurfacesEntities, surfaceEntityQueryDesc));
@@ -90,6 +83,5 @@ namespace ExtraDetailingTools
 				}
 			}
 		}
-
 	}
 }

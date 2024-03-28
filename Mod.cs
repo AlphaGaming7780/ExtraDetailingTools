@@ -16,9 +16,9 @@ namespace ExtraDetailingTools
 
 		internal static string ResourcesIcons { get; private set; }
 
-        //private Harmony harmony;
+		private Harmony harmony;
 
-        public void OnLoad(UpdateSystem updateSystem)
+		public void OnLoad(UpdateSystem updateSystem)
 		{
 			Logger.Info(nameof(OnLoad));
 
@@ -33,21 +33,21 @@ namespace ExtraDetailingTools
 			EditEntities.SetupEditEntities();
 			Icons.LoadIcons(fileInfo.DirectoryName);
 
-            //harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
-            //harmony.PatchAll(typeof(EDT).Assembly);
-            //var patchedMethods = harmony.GetPatchedMethods().ToArray();
-            //Logger.Info($"Plugin ExtraDetailingTools made patches! Patched methods: " + patchedMethods.Length);
-            //foreach (var patchedMethod in patchedMethods)
-            //{
-            //    Logger.Info($"Patched method: {patchedMethod.Module.Name}:{patchedMethod.Name}");
-            //}
+			harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
+			harmony.PatchAll(typeof(EDT).Assembly);
+			var patchedMethods = harmony.GetPatchedMethods().ToArray();
+			Logger.Info($"Plugin ExtraDetailingTools made patches! Patched methods: " + patchedMethods.Length);
+			foreach (var patchedMethod in patchedMethods)
+			{
+				Logger.Info($"Patched method: {patchedMethod.Module.Name}:{patchedMethod.Name}");
+			}
 
-        }
+		}
 
 		public void OnDispose()
 		{
 			Logger.Info(nameof(OnDispose));
-            //harmony.UnpatchAll($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
-        }
+			harmony.UnpatchAll($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
+		}
 	}
 }

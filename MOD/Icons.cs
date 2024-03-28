@@ -15,6 +15,7 @@ namespace ExtraDetailingTools
 
         public static readonly string Placeholder = $"{COUIBaseLocation}/Icons/Misc/placeholder.svg";
         public static readonly string GameCrashWarning = $"{COUIBaseLocation}/Icons/Misc/GameCrashWarning.svg";
+        public static readonly string DecalPlaceholder = $"{COUIBaseLocation}/Icons/Decals/Decal_Placeholder.svg";
 
         internal static void LoadIcons(string path)
         {
@@ -30,10 +31,7 @@ namespace ExtraDetailingTools
 
             if (prefab is SurfacePrefab)
             {
-
-
                 return "Media/Game/Icons/LotTool.svg";
-
             }
             else if (prefab is UIAssetCategoryPrefab)
             {
@@ -45,9 +43,9 @@ namespace ExtraDetailingTools
 
                 return $"{COUIBaseLocation}/Icons/Misc/placeholder.svg";
             }
-            else if (prefab.name.ToLower().Contains("decal") || prefab.name.ToLower().Contains("roadarrow"))
+            else if (prefab.name.ToLower().Contains("decal") || prefab.name.ToLower().Contains("roadarrow") || prefab.name.ToLower().Contains("lanemarkings"))
             {
-
+                return DecalPlaceholder;
             }
 
             return Placeholder;
