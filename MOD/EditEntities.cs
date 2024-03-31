@@ -5,6 +5,8 @@ using Unity.Collections;
 using Unity.Entities;
 using Colossal.Entities;
 using Game.Objects;
+using System.Linq;
+using Colossal.Collections;
 
 namespace ExtraDetailingTools
 {
@@ -23,7 +25,10 @@ namespace ExtraDetailingTools
 			{
 				All = [
 					ComponentType.ReadOnly<StaticObjectData>(),
+				],
+				Any = [
 					ComponentType.ReadOnly<SpawnableObjectData>(),
+					ComponentType.ReadOnly<PlaceableObjectData>(),
 				],
 				None = [ComponentType.ReadOnly<PlaceholderObjectElement>()]
 			};
@@ -40,14 +45,84 @@ namespace ExtraDetailingTools
 				],
 				None = [
 					ComponentType.ReadOnly<PlaceholderObjectElement>(),
-					//ComponentType.ReadOnly<TrackLaneData>(),
+					ComponentType.ReadOnly<TrackLaneData>(),
 				]
 			};
+
+			//EntityQueryDesc EffectEntityQueryDesc = new()
+			//{
+			//	All = [ComponentType.ReadOnly<EffectData>()]
+			//};
+
+			//EntityQueryDesc ActivityLocationEntityQueryDesc = new()
+			//{
+			//	All = [ComponentType.ReadOnly<ActivityLocationData>()]
+			//};
+
 
 			ExtraLib.AddOnEditEnities(new(OnEditSurfacesEntities, surfaceEntityQueryDesc));
 			ExtraLib.AddOnEditEnities(new(OnEditDecalsEntities, decalsEntityQueryDesc));
 			ExtraLib.AddOnEditEnities(new(OnEditNetLaneEntities, netLaneEntityQueryDesc));
+
+			//ExtraLib.AddOnEditEnities(new(OnEditEffectEntities, EffectEntityQueryDesc));
+			//ExtraLib.AddOnEditEnities(new(OnEditActivityLocationEntities, ActivityLocationEntityQueryDesc));
 		}
+
+		//private static void OnEditEffectEntities(NativeArray<Entity> entities)
+		//{
+		//	foreach (Entity entity in entities)
+		//	{
+		//		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out EffectPrefab prefab))
+		//		{
+
+		//			var prefabUI = prefab.GetComponent<UIObject>();
+		//			if (prefabUI == null)
+		//			{
+		//				prefabUI = prefab.AddComponent<UIObject>();
+		//				prefabUI.active = true;
+		//				prefabUI.m_IsDebugObject = false;
+		//				prefabUI.m_Icon = Icons.GetIcon(prefab);
+		//				prefabUI.m_Priority = 1;
+		//			}
+
+		//			prefabUI.m_Group?.RemoveElement(entity);
+		//			prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "Effect", Icons.GetIcon, "Decals");
+		//			prefabUI.m_Group.AddElement(entity);
+
+		//			EffectData effectData = ExtraLib.m_EntityManager.GetComponentData<EffectData>(entity);
+		//			effectData.m_Flags.m_RequiredFlags = EffectConditionFlags.None;
+		//			ExtraLib.m_EntityManager.SetComponentData(entity, effectData);
+
+		//			ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
+		//		}
+		//	}
+		//}
+
+		//private static void OnEditActivityLocationEntities(NativeArray<Entity> entities)
+		//{
+		//	foreach (Entity entity in entities)
+		//	{
+		//		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out ActivityLocationPrefab prefab))
+		//		{
+
+		//			var prefabUI = prefab.GetComponent<UIObject>();
+		//			if (prefabUI == null)
+		//			{
+		//				prefabUI = prefab.AddComponent<UIObject>();
+		//				prefabUI.active = true;
+		//				prefabUI.m_IsDebugObject = false;
+		//				prefabUI.m_Icon = Icons.GetIcon(prefab);
+		//				prefabUI.m_Priority = 1;
+		//			}
+
+		//			prefabUI.m_Group?.RemoveElement(entity);
+		//			prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "ActivityLocation", Icons.GetIcon, "Effect");
+		//			prefabUI.m_Group.AddElement(entity);
+
+		//			ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
+		//		}
+		//	}
+		//}
 
 		private static void OnEditSurfacesEntities(NativeArray<Entity> entities)
 		{
@@ -82,13 +157,18 @@ namespace ExtraDetailingTools
 				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
 				{
 
-					if (!prefab.name.ToLower().Contains("decal") && !prefab.name.ToLower().Contains("roadarrow") && !prefab.name.ToLower().Contains("lanemarkings")) continue;
-
-					if(ExtraLib.m_EntityManager.TryGetComponent(entity, out ObjectGeometryData objectGeometryData))
+					DynamicBuffer<SubMesh> subMeshes =  ExtraLib.m_EntityManager.GetBuffer<SubMesh>(entity);
+					if (ExtraLib.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component))
 					{
-                        objectGeometryData.m_Flags &= ~GeometryFlags.Overridable;
-                        ExtraLib.m_EntityManager.SetComponentData(entity, objectGeometryData);
-                    }
+						if (component.m_State != MeshFlags.Decal) continue;
+					}
+					else continue;
+
+                    if (ExtraLib.m_EntityManager.TryGetComponent(entity, out ObjectGeometryData objectGeometryData))
+					{
+						objectGeometryData.m_Flags &= ~GeometryFlags.Overridable;
+						ExtraLib.m_EntityManager.SetComponentData(entity, objectGeometryData);
+					}
 
 					var prefabUI = prefab.GetComponent<UIObject>();
 					if (prefabUI == null)

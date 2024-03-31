@@ -332,7 +332,7 @@ declare module "cs2/ui" {
   export interface InfoSectionFoldoutProps extends InfoSectionProps {
   	header?: ReactNode;
   	initialExpanded?: boolean;
-  	expandFromContent?: boolean;
+      expandFromContent?: boolean;
   	onToggleExpanded?: (expanded: boolean) => void;
   }
   export const InfoSectionFoldout: ({ header, initialExpanded, expandFromContent, focusKey, tooltip, disableFocus, className, onToggleExpanded, children }: PropsWithChildren<InfoSectionFoldoutProps>) => JSX.Element;

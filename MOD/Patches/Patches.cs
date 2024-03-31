@@ -24,7 +24,11 @@ namespace ExtraDetailingTools
 		public static void Postfix(ref bool __result) {
 
 			MethodBase caller = new StackFrame(2, false).GetMethod();
-			if((caller.DeclaringType == typeof(NetToolSystem) && caller.Name == "GetNetPrefab")) {
+			if(
+				(caller.DeclaringType == typeof(NetToolSystem) && caller.Name == "GetNetPrefab") ||
+				(caller.DeclaringType == typeof(ObjectToolSystem) && caller.Name == "GetObjectPrefab")
+
+			) {
 				__result = true;
 			}
 
