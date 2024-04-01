@@ -23,45 +23,49 @@ namespace ExtraDetailingTools
 	internal partial class TransformSection : InfoSectionBase
 	{
 
-        public struct Float3 : IJsonWritable, IJsonReadable
-        {
-            public Float3(float3 float3)
+		public struct Float3 : IJsonWritable, IJsonReadable
+		{
+			public Float3(float3 float3)
 			{
 				x = float3.x; y = float3.y; z = float3.z;
 			}
 
-            public Float3(float x = 0, float y = 0, float z = 0) { this.x = x; this.y = y; this.z = z; }
+			public Float3(float x = 0, float y = 0, float z = 0) { this.x = x; this.y = y; this.z = z; }
 
 			public float x = 0, y = 0, z = 0;
-            public readonly void Write(IJsonWriter writer)
-            {
+			public readonly void Write(IJsonWriter writer)
+			{
 				writer.TypeBegin(GetType().FullName);
 				writer.PropertyName("x");
 				writer.Write(x);
-                writer.PropertyName("y");
-                writer.Write(y);
-                writer.PropertyName("z");
-                writer.Write(z);
+				writer.PropertyName("y");
+				writer.Write(y);
+				writer.PropertyName("z");
+				writer.Write(z);
 				writer.TypeEnd();
-            }
+			}
 
-            public void Read(IJsonReader reader)
-            {
-                reader.ReadMapBegin();
-                reader.ReadProperty("x");
-                reader.Read(out this.x);
-                reader.ReadProperty("y");
-                reader.Read(out this.y);
-                reader.ReadProperty("z");
-                reader.Read(out this.z);
-                reader.ReadMapEnd();
-            }
-        }
+			public void Read(IJsonReader reader)
+			{
+				reader.ReadMapBegin();
+				reader.ReadProperty("x");
+				reader.Read(out this.x);
+				reader.ReadProperty("y");
+				reader.Read(out this.y);
+				reader.ReadProperty("z");
+				reader.Read(out this.z);
+				reader.ReadMapEnd();
+			}
+		}
 
-        private static GetterValueBinding<Float3> transformSectionGetPos;
-		private static GetterValueBinding<Float3> transformSectionGetRot;
+		//private static GetterValueBinding<Float3> transformSectionGetPos;
+		//private static GetterValueBinding<Float3> transformSectionGetRot;
 
-		protected override string group => "TransformSection";
+		float3 curentPos;
+		float3 curentRot;
+
+
+		protected override string group => "Transform Section";
 
 		protected override void OnCreate()
 		{
@@ -70,27 +74,46 @@ namespace ExtraDetailingTools
 			SelectedInfoUISystem selectedInfoUISystem = base.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
 			selectedInfoUISystem.eventSelectionChanged += OnSelectionChanged;
 
-			AddBinding(transformSectionGetPos = new GetterValueBinding<Float3>("edt", "transformsection_getpos", GetPosition));
-			AddBinding(new TriggerBinding<Float3>("edt", "transformsection_getpos", new Action<Float3>(SetPosition)));
+			//AddBinding(transformSectionGetPos = new GetterValueBinding<Float3>("edt", "transformsection_getpos", GetPosition));
+			//AddBinding(new TriggerBinding<Float3>("edt", "transformsection_getpos", new Action<Float3>(SetPosition)));
 
-			AddBinding(transformSectionGetRot = new GetterValueBinding<Float3>("elt", "transformsection_getrot", GetRotation));
-			AddBinding(new TriggerBinding<Float3>("edt", "transformsection_getrot", new Action<Float3>(SetRotattion)));
+			//AddBinding(transformSectionGetRot = new GetterValueBinding<Float3>("elt", "transformsection_getrot", GetRotation));
+			//AddBinding(new TriggerBinding<Float3>("edt", "transformsection_getrot", new Action<Float3>(SetRotattion)));
 
 		}
 
 		protected override void OnUpdate()
 		{
+			base.OnUpdate();
 			visible = EntityManager.HasComponent<Game.Objects.Transform>(selectedEntity);
+			this.RequestUpdate();
 		}
 
 		public override void OnWriteProperties(IJsonWriter writer)
 		{
-			
+
+            curentPos = GetPosition();
+            curentRot = GetRotation();
+
+            writer.PropertyName("posX");
+			writer.Write(curentPos.x);
+			writer.PropertyName("posY");
+			writer.Write(curentPos.y);
+			writer.PropertyName("posZ");
+			writer.Write(curentPos.z);
+
+			writer.PropertyName("rotX");
+			writer.Write(curentRot.x);
+			writer.PropertyName("rotY");
+			writer.Write(curentRot.y);
+			writer.PropertyName("rotZ");
+			writer.Write(curentRot.z);
 		}
 
 		protected override void OnProcess()
 		{
-			
+			curentPos = GetPosition();
+			curentRot = GetRotation();
 		}
 
 		protected override void Reset()
@@ -98,16 +121,16 @@ namespace ExtraDetailingTools
 			
 		}
 
-		private void SetPosition(Float3 position)
+		private void SetPosition(float3 position)
 		{
 			float3 float3 = new(position.x, position.y, position.z);
-			UpdateObjectTransform(float3, null);
+			UpdateObjectTransform(position, null);
 		}
 
-		private void SetRotattion(Float3 rotation)
+		private void SetRotattion(float3 rotation)
 		{
 			float3 float3 = new(rotation.x, rotation.y, rotation.z);
-			UpdateObjectTransform(null, float3);
+			UpdateObjectTransform(null, rotation);
 		}
 
 		private void UpdateObjectTransform(float3? position, float3? rotation)
@@ -115,8 +138,8 @@ namespace ExtraDetailingTools
 			if (!ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out Game.Objects.Transform transform))
 			{
 				EDT.Logger.Warn("Can't get the transform object.");
-				transformSectionGetPos.Update();
-				transformSectionGetRot.Update();
+				//transformSectionGetPos.Update();
+				//transformSectionGetRot.Update();
 				return;
 			}
 
@@ -134,8 +157,8 @@ namespace ExtraDetailingTools
 			if (!ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) || !ExtraLib.m_EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData) || !ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out CullingInfo cullingInfo))
 			{
 				EDT.Logger.Warn("Failed to get the CullingInfo on the Entity");
-				transformSectionGetPos.Update();
-				transformSectionGetRot.Update();
+				//transformSectionGetPos.Update();
+				//transformSectionGetRot.Update();
 				return;
 			}
 
@@ -173,33 +196,33 @@ namespace ExtraDetailingTools
 			ExtraLib.m_EntityManager.SetComponentData(selectedEntity, transform);
 			ExtraLib.m_EntityManager.SetComponentData(selectedEntity, cullingInfo);
 			ExtraLib.m_EntityManager.AddComponentData(selectedEntity, new Game.Common.Updated());
-			if (!position.Equals(float3.zero)) transformSectionGetPos.Update();
-			if (!rotation.Equals(float3.zero)) transformSectionGetRot.Update();
+			//if (!position.Equals(float3.zero)) transformSectionGetPos.Update();
+			//if (!rotation.Equals(float3.zero)) transformSectionGetRot.Update();
 		}
 
-		private Float3 GetPosition()
+		private float3 GetPosition()
 		{
 			ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out Game.Objects.Transform transform);
-			return new(transform.m_Position);
+			return transform.m_Position;
 		}
 
-		private Float3 GetRotation()
+		private float3 GetRotation()
 		{
 			ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out Game.Objects.Transform transform);
 			UnityEngine.Quaternion quaternion = transform.m_Rotation;
-			return new(quaternion.eulerAngles);
+			return quaternion.eulerAngles;
 		}
 
 		private void OnSelectionChanged(Entity entity, Entity prefab, float3 SelectedPosition)
 		{
 			if (entity == Entity.Null //||
 				//ExtraLib.m_EntityManager.HasComponent<Building>(entity) ||
-    //            ExtraLib.m_EntityManager.HasComponent<LabelExtents>(entity) ||
+	//            ExtraLib.m_EntityManager.HasComponent<LabelExtents>(entity) ||
 				//!ExtraLib.m_EntityManager.HasComponent<Game.Objects.Transform>(entity)
 			) return;
 
-			transformSectionGetPos.Update();
-			transformSectionGetRot.Update();
+			//transformSectionGetPos.Update();
+			//transformSectionGetRot.Update();
 		}
 	}
 }

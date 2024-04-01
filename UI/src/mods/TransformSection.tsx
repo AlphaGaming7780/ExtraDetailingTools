@@ -13,30 +13,33 @@ export interface Float3 {
 	z: number
 }
 
+
 export const TransformSection = (componentList: any): any => { //: ModuleRegistryExtend
-
-	const pos$ = bindValue<Float3>("edt", 'transformsection_getpos');
-	const rot$ = bindValue<Float3>("edt", 'transformsection_getrot');
-
-	const pos: Float3 = useValue(pos$);
-	const rot: Float3 = useValue(rot$);
-
-	console.log(pos)
-	console.log(rot)
 
 	function OnChange(value: Event) {
 		if (value?.target instanceof HTMLTextAreaElement) {
 			let number: number = parseInt(value.target.value, 10)
-			value.target.value = number.toString()
 			console.log(number)
 		}
 	}
 
-	componentList["ExtraDetailingTools.TransformSection"] = () => <>
+	interface TransformSection {
+		group: string;
+		tooltipKeys: Array<string>;
+		tooltipTags: Array<string>;
+		posX: number;
+		posY: number;
+		posZ: number;
+		rotX: number;
+		rotY: number;
+		rotZ: number;
+	}
+
+	componentList["ExtraDetailingTools.TransformSection"] = (e: TransformSection) => <>
 		<div className= {InfoSectionSCSS.infoSection}>
 			<div className={InfoSectionSCSS.content + " " + InfoSectionSCSS.disableFocusHighlight}>
 				<div className={InfoRowSCSS.infoRow}>
-					<div className={InfoRowSCSS.left + " " + InfoRowSCSS.uppercase}>Transform Section</div>
+					<div className={InfoRowSCSS.left + " " + InfoRowSCSS.uppercase}>{e.group}</div>
 					{/*<div className={InfoRowSCSS.right}>Right</div>*/}
 				</div>
 				<div className={InfoRowSCSS.infoRow + " " + InfoRowSCSS.subRow + " " + InfoRowSCSS.link}>
@@ -44,19 +47,19 @@ export const TransformSection = (componentList: any): any => { //: ModuleRegistr
 						Position
 					</div>
 					<div className={InfoRowSCSS.right} style={{justifyContent: "flex-end", alignContent: "flex-end"}}>
-						↕<TextInput multiline={1} className={EditorItemSCSS.sliderInput + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
-						X<TextInput multiline={1} className={EditorItemSCSS.sliderInput + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
-						Y<TextInput multiline={1} className={EditorItemSCSS.sliderInput + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
-						Z<TextInput multiline={1} className={EditorItemSCSS.sliderInput + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
+						↕<TextInput value={"1"} multiline={1} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
+						X<TextInput value={e.posX.toString()} multiline={1} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
+						Y<TextInput value={e.posY.toString()} multiline={1} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
+						Z<TextInput value={e.posZ.toString()} multiline={1} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
 					</div>
 					<div className={InfoRowSCSS.left + " " + InfoRowSCSS.link}>
 						Rotation
 					</div>
 					<div className={InfoRowSCSS.right} style={{ justifyContent: "flex-end", alignContent: "flex-end" }}>
-						↕<TextInput multiline={1} className={EditorItemSCSS.sliderInput + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
-						X<TextInput multiline={1} className={EditorItemSCSS.sliderInput + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
-						Y<TextInput multiline={1} className={EditorItemSCSS.sliderInput + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
-						Z<TextInput multiline={1} className={EditorItemSCSS.sliderInput + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
+						↕<TextInput value={"1"} multiline={1} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
+						X<TextInput value={e.rotX.toString()} multiline={1} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
+						Y<TextInput value={e.rotY.toString()} multiline={1} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
+						Z<TextInput value={e.rotZ.toString()} multiline={1} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onChange={OnChange} />
 					</div>
 				</div>
 			</div>
