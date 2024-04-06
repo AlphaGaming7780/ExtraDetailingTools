@@ -41,7 +41,7 @@ export const TransformSection = (componentList: any): any => {
 			//		case "pX": pos.x = number; break;
 			//		case "pY": pos.y = number; break;
 			//		case "pZ": pos.z = number; break;
-			//		case "rI": RotationIncrement = number; break;
+			//		case "rI": RotationIncrement = number; break;  AssetCategoryTabBar
 			//		case "rX": rot.x = number; break;
 			//		case "rY": rot.x = number; break;
 			//		case "rZ": rot.x = number; break;

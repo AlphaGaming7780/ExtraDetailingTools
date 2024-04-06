@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace ExtraDetailingTools
 {
-	public class EDT : IMod
+    public class EDT : IMod
 	{
 		private static readonly ILog log = LogManager.GetLogger($"{nameof(ExtraDetailingTools)}").SetShowsErrorsInUI(false);
 		internal static Logger Logger { get; private set; } = new(log, true);
@@ -34,6 +34,7 @@ namespace ExtraDetailingTools
 			Icons.LoadIcons(fileInfo.DirectoryName);
 
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
+            updateSystem.UpdateAt<ExtraDetailingMenu>(SystemUpdatePhase.UIUpdate);
 
             harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
 			harmony.PatchAll(typeof(EDT).Assembly);

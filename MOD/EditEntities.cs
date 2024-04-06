@@ -49,20 +49,29 @@ namespace ExtraDetailingTools
 				]
 			};
 
-			//EntityQueryDesc EffectEntityQueryDesc = new()
-			//{
-			//	All = [ComponentType.ReadOnly<EffectData>()]
-			//};
+			EntityQueryDesc UIToolbarGroupQuery = new()
+			{
+				All = [
+                    ComponentType.ReadOnly<UIToolbarGroupData>(),
+                ]
+			}; 
 
-			//EntityQueryDesc ActivityLocationEntityQueryDesc = new()
-			//{
-			//	All = [ComponentType.ReadOnly<ActivityLocationData>()]
-			//};
+            //EntityQueryDesc EffectEntityQueryDesc = new()
+            //{
+            //	All = [ComponentType.ReadOnly<EffectData>()]
+            //};
+
+            //EntityQueryDesc ActivityLocationEntityQueryDesc = new()
+            //{
+            //	All = [ComponentType.ReadOnly<ActivityLocationData>()]
+            //};
 
 
-			ExtraLib.AddOnEditEnities(new(OnEditSurfacesEntities, surfaceEntityQueryDesc));
+            ExtraLib.AddOnEditEnities(new(OnEditSurfacesEntities, surfaceEntityQueryDesc));
 			ExtraLib.AddOnEditEnities(new(OnEditDecalsEntities, decalsEntityQueryDesc));
 			ExtraLib.AddOnEditEnities(new(OnEditNetLaneEntities, netLaneEntityQueryDesc));
+
+			ExtraLib.AddOnEditEnities(new(OnEditUIToolbarGroupEntity, UIToolbarGroupQuery));
 
 			//ExtraLib.AddOnEditEnities(new(OnEditEffectEntities, EffectEntityQueryDesc));
 			//ExtraLib.AddOnEditEnities(new(OnEditActivityLocationEntities, ActivityLocationEntityQueryDesc));
@@ -124,8 +133,23 @@ namespace ExtraDetailingTools
 		//	}
 		//}
 
-		private static void OnEditSurfacesEntities(NativeArray<Entity> entities)
+		private static void OnEditUIToolbarGroupEntity(NativeArray<Entity> entities)
 		{
+            foreach (Entity entity in entities)
+            {
+                if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out UIToolbarGroupPrefab prefab))
+                {
+					EDT.Logger.Info(prefab.name);
+                }
+            }
+        }
+
+
+        private static void OnEditSurfacesEntities(NativeArray<Entity> entities)
+		{
+
+			if (entities.Length > 0) ExtraDetailingMenu.CreateNewAssetCat("Surfaces", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Surfaces.svg");
+
 			foreach (Entity entity in entities)
 			{
 				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
@@ -142,8 +166,8 @@ namespace ExtraDetailingTools
 					}
 
 					prefabUI.m_Group?.RemoveElement(entity);
-					prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "Surfaces", Icons.GetIcon, "Terraforming");
-					prefabUI.m_Group.AddElement(entity);
+					prefabUI.m_Group = ExtraDetailingMenu.CreateNewUIAssetCategoryPrefab(Surfaces.GetCatByRendererPriority(prefab.GetComponent<RenderedArea>() is null ? 0 : prefab.GetComponent<RenderedArea>().m_RendererPriority) + " Surfaces", Icons.GetIcon, "Surfaces");
+                    prefabUI.m_Group.AddElement(entity);
 
 					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
 				}
@@ -152,7 +176,9 @@ namespace ExtraDetailingTools
 
 		private static void OnEditDecalsEntities(NativeArray<Entity> entities)
 		{
-			foreach (Entity entity in entities)
+            if (entities.Length > 0) ExtraDetailingMenu.CreateNewAssetCat("Decals", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Decals.svg");
+
+            foreach (Entity entity in entities)
 			{
 				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
 				{
@@ -181,8 +207,8 @@ namespace ExtraDetailingTools
 					}
 
 					prefabUI.m_Group?.RemoveElement(entity);
-					prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "Decals", Icons.GetIcon, "Pathways");
-					prefabUI.m_Group.AddElement(entity);
+					prefabUI.m_Group = ExtraDetailingMenu.CreateNewUIAssetCategoryPrefab(Decals.GetCatByDecalName(prefab.name) + " Decals", Icons.GetIcon, "Decals");
+                    prefabUI.m_Group.AddElement(entity);
 
 					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
 				}
