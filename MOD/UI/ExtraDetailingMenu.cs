@@ -52,7 +52,7 @@ internal partial class ExtraDetailingMenu : UISystemBase
         //new("Decals", $"{Icons.COUIBaseLocation}/resources/Icons/UIAssetCategoryPrefab/Decals.svg")
     ];
     private static readonly Dictionary<string, List<UIAssetCategoryPrefab>> categories = [];
-    private static string selectedCat = null;
+    private static string selectedCat = "";
     internal static bool showCatTab = false;
 
     static ValueBinding<AssetCat[]> VB_assetsCats;
@@ -81,7 +81,7 @@ internal partial class ExtraDetailingMenu : UISystemBase
     internal static void ShowCatsTab(bool value)
     {
         showCatTab = value;
-        if(selectedCat == null) OnAssetCatClick(assetsCats.First().name);
+        if(showCatTab && string.IsNullOrEmpty(selectedCat) ) OnAssetCatClick(assetsCats.First().name);
         GVB_ShowCatTab.Update();
     }
 

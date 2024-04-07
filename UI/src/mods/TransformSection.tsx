@@ -54,7 +54,7 @@ export const TransformSection = (componentList: any): any => {
 			if (event.target instanceof HTMLInputElement) {
 				switch (event.target.id) {
 					case "pI":
-						if (event.deltaY > 0) {
+						if (event.deltaY < 0) {
 							if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
 							else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
 							trigger("audio", "playSound", "increase-elevation", 1);
@@ -66,23 +66,23 @@ export const TransformSection = (componentList: any): any => {
 						PositionIncrement = parseFloat(event.target.value)
 						break;
 					case "pX":
-						pos.x += Math.sign(event.deltaY) * PositionIncrement;
+						pos.x -= Math.sign(event.deltaY) * PositionIncrement;
 						event.target.value = pos.x.toString();
-						if (event.deltaY > 0) trigger("audio", "playSound", "increase-elevation", 1);
+						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
 						else trigger("audio", "playSound", "decrease-elevation", 1);
 						triggerPos();
 						break;
 					case "pY":
-						pos.y += Math.sign(event.deltaY) * PositionIncrement;
+						pos.y -= Math.sign(event.deltaY) * PositionIncrement;
 						event.target.value = pos.y.toString();
-						if (event.deltaY > 0) trigger("audio", "playSound", "increase-elevation", 1);
+						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
 						else trigger("audio", "playSound", "decrease-elevation", 1);
 						triggerPos();
 						break;
 					case "pZ":
-						pos.z += Math.sign(event.deltaY) * PositionIncrement;
+						pos.z -= Math.sign(event.deltaY) * PositionIncrement;
 						event.target.value = pos.z.toString();
-						if (event.deltaY > 0) trigger("audio", "playSound", "increase-elevation", 1);
+						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
 						else trigger("audio", "playSound", "decrease-elevation", 1);
 						triggerPos();
 						break;
@@ -91,7 +91,7 @@ export const TransformSection = (componentList: any): any => {
 							if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
 							else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
 							trigger("audio", "playSound", "increase-elevation", 1);
-						} else if (event.deltaY > 0) {
+						} else {
 							if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
 							else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
 							trigger("audio", "playSound", "decrease-elevation", 1);
@@ -99,23 +99,23 @@ export const TransformSection = (componentList: any): any => {
 						RotationIncrement = parseFloat(event.target.value)
 						break;
 					case "rX":
-						rot.x += Math.sign(event.deltaY) * RotationIncrement;
+						rot.x -= Math.sign(event.deltaY) * RotationIncrement;
 						event.target.value = rot.x.toString();
-						if (event.deltaY > 0) trigger("audio", "playSound", "increase-elevation", 1);
+						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
 						else trigger("audio", "playSound", "decrease-elevation", 1);
 						triggerRot()
 						break;
 					case "rY":
-						rot.y += Math.sign(event.deltaY) * RotationIncrement;
-						if (event.deltaY > 0) trigger("audio", "playSound", "increase-elevation", 1);
+						rot.y -= Math.sign(event.deltaY) * RotationIncrement;
+						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
 						else trigger("audio", "playSound", "decrease-elevation", 1);
 						event.target.value = rot.y.toString();
 						triggerRot()
 						break;
 					case "rZ":
-						rot.z += Math.sign(event.deltaY) * RotationIncrement;
+						rot.z -= Math.sign(event.deltaY) * RotationIncrement;
 						event.target.value = rot.z.toString();
-						if (event.deltaY > 0) trigger("audio", "playSound", "increase-elevation", 1);
+						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
 						else trigger("audio", "playSound", "decrease-elevation", 1);
 						triggerRot()
 						break;

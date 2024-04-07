@@ -8,7 +8,13 @@
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<!--LongDescription Value="This is a long description" /-->
 	<LongDescription>
-This is a long description
+
+    
+* Thanks to : 
+- CityRat for all the game icons
+- Dome for all the game decals icon
+- Yenyang for it's help on various aspect
+- T. D. W. for it's help on various aspect
 	</LongDescription>
 	<!--Thumbnail-->
 	<Thumbnail Value="Properties/Thumbnail.png" />

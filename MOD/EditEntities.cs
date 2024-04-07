@@ -220,7 +220,7 @@ namespace ExtraDetailingTools
 		private static void OnEditNetLaneEntities(NativeArray<Entity> entities)
 		{
             if (entities.Length == 0) return;
-            ExtraDetailingMenu.AssetCat assetCat = ExtraDetailingMenu.GetOrCreateNewAssetCat("NetLanes", Icons.Placeholder);
+            ExtraDetailingMenu.AssetCat assetCat = ExtraDetailingMenu.GetOrCreateNewAssetCat("NetLanes", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/NetLanes.svg");
 
             foreach (Entity entity in entities)
 			{
@@ -241,9 +241,10 @@ namespace ExtraDetailingTools
 					}
 
 					prefabUI.m_Group?.RemoveElement(entity);
-					if (prefab.GetComponent<UtilityLane>()?.m_UtilityType == Game.Net.UtilityTypes.Fence) prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("Fences", Icons.GetIcon, assetCat);//PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "NetLane", Icons.GetIcon, "Pathways");
-					else if (prefab.GetComponent<SecondaryLane>() != null && prefab.GetComponent<ThemeObject>() != null) prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("RoadMarkings", Icons.GetIcon, assetCat);
-                    else prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("Misc", Icons.GetIcon, assetCat);//PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "NetLane", Icons.GetIcon, "Pathways");
+					if (prefab.GetComponent<UtilityLane>()?.m_UtilityType == Game.Net.UtilityTypes.Fence) prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("Fence", Icons.GetIcon, assetCat);
+					else if (prefab.GetComponent<SecondaryLane>() != null && prefab.GetComponent<ThemeObject>() != null) prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("RoadMarking", Icons.GetIcon, assetCat);
+					else prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("Misc", Icons.GetIcon, assetCat);
+                    prefabUI.m_Icon = $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/{prefabUI.m_Group.name}.svg";
                     prefabUI.m_Group.AddElement(entity);
 
 					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
