@@ -1,4 +1,5 @@
-﻿using Colossal.Serialization.Entities;
+﻿using Colossal.IO.AssetDatabase.Internal;
+using Colossal.Serialization.Entities;
 using Colossal.UI.Binding;
 using Extra.Lib;
 using Extra.Lib.Helper;
@@ -16,7 +17,7 @@ namespace ExtraDetailingTools;
 internal partial class ExtraDetailingMenu : UISystemBase
 {
     
-    public struct AssetCat : IJsonWritable//, IWriter<AssetCat>
+    public struct AssetCat : IJsonWritable
     {
         public string name = "Not Good";
         public string icon = Icons.GetIcon(null);
@@ -41,16 +42,6 @@ internal partial class ExtraDetailingMenu : UISystemBase
             writer.Write(icon);
             writer.TypeEnd();
         }
-
-        //readonly void IWriter<AssetCat>.Write(IJsonWriter writer, AssetCat value)
-        //{
-        //    writer.TypeBegin("AssetCat");
-        //    writer.PropertyName("name");
-        //    writer.Write(value.name);
-        //    writer.PropertyName("icon");
-        //    writer.Write(value.icon);
-        //    writer.TypeEnd();
-        //}
     }
 
     internal const string CatTabName = "Extra Detailing Assets";
@@ -119,43 +110,53 @@ internal partial class ExtraDetailingMenu : UISystemBase
         ToolbarUISystemPatch.UpdateMenuUI();
     }
 
-    public static UIAssetCategoryPrefab CreateNewUIAssetCategoryPrefab(string name, Func<PrefabBase, string> getIcons, string assetCatName)
+    public static UIAssetCategoryPrefab GetOrCreateNewUIAssetCategoryPrefab(string name, string icon, AssetCat assetCat)
     {
-        if (!TryGetAssetCatByName(assetCatName, out AssetCat assetCat)) return null;
         if (!assetsCats.Contains(assetCat)) return null;
 
         UIAssetMenuPrefab uIAssetMenuPrefab = PrefabsHelper.GetOrCreateNewUIAssetMenuPrefab(CatTabName, Icons.GetIcon, offset: 999);
 
-        UIAssetCategoryPrefab uIAssetCategoryPrefab = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab(uIAssetMenuPrefab, name, getIcons);
+        UIAssetCategoryPrefab uIAssetCategoryPrefab = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab(uIAssetMenuPrefab, $"{name} {assetCat.name}", icon);
 
-        if (categories.ContainsKey(assetCatName)) categories[assetCatName].Add(uIAssetCategoryPrefab);
-        else categories.Add(assetCatName, [uIAssetCategoryPrefab]);
+        if (!categories.ContainsKey(assetCat.name)) categories.Add(assetCat.name, [uIAssetCategoryPrefab]);
+        else if (!categories[assetCat.name].Contains(uIAssetCategoryPrefab)) categories[assetCat.name].Add(uIAssetCategoryPrefab);
 
         return uIAssetCategoryPrefab;
     }
 
-    public static UIAssetCategoryPrefab CreateNewUIAssetCategoryPrefab(string name, string icon, string assetCatName)
+    public static UIAssetCategoryPrefab GetOrCreateNewUIAssetCategoryPrefab(string name, Func<PrefabBase, string> getIcons, AssetCat assetCat)
+    {
+        if (!assetsCats.Contains(assetCat)) return null;
+
+        UIAssetMenuPrefab uIAssetMenuPrefab = PrefabsHelper.GetOrCreateNewUIAssetMenuPrefab(CatTabName, Icons.GetIcon, offset: 999);
+
+        UIAssetCategoryPrefab uIAssetCategoryPrefab = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab(uIAssetMenuPrefab, $"{name} {assetCat.name}", getIcons);
+
+        if (!categories.ContainsKey(assetCat.name)) categories.Add(assetCat.name, [uIAssetCategoryPrefab]);
+        else if (!categories[assetCat.name].Contains(uIAssetCategoryPrefab)) categories[assetCat.name].Add(uIAssetCategoryPrefab);
+
+        return uIAssetCategoryPrefab;
+    }
+
+    public static UIAssetCategoryPrefab GetOrCreateNewUIAssetCategoryPrefab(string name, Func<PrefabBase, string> getIcons, string assetCatName)
+    {
+        if (!TryGetAssetCatByName(assetCatName, out AssetCat assetCat)) return null;
+        return GetOrCreateNewUIAssetCategoryPrefab(name, getIcons, assetCat);
+    }
+
+    public static UIAssetCategoryPrefab GetOrCreateNewUIAssetCategoryPrefab(string name, string icon, string assetCatName)
     {
         if(!TryGetAssetCatByName(assetCatName, out AssetCat assetCat)) return null;
-        if(!assetsCats.Contains(assetCat)) return null;
-
-        UIAssetMenuPrefab uIAssetMenuPrefab =  PrefabsHelper.GetOrCreateNewUIAssetMenuPrefab(CatTabName, Icons.GetIcon, offset: 999);
-
-        UIAssetCategoryPrefab uIAssetCategoryPrefab = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab(uIAssetMenuPrefab, name, icon);
-
-        if (categories.ContainsKey(assetCatName)) categories[assetCatName].Add(uIAssetCategoryPrefab);
-        else categories.Add(assetCatName, [uIAssetCategoryPrefab]);
-
-        return uIAssetCategoryPrefab;
+        return GetOrCreateNewUIAssetCategoryPrefab(name, icon, assetCat);
     }
 
-    public static void CreateNewAssetCat(string name, string icon)
+    public static AssetCat GetOrCreateNewAssetCat(string name, string icon)
     {
-        AssetCat assetCat = new(name, icon);
-        if(assetsCats.Contains(assetCat)) return;
-        //if (assetsCats.Count == 0) selectedCat = name;
+        if (TryGetAssetCatByName(name, out AssetCat assetCat)) return assetCat;
+        assetCat = new(name, icon);
         assetsCats.Add(assetCat);
         VB_assetsCats.Update([.. assetsCats]);
+        return assetCat;
     }
 
     public static bool TryGetAssetCatByName(string name, out AssetCat assetCat)

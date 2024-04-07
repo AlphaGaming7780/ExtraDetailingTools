@@ -37,24 +37,26 @@ namespace ExtraDetailingTools
 			{
 				All = [
 					ComponentType.ReadOnly<NetLaneData>(),
-				],
+                ],
 				Any = [
 					ComponentType.ReadOnly<LaneDeteriorationData>(),
-					ComponentType.ReadOnly<SpawnableObjectData>(),
+					//ComponentType.ReadOnly<SpawnableObjectData>(),
 					ComponentType.ReadOnly<SecondaryLaneData>(),
-				],
+					ComponentType.ReadOnly<UtilityLaneData>(),
+                    //ComponentType.ReadOnly<NetLaneGeometryData>(),
+                ],
 				None = [
 					ComponentType.ReadOnly<PlaceholderObjectElement>(),
 					ComponentType.ReadOnly<TrackLaneData>(),
 				]
 			};
 
-			EntityQueryDesc UIToolbarGroupQuery = new()
-			{
-				All = [
-                    ComponentType.ReadOnly<UIToolbarGroupData>(),
-                ]
-			}; 
+			//EntityQueryDesc UIToolbarGroupQuery = new()
+			//{
+			//	All = [
+   //                 ComponentType.ReadOnly<UIToolbarGroupData>(),
+   //             ]
+			//}; 
 
             //EntityQueryDesc EffectEntityQueryDesc = new()
             //{
@@ -71,7 +73,7 @@ namespace ExtraDetailingTools
 			ExtraLib.AddOnEditEnities(new(OnEditDecalsEntities, decalsEntityQueryDesc));
 			ExtraLib.AddOnEditEnities(new(OnEditNetLaneEntities, netLaneEntityQueryDesc));
 
-			ExtraLib.AddOnEditEnities(new(OnEditUIToolbarGroupEntity, UIToolbarGroupQuery));
+			//ExtraLib.AddOnEditEnities(new(OnEditUIToolbarGroupEntity, UIToolbarGroupQuery));
 
 			//ExtraLib.AddOnEditEnities(new(OnEditEffectEntities, EffectEntityQueryDesc));
 			//ExtraLib.AddOnEditEnities(new(OnEditActivityLocationEntities, ActivityLocationEntityQueryDesc));
@@ -133,22 +135,24 @@ namespace ExtraDetailingTools
 		//	}
 		//}
 
-		private static void OnEditUIToolbarGroupEntity(NativeArray<Entity> entities)
-		{
-            foreach (Entity entity in entities)
-            {
-                if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out UIToolbarGroupPrefab prefab))
-                {
-					EDT.Logger.Info(prefab.name);
-                }
-            }
-        }
+		//private static void OnEditUIToolbarGroupEntity(NativeArray<Entity> entities)
+		//{
+  //          foreach (Entity entity in entities)
+  //          {
+  //              if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out UIToolbarGroupPrefab prefab))
+  //              {
+		//			EDT.Logger.Info(prefab.name);
+  //              }
+  //          }
+  //      }
 
 
         private static void OnEditSurfacesEntities(NativeArray<Entity> entities)
 		{
 
-			if (entities.Length > 0) ExtraDetailingMenu.CreateNewAssetCat("Surfaces", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Surfaces.svg");
+			if (entities.Length == 0) return;
+
+            ExtraDetailingMenu.AssetCat assetCat =  ExtraDetailingMenu.GetOrCreateNewAssetCat("Surfaces", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Surfaces.svg");
 
 			foreach (Entity entity in entities)
 			{
@@ -166,7 +170,7 @@ namespace ExtraDetailingTools
 					}
 
 					prefabUI.m_Group?.RemoveElement(entity);
-					prefabUI.m_Group = ExtraDetailingMenu.CreateNewUIAssetCategoryPrefab(Surfaces.GetCatByRendererPriority(prefab.GetComponent<RenderedArea>() is null ? 0 : prefab.GetComponent<RenderedArea>().m_RendererPriority) + " Surfaces", Icons.GetIcon, "Surfaces");
+					prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab(Surfaces.GetCatByRendererPriority(prefab.GetComponent<RenderedArea>() is null ? 0 : prefab.GetComponent<RenderedArea>().m_RendererPriority), Icons.GetIcon, assetCat);
                     prefabUI.m_Group.AddElement(entity);
 
 					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
@@ -176,7 +180,8 @@ namespace ExtraDetailingTools
 
 		private static void OnEditDecalsEntities(NativeArray<Entity> entities)
 		{
-            if (entities.Length > 0) ExtraDetailingMenu.CreateNewAssetCat("Decals", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Decals.svg");
+			if (entities.Length == 0) return;
+            ExtraDetailingMenu.AssetCat assetCat = ExtraDetailingMenu.GetOrCreateNewAssetCat("Decals", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Decals.svg");
 
             foreach (Entity entity in entities)
 			{
@@ -184,11 +189,8 @@ namespace ExtraDetailingTools
 				{
 
 					DynamicBuffer<SubMesh> subMeshes =  ExtraLib.m_EntityManager.GetBuffer<SubMesh>(entity);
-					if (ExtraLib.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component))
-					{
-						if (component.m_State != MeshFlags.Decal) continue;
-					}
-					else continue;
+					if (!ExtraLib.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
+					else if (component.m_State != MeshFlags.Decal) continue;
 
                     if (ExtraLib.m_EntityManager.TryGetComponent(entity, out ObjectGeometryData objectGeometryData))
 					{
@@ -207,7 +209,7 @@ namespace ExtraDetailingTools
 					}
 
 					prefabUI.m_Group?.RemoveElement(entity);
-					prefabUI.m_Group = ExtraDetailingMenu.CreateNewUIAssetCategoryPrefab(Decals.GetCatByDecalName(prefab.name) + " Decals", Icons.GetIcon, "Decals");
+					prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab(Decals.GetCatByDecalName(prefab.name), Icons.GetIcon, assetCat);
                     prefabUI.m_Group.AddElement(entity);
 
 					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
@@ -217,8 +219,14 @@ namespace ExtraDetailingTools
 
 		private static void OnEditNetLaneEntities(NativeArray<Entity> entities)
 		{
-			foreach (Entity entity in entities)
+            if (entities.Length == 0) return;
+            ExtraDetailingMenu.AssetCat assetCat = ExtraDetailingMenu.GetOrCreateNewAssetCat("NetLanes", Icons.Placeholder);
+
+            foreach (Entity entity in entities)
 			{
+				if ( ExtraLib.m_EntityManager.HasComponent<UtilityLaneData>(entity) && ExtraLib.m_EntityManager.GetComponentData<UtilityLaneData>(entity).m_UtilityTypes != Game.Net.UtilityTypes.Fence) continue;
+				if (!ExtraLib.m_EntityManager.HasComponent<NetLaneGeometryData>(entity)) continue;
+
 				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out NetLanePrefab prefab))
 				{
 
@@ -233,8 +241,10 @@ namespace ExtraDetailingTools
 					}
 
 					prefabUI.m_Group?.RemoveElement(entity);
-					prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "NetLane", Icons.GetIcon, "Pathways");
-					prefabUI.m_Group.AddElement(entity);
+					if (prefab.GetComponent<UtilityLane>()?.m_UtilityType == Game.Net.UtilityTypes.Fence) prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("Fences", Icons.GetIcon, assetCat);//PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "NetLane", Icons.GetIcon, "Pathways");
+					else if (prefab.GetComponent<SecondaryLane>() != null && prefab.GetComponent<ThemeObject>() != null) prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("RoadMarkings", Icons.GetIcon, assetCat);
+                    else prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("Misc", Icons.GetIcon, assetCat);//PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "NetLane", Icons.GetIcon, "Pathways");
+                    prefabUI.m_Group.AddElement(entity);
 
 					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
 				}
