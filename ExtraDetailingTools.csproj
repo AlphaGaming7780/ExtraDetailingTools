@@ -58,11 +58,11 @@
 		<None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
 	</ItemGroup>
 
-	<ItemGroup>
+	<!--<ItemGroup>
 	  <Folder Include="UI\game-ui\editor\widgets\item\" />
 	  <Folder Include="UI\game-ui\game\components\selected-info-panel\shared-components\info-row\" />
 	  <Folder Include="UI\src\mods\Styles\" />
-	</ItemGroup>
+	</ItemGroup>-->
 
   <Target Name="BuildUI" BeforeTargets="AfterBuild">
     <Exec Command="npm run build" WorkingDirectory="$(ProjectDir)/UI" />

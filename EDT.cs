@@ -34,7 +34,6 @@ namespace ExtraDetailingTools
 			Icons.LoadIcons(fileInfo.DirectoryName);
 
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
-            updateSystem.UpdateAt<ExtraDetailingMenu>(SystemUpdatePhase.UIUpdate);
 
             harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
 			harmony.PatchAll(typeof(EDT).Assembly);

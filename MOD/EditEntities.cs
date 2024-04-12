@@ -5,6 +5,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Colossal.Entities;
 using Game.Objects;
+using Extra.Lib.UI;
 using System.Linq;
 using Colossal.Collections;
 
@@ -152,7 +153,7 @@ namespace ExtraDetailingTools
 
 			if (entities.Length == 0) return;
 
-            ExtraDetailingMenu.AssetCat assetCat =  ExtraDetailingMenu.GetOrCreateNewAssetCat("Surfaces", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Surfaces.svg");
+            ExtraAssetsMenu.AssetCat assetCat =  ExtraAssetsMenu.GetOrCreateNewAssetCat("Surfaces", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Surfaces.svg");
 
 			foreach (Entity entity in entities)
 			{
@@ -170,7 +171,7 @@ namespace ExtraDetailingTools
 					}
 
 					prefabUI.m_Group?.RemoveElement(entity);
-					prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab(Surfaces.GetCatByRendererPriority(prefab.GetComponent<RenderedArea>() is null ? 0 : prefab.GetComponent<RenderedArea>().m_RendererPriority), Icons.GetIcon, assetCat);
+					prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab(Surfaces.GetCatByRendererPriority(prefab.GetComponent<RenderedArea>() is null ? 0 : prefab.GetComponent<RenderedArea>().m_RendererPriority), Icons.GetIcon, assetCat);
                     prefabUI.m_Group.AddElement(entity);
 
 					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
@@ -181,7 +182,7 @@ namespace ExtraDetailingTools
 		private static void OnEditDecalsEntities(NativeArray<Entity> entities)
 		{
 			if (entities.Length == 0) return;
-            ExtraDetailingMenu.AssetCat assetCat = ExtraDetailingMenu.GetOrCreateNewAssetCat("Decals", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Decals.svg");
+            ExtraAssetsMenu.AssetCat assetCat = ExtraAssetsMenu.GetOrCreateNewAssetCat("Decals", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Decals.svg");
 
             foreach (Entity entity in entities)
 			{
@@ -209,7 +210,7 @@ namespace ExtraDetailingTools
 					}
 
 					prefabUI.m_Group?.RemoveElement(entity);
-					prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab(Decals.GetCatByDecalName(prefab.name), Icons.GetIcon, assetCat);
+					prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab(Decals.GetCatByDecalName(prefab.name), Icons.GetIcon, assetCat);
                     prefabUI.m_Group.AddElement(entity);
 
 					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
@@ -220,7 +221,7 @@ namespace ExtraDetailingTools
 		private static void OnEditNetLaneEntities(NativeArray<Entity> entities)
 		{
             if (entities.Length == 0) return;
-            ExtraDetailingMenu.AssetCat assetCat = ExtraDetailingMenu.GetOrCreateNewAssetCat("NetLanes", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/NetLanes.svg");
+            ExtraAssetsMenu.AssetCat assetCat = ExtraAssetsMenu.GetOrCreateNewAssetCat("NetLanes", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/NetLanes.svg");
 
             foreach (Entity entity in entities)
 			{
@@ -241,9 +242,9 @@ namespace ExtraDetailingTools
 					}
 
 					prefabUI.m_Group?.RemoveElement(entity);
-					if (prefab.GetComponent<UtilityLane>()?.m_UtilityType == Game.Net.UtilityTypes.Fence) prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("Fence", Icons.GetIcon, assetCat);
-					else if (prefab.GetComponent<SecondaryLane>() != null && prefab.GetComponent<ThemeObject>() != null) prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("RoadMarking", Icons.GetIcon, assetCat);
-					else prefabUI.m_Group = ExtraDetailingMenu.GetOrCreateNewUIAssetCategoryPrefab("Misc", Icons.GetIcon, assetCat);
+					if (prefab.GetComponent<UtilityLane>()?.m_UtilityType == Game.Net.UtilityTypes.Fence) prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab("Fence", Icons.GetIcon, assetCat);
+					else if (prefab.GetComponent<SecondaryLane>() != null && prefab.GetComponent<ThemeObject>() != null) prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab("RoadMarking", Icons.GetIcon, assetCat);
+					else prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab("Misc", Icons.GetIcon, assetCat);
                     prefabUI.m_Icon = $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/{prefabUI.m_Group.name}.svg";
                     prefabUI.m_Group.AddElement(entity);
 

@@ -8,8 +8,6 @@ namespace ExtraDetailingTools
         internal const string IconsResourceKey = "extradetailingtools";
         internal static readonly string COUIBaseLocation = $"coui://{IconsResourceKey}";
 
-        public static readonly string Placeholder = $"{COUIBaseLocation}/Icons/Misc/placeholder.svg";
-        public static readonly string GameCrashWarning = $"{COUIBaseLocation}/Icons/Misc/GameCrashWarning.svg";
         public static readonly string DecalPlaceholder = $"{COUIBaseLocation}/Icons/Decals/Decal_Placeholder.svg";
 
         internal static void LoadIcons(string path)
@@ -20,7 +18,7 @@ namespace ExtraDetailingTools
         public static string GetIcon(PrefabBase prefab)
         {
 
-            if (prefab is null) return $"{COUIBaseLocation}/Icons/Misc/placeholder.svg";
+            if (prefab is null) return Extra.Lib.UI.Icons.Placeholder;
 
             if (File.Exists($"{EDT.ResourcesIcons}/{prefab.GetType().Name}/{prefab.name}.svg")) return $"{COUIBaseLocation}/Icons/{prefab.GetType().Name}/{prefab.name}.svg";
 
@@ -31,19 +29,19 @@ namespace ExtraDetailingTools
             else if (prefab is UIAssetCategoryPrefab)
             {
 
-                return $"{COUIBaseLocation}/Icons/Misc/placeholder.svg";
+                return Extra.Lib.UI.Icons.Placeholder;
             }
             else if (prefab is UIAssetMenuPrefab)
             {
 
-                return $"{COUIBaseLocation}/Icons/Misc/placeholder.svg";
+                return Extra.Lib.UI.Icons.Placeholder;
             }
             else if (prefab.name.ToLower().Contains("decal") || prefab.name.ToLower().Contains("roadarrow") || prefab.name.ToLower().Contains("lanemarkings"))
             {
                 return DecalPlaceholder;
             }
 
-            return Placeholder;
+            return Extra.Lib.UI.Icons.Placeholder;
         }
 
     }
