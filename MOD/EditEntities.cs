@@ -174,7 +174,7 @@ namespace ExtraDetailingTools
 					prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab(Surfaces.GetCatByRendererPriority(prefab.GetComponent<RenderedArea>() is null ? 0 : prefab.GetComponent<RenderedArea>().m_RendererPriority), Icons.GetIcon, assetCat);
                     prefabUI.m_Group.AddElement(entity);
 
-					ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
+                    ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
 				}
 			}
 		}
@@ -193,11 +193,11 @@ namespace ExtraDetailingTools
 					if (!ExtraLib.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
 					else if (component.m_State != MeshFlags.Decal) continue;
 
-                    if (ExtraLib.m_EntityManager.TryGetComponent(entity, out ObjectGeometryData objectGeometryData))
-					{
-						objectGeometryData.m_Flags &= ~GeometryFlags.Overridable;
-						ExtraLib.m_EntityManager.SetComponentData(entity, objectGeometryData);
-					}
+					//if (ExtraLib.m_EntityManager.TryGetComponent(entity, out ObjectGeometryData objectGeometryData))
+					//{
+					//	objectGeometryData.m_Flags &= ~GeometryFlags.Overridable;
+					//	ExtraLib.m_EntityManager.SetComponentData(entity, objectGeometryData);
+					//}
 
 					var prefabUI = prefab.GetComponent<UIObject>();
 					if (prefabUI == null)

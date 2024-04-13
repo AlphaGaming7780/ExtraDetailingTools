@@ -29,9 +29,10 @@ namespace ExtraDetailingTools
 			FileInfo fileInfo = new(asset.path);
 
 			ResourcesIcons = Path.Combine(fileInfo.DirectoryName, "Icons");
+            Icons.LoadIcons(fileInfo.DirectoryName);
 
-			EditEntities.SetupEditEntities();
-			Icons.LoadIcons(fileInfo.DirectoryName);
+            EditEntities.SetupEditEntities();
+			
 
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
 
