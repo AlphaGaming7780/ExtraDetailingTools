@@ -14,5 +14,7 @@
 	"Assets.DESCRIPTION[Forestry Surface 01]": "임업 지면 01",
 	"Assets.DESCRIPTION[Landfill Surface 01]": "매립지 지 01",
 	"Assets.DESCRIPTION[Oil Surface 01]": "석유 지면 01",
-	"Assets.DESCRIPTION[Ore Surface 01]": "광석 지면 01"
+	"Assets.DESCRIPTION[Ore Surface 01]": "광석 지면 01",
+	"SubServices.NAME[NetLanes]": "NetLanes",
+	"Assets.SUB_SERVICE_DESCRIPTION[NetLanes]": "This category contains all the NetLanes."
 }
