@@ -37,7 +37,6 @@ namespace ExtraDetailingTools
             EditEntities.SetupEditEntities();
 			
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
-			updateSystem.UpdateAt<EffectEnablerSystem>(SystemUpdatePhase.ModificationEnd);
 
 			harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
 			harmony.PatchAll(typeof(EDT).Assembly);
