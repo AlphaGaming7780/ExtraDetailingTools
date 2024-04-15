@@ -159,8 +159,24 @@ namespace ExtraDetailingTools
 			{
 				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
 				{
+                    if (!prefab.builtin) continue;
 
-					var prefabUI = prefab.GetComponent<UIObject>();
+                    //bool isCustom = false;
+                    //foreach (ComponentBase componentBase in prefab.components)
+                    //{
+                    //    if (componentBase.name == "CustomSurface")
+                    //    {
+                    //        isCustom = true;
+                    //        break;
+                    //    }
+                    //}
+                    //if (isCustom)
+                    //{
+                    //    EDT.Logger.Info(prefab);
+                    //    continue;
+                    //}
+
+                    var prefabUI = prefab.GetComponent<UIObject>();
 					if (prefabUI == null)
 					{
 						prefabUI = prefab.AddComponent<UIObject>();
@@ -188,6 +204,23 @@ namespace ExtraDetailingTools
 			{
 				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
 				{
+
+					if (!prefab.builtin) continue;
+
+					//bool isCustom = false;
+					//foreach(ComponentBase componentBase in prefab.components)
+					//{
+					//	if (componentBase.name == "CustomDecal")
+					//	{
+					//		isCustom = true;
+					//		break;
+					//	}
+     //               }
+					//if (isCustom)
+					//{
+					//	EDT.Logger.Info(prefab);
+					//	continue;
+					//}
 
 					DynamicBuffer<SubMesh> subMeshes =  ExtraLib.m_EntityManager.GetBuffer<SubMesh>(entity);
 					if (!ExtraLib.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
