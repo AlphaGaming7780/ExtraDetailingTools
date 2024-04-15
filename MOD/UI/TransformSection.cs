@@ -24,7 +24,7 @@ namespace ExtraDetailingTools
 		private GetterValueBinding<float3> transformSectionGetPos;
 		private GetterValueBinding<float3> transformSectionGetRot;
 
-		protected override string group => "Transform Section";
+		protected override string group => "Transform Tool";
 
 		protected override void OnCreate()
 		{
@@ -103,17 +103,12 @@ namespace ExtraDetailingTools
 			{
 				transform.m_Rotation = Quaternion.Euler(rotationFloat3);
 			}
-			if (!ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) || !ExtraLib.m_EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData) || !ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out CullingInfo cullingInfo))
+			if (ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) && ExtraLib.m_EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData) && ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out CullingInfo cullingInfo))
 			{
-				EDT.Logger.Warn("Failed to get the CullingInfo on the Entity");
-				//transformSectionGetPos.Update();
-				//transformSectionGetRot.Update();
-				return;
-			}
-
-			//Bounds3 bounds3 = new(transform.m_Position, transform.m_Position);
-			Bounds3 bounds3 = ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
-			cullingInfo.m_Bounds = bounds3;
+                Bounds3 bounds3 = ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
+                cullingInfo.m_Bounds = bounds3;
+                ExtraLib.m_EntityManager.SetComponentData(selectedEntity, cullingInfo);
+            }
 
 			if (ExtraLib.m_EntityManager.TryGetBuffer(selectedEntity, false, out DynamicBuffer<Game.Buildings.InstalledUpgrade> installedUpgrades))
 			{
@@ -123,10 +118,11 @@ namespace ExtraDetailingTools
 					{
 						continue;
 					}
-					if (!ExtraLib.m_EntityManager.TryGetComponent(installedUpgrade, out PrefabRef prefabRef1) || !ExtraLib.m_EntityManager.TryGetComponent(prefabRef1.m_Prefab, out ObjectGeometryData geometryData1) || !ExtraLib.m_EntityManager.TryGetComponent(installedUpgrade, out CullingInfo cullingInfo1))
+					if (ExtraLib.m_EntityManager.TryGetComponent(installedUpgrade, out PrefabRef prefabRef1) && ExtraLib.m_EntityManager.TryGetComponent(prefabRef1.m_Prefab, out ObjectGeometryData geometryData1) && ExtraLib.m_EntityManager.TryGetComponent(installedUpgrade, out CullingInfo cullingInfo1))
 					{
-						continue;
-					}
+                        cullingInfo1.m_Bounds = ObjectUtils.CalculateBounds(transform1.m_Position, transform1.m_Rotation, geometryData1);
+                        ExtraLib.m_EntityManager.SetComponentData(installedUpgrade, cullingInfo1);
+                    }
 					// UnityEngine.Quaternion quaternion = transform.m_Rotation;
 					// float3 newAngle = quaternion.eulerAngles;
 					transform1.m_Position += positionOffset;
@@ -135,18 +131,16 @@ namespace ExtraDetailingTools
 					// transform1.m_Position -= distance; // * (float)Math.Cos(newAngle.y) //  * (float)Math.Sin(newAngle.y)
 					// transform1.m_Position = transform.m_Position + new float3(lenght * (float)Math.Cos(newAngle.y), distance.y, lenght * (float)Math.Sin(newAngle.y));
 					transform1.m_Rotation = transform.m_Rotation;
-					cullingInfo1.m_Bounds = ObjectUtils.CalculateBounds(transform1.m_Position, transform1.m_Rotation, geometryData1);
+					
 					ExtraLib.m_EntityManager.SetComponentData(installedUpgrade, transform1);
-					ExtraLib.m_EntityManager.SetComponentData(installedUpgrade, cullingInfo1);
 					ExtraLib.m_EntityManager.AddComponentData(installedUpgrade, new Game.Common.Updated());
 				}
 			}
 
 			ExtraLib.m_EntityManager.SetComponentData(selectedEntity, transform);
-			ExtraLib.m_EntityManager.SetComponentData(selectedEntity, cullingInfo);
 			ExtraLib.m_EntityManager.AddComponentData(selectedEntity, new Game.Common.Updated());
-			if (!position.Equals(float3.zero)) transformSectionGetPos.Update();
-			if (!rotation.Equals(float3.zero)) transformSectionGetRot.Update();
+			transformSectionGetPos.Update();
+			transformSectionGetRot.Update();
 		}
 
 		private float3 GetPosition()

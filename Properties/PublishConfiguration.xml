@@ -8,14 +8,41 @@
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<!--LongDescription Value="This is a long description" /-->
 	<LongDescription>
+    # ExtraDetailingTools
+    This mod aims to add more useful tools for detailing your city and with it more assets normally only available to the editor.
 
- 
-* Thanks to : 
-- CityRat for all the game icons
-- Dome for all the game decals icon
-- Yenyang for it's help on various aspect
-- T. D. W. for it's help on various aspect
-	</LongDescription>
+    ## Features
+    * Transform Tool
+    * More Snapping Option
+    * NetLanes
+    * Surfaces
+    * Decals
+
+    ### Transform Tool
+    This Tool appear when you click on a compatible object, you are going to see it in the info section of the object at the top right of the screen.
+    Scroll up and down to change the value, you can also scroll up and down to change the incrementation.
+    ### More Snapping Option
+    Do you want to place the object on the building wall, trees perpendicular to the building wall? Now you can. This mod brings the editor snapping options back to the main game.
+    ### NetLanes
+    Netlanes are powerfull assets, they us the same tool as road, you can now place fence, road markings and other stuff.
+    ### Surfaces
+    Do you want to change the texture of the floor? Modify the surface of the building? Now you can. All surfaces are now in the UI and can be used by anyone.
+    ### Decals
+    The surfaces are not enough? Do you want more diversity and details? Decals are made for you, you can place these objects anywhere (if you use Anarchy) to add more diversity to your land.
+
+    I must particularly thank all the people who helped me in this major project which lasted several months :
+    * CityRat : Thanks for all you did, testing the mod since the start, without you, I wouldn't have started ELT project.
+    * Sully: planning, testing since ELT 3.0, promotions and your incredible build that you made with this mod, you gave me confidence in this project.
+    * Yenyang : Without you, this mod wouldn't exist, thank you for all.
+    * T. D. W. : Your help was precious, on various aspects of this mod.
+    * Konsi (Mimonsi/kosch104) : Testing since ELT 3.0, feedback and good idea. I'm glad to see that your mods are appreciated.
+    * Tigon Ologdring : Testing since ELT 3.0, feedback, and is good build idea that help to have faith in this project
+    * Dome : Testing since ELT 3.0, feedback, you did a great job finding how to create custom station and other stuff to link to the pathfinding.
+    * CanadianMoosePlays : Thanks for playing with ELT 3.0, even it never see the light at least somebody use it.
+    * CodiakTheKodiak : Thanks for your streams that I watched while I was coding, you are a great streamer.
+    * Jay : You destroyed my mod, I've never seen anyone use a mod so much, I'm glad I had you as a tester.
+
+  </LongDescription>
 	<!--Thumbnail-->
 	<Thumbnail Value="Properties/Thumbnail.png" />
 	<!--Screenshot, can be set multiple times-->

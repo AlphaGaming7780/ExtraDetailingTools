@@ -37,8 +37,9 @@ namespace ExtraDetailingTools
             EditEntities.SetupEditEntities();
 			
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
+			updateSystem.UpdateAt<EffectEnablerSystem>(SystemUpdatePhase.ModificationEnd);
 
-            harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
+			harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
 			harmony.PatchAll(typeof(EDT).Assembly);
 			var patchedMethods = harmony.GetPatchedMethods().ToArray();
 			Logger.Info($"Plugin ExtraDetailingTools made patches! Patched methods: " + patchedMethods.Length);
