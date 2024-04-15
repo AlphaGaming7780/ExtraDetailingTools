@@ -31,7 +31,6 @@ namespace ExtraDetailingTools
 			) {
 				__result = true;
 			}
-
 		}
 	}
 }
