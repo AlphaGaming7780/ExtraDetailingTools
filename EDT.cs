@@ -1,11 +1,13 @@
 ﻿using Colossal.Logging;
 using Extra.Lib.Debugger;
+using Extra.Lib.Localization;
 using Game;
 using Game.Modding;
 using Game.SceneFlow;
 using HarmonyLib;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace ExtraDetailingTools
 {
@@ -31,9 +33,9 @@ namespace ExtraDetailingTools
 			ResourcesIcons = Path.Combine(fileInfo.DirectoryName, "Icons");
             Icons.LoadIcons(fileInfo.DirectoryName);
 
+			ExtraLocalization.LoadLocalization(Logger, Assembly.GetExecutingAssembly(), false);
             EditEntities.SetupEditEntities();
 			
-
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
 
             harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
