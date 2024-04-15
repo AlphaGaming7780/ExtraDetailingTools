@@ -215,7 +215,7 @@ namespace ExtraDetailingTools
 					//		isCustom = true;
 					//		break;
 					//	}
-     //               }
+					//}
 					//if (isCustom)
 					//{
 					//	EDT.Logger.Info(prefab);
