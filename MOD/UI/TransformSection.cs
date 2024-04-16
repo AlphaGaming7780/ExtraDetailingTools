@@ -49,7 +49,7 @@ namespace ExtraDetailingTools
 				transformSectionGetPos.Update();
 				transformSectionGetRot.Update();
 				RequestUpdate();
-			}
+			}	
 		}
 
 		public override void OnWriteProperties(IJsonWriter writer) {}
