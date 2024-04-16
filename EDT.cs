@@ -4,6 +4,7 @@ using Extra.Lib.Localization;
 using Game;
 using Game.Modding;
 using Game.SceneFlow;
+using Game.Tools;
 using HarmonyLib;
 using System.IO;
 using System.Linq;
@@ -19,6 +20,7 @@ namespace ExtraDetailingTools
 		internal static string ResourcesIcons { get; private set; }
 
 		private Harmony harmony;
+		internal static ToolRaycastSystem toolRaycastSystem;
 
 		public void OnLoad(UpdateSystem updateSystem)
 		{
