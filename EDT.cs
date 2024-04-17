@@ -2,6 +2,7 @@
 using Extra.Lib.Debugger;
 using Extra.Lib.Localization;
 using Game;
+using Game.Effects;
 using Game.Modding;
 using Game.SceneFlow;
 using Game.Tools;
@@ -17,6 +18,8 @@ namespace ExtraDetailingTools
 		private static readonly ILog log = LogManager.GetLogger($"{nameof(ExtraDetailingTools)}").SetShowsErrorsInUI(false);
 		internal static Logger Logger { get; private set; } = new(log, true);
 
+		internal static EffectControlSystem effectControlSystem;
+
 		internal static string ResourcesIcons { get; private set; }
 
 		private Harmony harmony;
@@ -26,7 +29,9 @@ namespace ExtraDetailingTools
 		{
 			Logger.Info(nameof(OnLoad));
 
-			if (!GameManager.instance.modManager.TryGetExecutableAsset(this, out var asset)) return;
+            effectControlSystem = updateSystem.World.GetOrCreateSystemManaged<EffectControlSystem>();
+
+            if (!GameManager.instance.modManager.TryGetExecutableAsset(this, out var asset)) return;
 
 			Logger.Info($"Current mod asset at {asset.path}");
 

@@ -9,26 +9,42 @@
 	<!--LongDescription Value="This is a long description" /-->
 	<LongDescription>
 # ExtraDetailingTools
-This mod aims to add more useful tools for detailing your city and with it more assets normally only available to the editor.
 
-## Features
+# Features:
 * Transform Tool
 * More Snapping Option
 * NetLanes
 * Surfaces
 * Decals
 
-### Transform Tool
-This Tool appear when you click on a compatible object, you are going to see it in the info section of the object at the top right of the screen.
-Scroll up and down to change the value, you can also scroll up and down to change the incrementation.
-### More Snapping Option
-Do you want to place the object on the building wall, trees perpendicular to the building wall? Now you can. This mod brings the editor snapping options back to the main game.
-### NetLanes
-Netlanes are powerfull assets, they us the same tool as road, you can now place fence, road markings and other stuff.
-### Surfaces
-Do you want to change the texture of the floor? Modify the surface of the building? Now you can. All surfaces are now in the UI and can be used by anyone.
-### Decals
-The surfaces are not enough? Do you want more diversity and details? Decals are made for you, you can place these objects anywhere (if you use Anarchy) to add more diversity to your land.
+## Transform Tool
+The Transform UI appears when you select a compatible asset. This allows you to change the positioning and rotation of the object along the XYZ axis. You are also able to change the increment (I) value. This can provide a lot more precision for positioning and rotation.
+
+TIP: Use the mouse scroll wheel to change the values for the XYZ axis.
+
+This menu also has a new 'delete' button, for all objects.
+
+## ExtraDetailingTools UI
+
+In the games main navigation, you’ll find the ExtraDetailingTools UI menu. In here you’ll find three different tabs:
+
+## NetLanes
+Netlanes (NetTool) use the same functionality as road networks, it can be used to create network fencing, or road markings to any length. This tool is more versatile than using prop line tool with fence props.
+
+## Surfaces
+There are many custom and vanilla surfaces found in this tab. They are separated into categories such as ground and tiles.
+
+Note: Surfaces are currently WIP. On launch, the ID will change to the live version, so existing surfaces placed with this beta version of mod will likely break.
+
+## Decals
+Here you’ll find custom and vanilla decals. There are decals to place on the ground, like road markings and stains, and decals you can place on vertical walls.
+
+Note: Decals are currently WIP. On launch, the ID will change to the live version, so existing surfaces placed with this beta version of mod will likely break.
+
+# Snap to surface toggle
+This is a feature found in the editor, now in game. This will allow you to place decals like graffiti and posters, on vertical walls. This can also be used to snap any object to any surface. From placing props on rooftops, to stacking objects on top of each other, right up to placing trees horizontally on walls.
+
+You’ll find this alongside the other snapping options in the games UI.
 
 I must particularly thank all the people who helped me in this major project which lasted several months :
 * CityRat : Thanks for all you did, testing the mod since the start, without you, I wouldn't have started ELT project.
