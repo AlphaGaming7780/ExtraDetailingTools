@@ -8,8 +8,6 @@ namespace ExtraDetailingTools
         internal const string IconsResourceKey = "extradetailingtools";
         internal static readonly string COUIBaseLocation = $"coui://{IconsResourceKey}";
 
-        public static readonly string DecalPlaceholder = $"{COUIBaseLocation}/Icons/Decals/Decal_Placeholder.svg";
-
         internal static void LoadIcons(string path)
         {
             Extra.Lib.UI.Icons.LoadIconsFolder(IconsResourceKey, path);
@@ -35,10 +33,6 @@ namespace ExtraDetailingTools
             {
 
                 return Extra.Lib.UI.Icons.Placeholder;
-            }
-            else if (prefab.name.ToLower().Contains("decal") || prefab.name.ToLower().Contains("roadarrow") || prefab.name.ToLower().Contains("lanemarkings"))
-            {
-                return DecalPlaceholder;
             }
 
             return Extra.Lib.UI.Icons.Placeholder;
