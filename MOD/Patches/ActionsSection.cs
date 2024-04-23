@@ -41,7 +41,7 @@ internal class ActionsSectionPatch
 			//}
 
 			traverse.Property("deletable").SetValue(true);
-			traverse.Property("moveable").SetValue(true);
+			//traverse.Property("moveable").SetValue(true);
 			//traverse.Property("disableable").SetValue(disableable || ExtraLib.m_EntityManager.HasBuffer<EnabledEffect>(selectedEntity));
 
 			//if (ExtraLib.m_EntityManager.TryGetBuffer<EnabledEffect>(selectedEntity, false, out var enabledEffect)) 
