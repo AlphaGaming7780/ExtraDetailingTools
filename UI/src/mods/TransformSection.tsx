@@ -14,11 +14,11 @@ export interface Float3 {
 	z: number
 }
 
+
 export const pos$ = bindValue<Float3>("edt", 'transformsection_getpos');
 export const rot$ = bindValue<Float3>("edt", 'transformsection_getrot');
-
-let PositionIncrement = 1;
-let RotationIncrement = 1;
+export const incPos$ = bindValue<number>("edt", 'transformsection_getincpos');
+export const incRot$ = bindValue<number>("edt", 'transformsection_getincrot');
 
 export const TransformSection = (componentList: any): any => {
 
@@ -31,22 +31,25 @@ export const TransformSection = (componentList: any): any => {
 	componentList["ExtraDetailingTools.TransformSection"] = (e: InfoSection) => {
 		const pos: Float3 = useValue(pos$);
 		const rot: Float3 = useValue(rot$);
+		var PositionIncrement: number = useValue(incPos$);
+		var RotationIncrement: number = useValue(incRot$);
 
 		function OnChange(event: FormEvent<HTMLInputElement>) {
-			return;
-			//if (event.target instanceof HTMLInputElement) {
-			//	let number = parseFloat(event.target.value);
-			//	switch (event.target.id) {
-			//		case "pI": PositionIncrement = number; break;
-			//		case "pX": pos.x = number; break;
-			//		case "pY": pos.y = number; break;
-			//		case "pZ": pos.z = number; break;
-			//		case "rI": RotationIncrement = number; break;  AssetCategoryTabBar
-			//		case "rX": rot.x = number; break;
-			//		case "rY": rot.x = number; break;
-			//		case "rZ": rot.x = number; break;
-			//	}
-			//}
+			if (event.target instanceof HTMLInputElement) {
+				let number = parseFloat(event.target.value);
+				if (Number.isNaN(number)) number = 1;
+				switch (event.target.id) {
+					case "pI": PositionIncrement = number; triggerIncPos(); break;
+					//case "pX": pos.x = number; triggerPos(); break;
+					//case "pY": pos.y = number; triggerPos(); break;
+					//case "pZ": pos.z = number; triggerPos(); break;
+					case "rI": RotationIncrement = number; triggerIncRot(); break;
+					//case "rX": rot.x = number; triggerRot(); break;
+					//case "rY": rot.x = number; triggerRot(); break;
+					//case "rZ": rot.x = number; triggerRot(); break;
+				}
+				trigger("audio", "playSound", "hover-item", 1)
+			}
 		}
 
 		function OnScroll(event: WheelEvent) {
@@ -64,6 +67,7 @@ export const TransformSection = (componentList: any): any => {
 							trigger("audio", "playSound" ,"decrease-elevation", 1);
 						}
 						PositionIncrement = parseFloat(event.target.value)
+						triggerIncPos();
 						break;
 					case "pX":
 						pos.x -= Math.sign(event.deltaY) * PositionIncrement;
@@ -97,6 +101,7 @@ export const TransformSection = (componentList: any): any => {
 							trigger("audio", "playSound", "decrease-elevation", 1);
 						}
 						RotationIncrement = parseFloat(event.target.value)
+						triggerIncRot();
 						break;
 					case "rX":
 						rot.x -= Math.sign(event.deltaY) * RotationIncrement;
@@ -129,6 +134,13 @@ export const TransformSection = (componentList: any): any => {
 
 		function triggerRot() {
 			trigger("edt", "transformsection_getrot", rot)
+		}
+		function triggerIncPos() {
+			trigger("edt", "transformsection_getincpos", PositionIncrement)
+		}
+
+		function triggerIncRot() {
+			trigger("edt", "transformsection_getincrot", RotationIncrement)
 		}
 
 		return <>

@@ -23,8 +23,12 @@ namespace ExtraDetailingTools
 
 		private GetterValueBinding<float3> transformSectionGetPos;
 		private GetterValueBinding<float3> transformSectionGetRot;
+		private GetterValueBinding<double> transformSectionGetIncPos;
+		private GetterValueBinding<double> transformSectionGetIncRot;
 
-		protected override string group => "Transform Tool";
+        private double2 increment = new(1, 1);
+
+        protected override string group => "Transform Tool";
 
 		protected override void OnCreate()
 		{
@@ -36,7 +40,13 @@ namespace ExtraDetailingTools
 			AddBinding(transformSectionGetRot = new GetterValueBinding<float3>("edt", "transformsection_getrot", GetRotation));
 			AddBinding(new TriggerBinding<float3>("edt", "transformsection_getrot", new Action<float3>(SetRotattion)));
 
-			AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
+			AddBinding(transformSectionGetIncPos = new GetterValueBinding<double>("edt", "transformsection_getincpos", () => { return increment.x; })) ;
+            AddBinding(new TriggerBinding<double>("edt", "transformsection_getincpos", (double inc) => { increment.x = inc; transformSectionGetIncPos.Update(); } ));
+
+            AddBinding(transformSectionGetIncRot = new GetterValueBinding<double>("edt", "transformsection_getincrot", () => { return increment.y; }));
+            AddBinding(new TriggerBinding<double>("edt", "transformsection_getincrot", (double inc) => { increment.y = inc; transformSectionGetIncRot.Update(); }));
+
+            AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
 
 		}
 
@@ -155,5 +165,5 @@ namespace ExtraDetailingTools
 			UnityEngine.Quaternion quaternion = transform.m_Rotation;
 			return quaternion.eulerAngles;
 		}
-	}
+    }
 }

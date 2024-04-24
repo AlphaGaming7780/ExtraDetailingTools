@@ -7,9 +7,11 @@ using Game.Modding;
 using Game.SceneFlow;
 using Game.Tools;
 using HarmonyLib;
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using UnityEngine.InputSystem;
 
 namespace ExtraDetailingTools
 {
@@ -54,6 +56,17 @@ namespace ExtraDetailingTools
 				Logger.Info($"Patched method: {patchedMethod.Module.Name}:{patchedMethod.Name}");
 			}
 
+
+            //InputAction elevationStepHotKey = new($"ExtraDetailingTools.ElevationStep");
+            //elevationStepHotKey.AddCompositeBinding("ButtonWithOneModifier").With("Modifier", "<Keyboard>/shift").With("Button", "<Keyboard>/page up");
+            //elevationStepHotKey.performed += test;
+            //elevationStepHotKey.Enable();
+
+        }
+
+        private void test(InputAction.CallbackContext context)
+        {
+            Logger.Info("YEah");
         }
 
 		public void OnDispose()
