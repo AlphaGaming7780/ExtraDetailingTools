@@ -36,6 +36,7 @@ This is a feature found in the editor, now in game. This will allow you to place
 
 You’ll find this alongside the other snapping options in the games UI.
 
+# Thanking
 I must particularly thank all the people who helped me in this major project which lasted several months :
 * CityRat : Thanks for all you did, testing the mod since the start, without you, I wouldn't have started ELT project.
 * Sully: planning, testing since ELT 3.0, promotions and your incredible build that you made with this mod, you gave me confidence in this project.
