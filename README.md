@@ -31,7 +31,7 @@ Here you’ll find custom and vanilla decals. There are decals to place on the g
 
 Note: Decals are currently WIP. On launch, the ID will change to the live version, so existing surfaces placed with this beta version of mod will likely break.
 
-# Snap to surface toggle
+## Snap to surface toggle
 This is a feature found in the editor, now in game. This will allow you to place decals like graffiti and posters, on vertical walls. This can also be used to snap any object to any surface. From placing props on rooftops, to stacking objects on top of each other, right up to placing trees horizontally on walls.
 
 You’ll find this alongside the other snapping options in the games UI.
