@@ -33,7 +33,7 @@ export const ToolOption: ModuleRegistryExtend = (Component: any) => {
 		// This gets the original component that we may alter and return.
 		var result: JSX.Element = Component();
 
-		if (activeTool.id === tool.OBJECT_TOOL || activeTool.id === tool.AREA_TOOL) {
+		if (activeTool.id === tool.OBJECT_TOOL || activeTool.id === tool.AREA_TOOL || activeTool.id === tool.NET_TOOL) {
 
 			trigger("edt", "updateshowmarker")
 
