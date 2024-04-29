@@ -3,7 +3,6 @@ import { PropsSection, Section } from "../../game-ui/game/components/tool-option
 import { PropsToolButton, ToolButton } from "../../game-ui/game/components/tool-options/tool-button/tool-button";
 import { bindValue, trigger, useValue } from "cs2/api";
 import { useLocalization } from "cs2/l10n";import { Tool, tool } from "cs2/bindings";
-import { TooltipProps } from "cs2/ui";
 ;
 
 export const markerVisible$ = bindValue<boolean>("edt", 'showmarker');
