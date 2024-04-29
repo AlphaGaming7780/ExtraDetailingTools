@@ -17,7 +17,7 @@ export const ToolOption: ModuleRegistryExtend = (Component: any) => {
 
 		let PropsToolButton: PropsToolButton = {
 			selected: markerVisible,
-			tooltip: "test",
+			tooltip: translate("ToolOptions.TOOLTIP[ShowMarker]"), 
 			src: "Media/Tools/Snap Options/All.svg",
 			onSelect: () => { trigger("edt", "showmarker") }
 		}

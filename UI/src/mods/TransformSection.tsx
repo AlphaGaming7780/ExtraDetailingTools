@@ -153,10 +153,10 @@ export const TransformSection = (componentList: any): any => {
 						<div className={InfoRowSCSS.left + " " + InfoRowSCSS.link}>
 							Position 
 							<button className={ActionButtonSCSS.button + " " + TransfromSectionSCSS.TransfromSectionButton} onClick={() => { trigger("edt", "transformsection_copypos") }}>
-								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="Media/Glyphs/Copy.svg"></img>
+								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="coui://extralib/Icons/Misc/Copy.svg"></img>
 							</button>
 							<button className={ActionButtonSCSS.button + " " + TransfromSectionSCSS.TransfromSectionButton} onClick={() => { trigger("edt", "transformsection_pastpos") }}>
-								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="Media/Glyphs/Past.svg"></img>
+								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="coui://extralib/Icons/Misc/Past.svg"></img>
 							</button>
 							{/*<ToolButton className={TransfromSectionSCSS.TransfromSectionButton} src="Media/Glyphs/Copy.svg" onSelect={() => { trigger("edt", "transformsection_copypos") }} />*/}
 							{/*<ToolButton className={TransfromSectionSCSS.TransfromSectionButton} src="" onSelect={() => { trigger("edt", "transformsection_pastpos") }} />*/}
@@ -170,10 +170,10 @@ export const TransformSection = (componentList: any): any => {
 						<div className={InfoRowSCSS.left + " " + InfoRowSCSS.link}>
 							Rotation
 							<button className={ActionButtonSCSS.button + " " + TransfromSectionSCSS.TransfromSectionButton} onClick={() => { trigger("edt", "transformsection_copyrot") } }>
-								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="Media/Glyphs/Copy.svg"></img>
+								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="coui://extralib/Icons/Misc/Copy.svg"></img>
 							</button>
 							<button className={ActionButtonSCSS.button + " " + TransfromSectionSCSS.TransfromSectionButton} onClick={() => { trigger("edt", "transformsection_pastrot") } }>
-								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="Media/Glyphs/Past.svg"></img>
+								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="coui://extralib/Icons/Misc/Past.svg"></img>
 							</button>
 							{/*<ToolButton className={TransfromSectionSCSS.TransfromSectionButton} src="Media/Glyphs/Copy.svg" onSelect={() => { trigger("edt", "transformsection_copyrot") }} />*/}
 							{/*<ToolButton className={TransfromSectionSCSS.TransfromSectionButton} src="" onSelect={() => { trigger("edt", "transformsection_pastrot") }} />*/}
