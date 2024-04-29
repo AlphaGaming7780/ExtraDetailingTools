@@ -14,7 +14,7 @@ class AreaToolSystemPatch
 	{
 		private static bool Prefix(AreaGeometryData prefabAreaData, bool editorMode, out Snap onMask, out Snap offMask) {
 
-			onMask = Snap.ExistingGeometry | Snap.StraightDirection;
+			onMask = Snap.ExistingGeometry | Snap.StraightDirection | Snap.ContourLines;
 			offMask = onMask;
 			switch (prefabAreaData.m_Type)
 			{

@@ -6,11 +6,13 @@ using Game.Effects;
 using Game.Modding;
 using Game.SceneFlow;
 using Game.Tools;
+using Game.UI.InGame;
 using HarmonyLib;
 using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Unity.Entities;
 using UnityEngine.InputSystem;
 
 namespace ExtraDetailingTools
@@ -20,7 +22,7 @@ namespace ExtraDetailingTools
 		private static readonly ILog log = LogManager.GetLogger($"{nameof(ExtraDetailingTools)}").SetShowsErrorsInUI(false);
 		internal static Logger Logger { get; private set; } = new(log, true);
 
-		internal static EffectControlSystem effectControlSystem;
+		//internal static EffectControlSystem effectControlSystem;
 
 		internal static string ResourcesIcons { get; private set; }
 
@@ -31,7 +33,7 @@ namespace ExtraDetailingTools
 		{
 			Logger.Info(nameof(OnLoad));
 
-            effectControlSystem = updateSystem.World.GetOrCreateSystemManaged<EffectControlSystem>();
+            //effectControlSystem = updateSystem.World.GetOrCreateSystemManaged<EffectControlSystem>();
 
             if (!GameManager.instance.modManager.TryGetExecutableAsset(this, out var asset)) return;
 
@@ -56,6 +58,10 @@ namespace ExtraDetailingTools
 				Logger.Info($"Patched method: {patchedMethod.Module.Name}:{patchedMethod.Name}");
 			}
 
+            SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
+            selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
+
+            toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
 
             //InputAction elevationStepHotKey = new($"ExtraDetailingTools.ElevationStep");
             //elevationStepHotKey.AddCompositeBinding("ButtonWithOneModifier").With("Modifier", "<Keyboard>/shift").With("Button", "<Keyboard>/page up");

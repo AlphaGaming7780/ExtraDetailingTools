@@ -16,8 +16,8 @@ class ObjectToolSystemPatch {
 	{
 		private static bool Prefix(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, bool brushing, bool stamping, out Snap onMask, out Snap offMask)
 		{
-			onMask = Snap.Upright | Snap.NetArea;
-			offMask = Snap.None | Snap.NetArea;
+			onMask = Snap.Upright;
+			offMask = Snap.None;
 			if ((prefabPlaceableData.m_Flags & Game.Objects.PlacementFlags.OwnerSide) != Game.Objects.PlacementFlags.None)
 			{
 				onMask |= Snap.OwnerSide;
@@ -53,8 +53,8 @@ class ObjectToolSystemPatch {
 			}
 			else if (!isBuilding)
 			{
-				onMask |= Snap.ObjectSurface;
-				offMask |= Snap.ObjectSurface;
+				onMask |= Snap.ObjectSurface | Snap.NetArea;
+				offMask |= Snap.ObjectSurface | Snap.NetArea;
 				offMask |= Snap.Upright;
 			}
 			if (editorMode && (!isAssetStamp || stamping))

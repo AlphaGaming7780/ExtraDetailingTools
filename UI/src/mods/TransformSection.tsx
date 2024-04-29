@@ -1,12 +1,11 @@
-﻿import { TextInput } from "../../game-ui/common/input/text/text-input";
-import { InfoSectionSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
+﻿import { InfoSectionSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
 import { InfoRowSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
 import { EditorItemSCSS } from "../../game-ui/editor/widgets/item/editor-item.module.scss";
 import TransfromSectionSCSS from "./Styles/TransformSection.module.scss";
 import { trigger, useValue } from "cs2/api";
 import { bindValue } from "cs2/api";
-import { ModuleRegistryExtend } from "cs2/modding";
-import React, { FormEvent, MouseEvent, ReactNode, WheelEvent } from "react";
+import { FormEvent, MouseEvent, WheelEvent } from "react";
+import { ActionButtonSCSS } from "../../game-ui/game/components/selected-info-panel/selected-info-sections/shared-sections/actions-section/action-button.module.scss";
 
 export interface Float3 {
 	x: number,
@@ -152,7 +151,15 @@ export const TransformSection = (componentList: any): any => {
 					</div>
 					<div className={InfoRowSCSS.infoRow + " " + InfoRowSCSS.subRow + " " + InfoRowSCSS.link}>
 						<div className={InfoRowSCSS.left + " " + InfoRowSCSS.link}>
-							Position
+							Position 
+							<button className={ActionButtonSCSS.button + " " + TransfromSectionSCSS.TransfromSectionButton} onClick={() => { trigger("edt", "transformsection_copypos") }}>
+								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="Media/Glyphs/Copy.svg"></img>
+							</button>
+							<button className={ActionButtonSCSS.button + " " + TransfromSectionSCSS.TransfromSectionButton} onClick={() => { trigger("edt", "transformsection_pastpos") }}>
+								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="Media/Glyphs/Past.svg"></img>
+							</button>
+							{/*<ToolButton className={TransfromSectionSCSS.TransfromSectionButton} src="Media/Glyphs/Copy.svg" onSelect={() => { trigger("edt", "transformsection_copypos") }} />*/}
+							{/*<ToolButton className={TransfromSectionSCSS.TransfromSectionButton} src="" onSelect={() => { trigger("edt", "transformsection_pastpos") }} />*/}
 						</div>
 						<div className={InfoRowSCSS.right} style={{ justifyContent: "flex-end", alignContent: "flex-end" }}>
 							↕<input id="pI" value={PositionIncrement} multiple={false} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
@@ -162,6 +169,14 @@ export const TransformSection = (componentList: any): any => {
 						</div>
 						<div className={InfoRowSCSS.left + " " + InfoRowSCSS.link}>
 							Rotation
+							<button className={ActionButtonSCSS.button + " " + TransfromSectionSCSS.TransfromSectionButton} onClick={() => { trigger("edt", "transformsection_copyrot") } }>
+								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="Media/Glyphs/Copy.svg"></img>
+							</button>
+							<button className={ActionButtonSCSS.button + " " + TransfromSectionSCSS.TransfromSectionButton} onClick={() => { trigger("edt", "transformsection_pastrot") } }>
+								<img className={ActionButtonSCSS.icon + " " + TransfromSectionSCSS.TransfromSectionButtonIcon} src="Media/Glyphs/Past.svg"></img>
+							</button>
+							{/*<ToolButton className={TransfromSectionSCSS.TransfromSectionButton} src="Media/Glyphs/Copy.svg" onSelect={() => { trigger("edt", "transformsection_copyrot") }} />*/}
+							{/*<ToolButton className={TransfromSectionSCSS.TransfromSectionButton} src="" onSelect={() => { trigger("edt", "transformsection_pastrot") }} />*/}
 						</div>
 						<div className={InfoRowSCSS.right} style={{ justifyContent: "flex-end", alignContent: "flex-end" }}>
 							↕<input id="rI" value={RotationIncrement} multiple={false} className={EditorItemSCSS.input + " " + TransfromSectionSCSS.TransfromSectionInput} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />

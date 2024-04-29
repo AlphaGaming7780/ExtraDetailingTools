@@ -1,20 +1,34 @@
-﻿using Game.Tools;
+﻿using Colossal.UI.Binding;
+using Extra;
+using Game.Rendering;
+using Game.Tools;
 using Game.UI;
 using Game.UI.InGame;
+using System;
 
 namespace ExtraDetailingTools
 {
 	internal partial class UI : UISystemBase
 	{
-		protected override void OnCreate()
+        private static GetterValueBinding<bool> showMarker;
+        RenderingSystem renderingSystem;
+        protected override void OnCreate()
 		{
 			base.OnCreate();
 
-			SelectedInfoUISystem selectedInfoUISystem = World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
-			selectedInfoUISystem.AddMiddleSection(World.GetOrCreateSystemManaged<TransformSection>());
+            renderingSystem = World.GetOrCreateSystemManaged<RenderingSystem>();
 
-			EDT.toolRaycastSystem = World.GetOrCreateSystemManaged<ToolRaycastSystem>();
+            AddBinding(showMarker = new GetterValueBinding<bool>("edt", "showmarker", () => renderingSystem.markersVisible));
+            AddBinding(new TriggerBinding("edt", "showmarker", new Action(ShowMarker)));
 
-		}
-	}
+            AddBinding(new TriggerBinding("edt", "updateshowmarker", () => { showMarker.Update(); }));
+
+        }
+
+        private void ShowMarker()
+        {
+            renderingSystem.markersVisible = !renderingSystem.markersVisible;
+            showMarker.Update();
+        }
+    }
 }
