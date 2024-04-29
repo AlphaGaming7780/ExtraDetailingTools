@@ -1,6 +1,6 @@
 {
 	"Toolbar.SHOWMARKER": "Show Marker",
-	"": "",
+	"ToolOptions.TOOLTIP[ShowMarker]": "Show/hide the markers.",
 	"Assets.DESCRIPTION[Agriculture Surface 01]": "농업 지면 01",
 	"Assets.DESCRIPTION[Concrete Surface 01]": "콘크리트 지면 01",
 	"Assets.DESCRIPTION[Concrete Surface 02]": "콘크리트 지면 02",
