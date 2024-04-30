@@ -5,7 +5,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTPOS": "위치 붙여넣기",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPYROT": "회전 복사",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTROT": "회전 붙여넣기",
-	"SelectedInfoPanel.TRANSFORMTOOL.POSI": "The increment of the scroll up/down for the position, scroll up/down or edit the input to change the value.",
+	"SelectedInfoPanel.TRANSFORMTOOL.POSI": "위치를 변경하려면 스크롤을 위로/아래로 이동하거나 값을 변경하려면 입력을 편집하세요.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSX": "The position X global axis, scroll up/down to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSY": "The position Y global axis, scroll up/down to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSZ": "The position Z global axis, scroll up/down to change the value.",
