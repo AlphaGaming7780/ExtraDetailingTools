@@ -20,11 +20,15 @@ namespace ExtraDetailingTools
     public class EDT : IMod
 	{
 		private static readonly ILog log = LogManager.GetLogger($"{nameof(ExtraDetailingTools)}").SetShowsErrorsInUI(false);
-		internal static Logger Logger { get; private set; } = new(log, true);
+#if DEBUG
+		internal static Logger Logger = new(log, true);
+#else
+        internal static Logger Logger = new(log, false);
+#endif
 
-		//internal static EffectControlSystem effectControlSystem;
+        //internal static EffectControlSystem effectControlSystem;
 
-		internal static string ResourcesIcons { get; private set; }
+        internal static string ResourcesIcons { get; private set; }
 
 		private Harmony harmony;
 		internal static ToolRaycastSystem toolRaycastSystem;
