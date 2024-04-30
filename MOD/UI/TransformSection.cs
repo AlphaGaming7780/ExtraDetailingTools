@@ -36,7 +36,10 @@ namespace ExtraDetailingTools
 
 		private double2 increment = new(1, 1);
 
-		protected override string group => "Transform Tool";
+		private bool localPosition = false;
+        private GetterValueBinding<bool> transformSectionLocalPos;
+
+        protected override string group => "Transform Tool";
 
 		protected override void OnCreate()
 		{
@@ -60,7 +63,10 @@ namespace ExtraDetailingTools
 			AddBinding(new TriggerBinding("edt", "transformsection_copyrot", new Action(CopyRotation)));
 			AddBinding(new TriggerBinding("edt", "transformsection_pastrot", new Action(PastRotation)));
 
-			AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
+            AddBinding(transformSectionLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localpos", () => { return localPosition; }));
+            AddBinding(new TriggerBinding("edt", "transformsection_localpos", new Action(PastRotation)));
+
+            AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
 
 		}
 
@@ -96,6 +102,11 @@ namespace ExtraDetailingTools
 			}
 		}
 
+		private void LocalPosition()
+		{
+
+		}
+
 		private void CopyPosition()
 		{
 			Vector3 vector3 = GetPosition();
@@ -104,7 +115,7 @@ namespace ExtraDetailingTools
 
 		private void PastPosition()
 		{
-			SetPosition(StringToVector3(Clipboard, GetPosition()));
+			SetPosition(StringToFloat3(Clipboard, GetPosition()));
 		}
 
 		private void CopyRotation()
@@ -115,7 +126,7 @@ namespace ExtraDetailingTools
 
 		private void PastRotation()
 		{
-			SetRotattion(StringToVector3(Clipboard, GetRotation()));
+			SetRotattion(StringToFloat3(Clipboard, GetRotation()));
 		}
 
 		private float3 GetPosition()
@@ -255,7 +266,7 @@ namespace ExtraDetailingTools
             }
         }
 
-        private Vector3 StringToVector3(string sVector, Vector3 result)
+        private float3 StringToFloat3(string sVector, float3 result)
 		{
 
 			try
@@ -273,5 +284,19 @@ namespace ExtraDetailingTools
 
 			return result;
 		}
+
+		private float3 GlobalToLocal(Vector3 gloabl, float3 rotation) 
+		{
+			float3 result = new((float)(Math.Cos(rotation.y) / gloabl.x), gloabl.y, (float)(gloabl.z / Math.Sin(rotation.z)));
+
+			return result;
+		}
+
+		private float3 LocalToGlobal(Vector3 local, float3 rotation)
+		{
+            float3 result = new((float)(Math.Cos(rotation.y) * local.x), local.y, (float)(local.z * Math.Sin(rotation.z)));
+
+            return result;
+        }
 	}
 }

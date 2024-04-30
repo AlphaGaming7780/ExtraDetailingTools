@@ -36,6 +36,21 @@ This is a feature found in the editor, now in game. This will allow you to place
 
 You’ll find this alongside the other snapping options in the games UI.
 
+# Translation
+| Language				| Progress	| Participants |
+| --------------------- | ---------	| ------------ |
+| French				| 22%		| |
+| Chinese Simplified	| 0%		| |
+| Chinese Traditional	| 0%		| |
+| German				| 22%		| |
+| Italian				| 0%		| |
+| Japanese				| 0%		| |
+| Korean				| 40%		| Twotoolus-FLY-LShst, Hinanchovo |
+| Polish				| 0%		| |
+| Portuguese, Brazilian | 0%		| |
+| Russian				| 0%		| |
+| Spanish				| 0%		| |
+
 # Thanking
 I must particularly thank all the people who helped me in this major project which lasted several months :
 * CityRat : Thanks for all you did, testing the mod since the start, without you, I wouldn't have started ELT project.
