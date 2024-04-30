@@ -36,9 +36,6 @@ namespace ExtraDetailingTools
 
 		private double2 increment = new(1, 1);
 
-		private bool localPosition = false;
-        private GetterValueBinding<bool> transformSectionLocalPos;
-
         protected override string group => "Transform Tool";
 
 		protected override void OnCreate()
@@ -63,9 +60,6 @@ namespace ExtraDetailingTools
 			AddBinding(new TriggerBinding("edt", "transformsection_copyrot", new Action(CopyRotation)));
 			AddBinding(new TriggerBinding("edt", "transformsection_pastrot", new Action(PastRotation)));
 
-            AddBinding(transformSectionLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localpos", () => { return localPosition; }));
-            AddBinding(new TriggerBinding("edt", "transformsection_localpos", new Action(LocalPosition)));
-
             AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
 
 		}
@@ -73,7 +67,7 @@ namespace ExtraDetailingTools
 		protected override void OnUpdate()
 		{
 			base.OnUpdate();
-			visible = EntityManager.HasComponent<Game.Objects.Transform>(selectedEntity);
+			visible = EntityManager.HasComponent<Game.Objects.Transform>(selectedEntity) && !EntityManager.HasComponent<Building>(selectedEntity); ;
 			if (visible)
 			{
 				transformSectionGetPos.Update();
@@ -102,15 +96,9 @@ namespace ExtraDetailingTools
 			}
 		}
 
-		private void LocalPosition()
-		{
-			localPosition = !localPosition;
-            transformSectionLocalPos.Update();
-        }
-
 		private void CopyPosition()
 		{
-			Vector3 vector3 = GetPosition();
+			float3 vector3 = GetPosition();
 			Clipboard = $"{vector3.x} {vector3.y} {vector3.z}";
 		}
 
@@ -121,7 +109,7 @@ namespace ExtraDetailingTools
 
 		private void CopyRotation()
 		{
-			Vector3 vector3 = GetRotation();
+			float3 vector3 = GetRotation();
 			Clipboard = $"{vector3.x} {vector3.y} {vector3.z}";
 		}
 
@@ -133,7 +121,7 @@ namespace ExtraDetailingTools
 		private float3 GetPosition()
 		{
 			EntityManager.TryGetComponent(selectedEntity, out Game.Objects.Transform transform);
-			return transform.m_Position;
+            return transform.m_Position;
 		}
 
 		private float3 GetRotation()
@@ -285,19 +273,5 @@ namespace ExtraDetailingTools
 
 			return result;
 		}
-
-		private float3 GlobalToLocal(Vector3 gloabl, float3 rotation) 
-		{
-			float3 result = new((float)(Math.Cos(rotation.y) / gloabl.x), gloabl.y, (float)(gloabl.z / Math.Sin(rotation.z)));
-
-			return result;
-		}
-
-		private float3 LocalToGlobal(Vector3 local, float3 rotation)
-		{
-            float3 result = new((float)(Math.Cos(rotation.y) * local.x), local.y, (float)(local.z * Math.Sin(rotation.z)));
-
-            return result;
-        }
 	}
 }
