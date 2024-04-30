@@ -64,7 +64,7 @@ namespace ExtraDetailingTools
 			AddBinding(new TriggerBinding("edt", "transformsection_pastrot", new Action(PastRotation)));
 
             AddBinding(transformSectionLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localpos", () => { return localPosition; }));
-            AddBinding(new TriggerBinding("edt", "transformsection_localpos", new Action(PastRotation)));
+            AddBinding(new TriggerBinding("edt", "transformsection_localpos", new Action(LocalPosition)));
 
             AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
 
@@ -104,8 +104,9 @@ namespace ExtraDetailingTools
 
 		private void LocalPosition()
 		{
-
-		}
+			localPosition = !localPosition;
+            transformSectionLocalPos.Update();
+        }
 
 		private void CopyPosition()
 		{
