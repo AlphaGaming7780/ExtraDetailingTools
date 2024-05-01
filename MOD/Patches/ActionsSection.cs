@@ -7,6 +7,7 @@ using Game.Prefabs;
 using Game.Rendering;
 using Game.Tools;
 using Game.UI.InGame;
+using Game.Vehicles;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
@@ -27,7 +28,7 @@ internal class ActionsSectionPatch
 		public static void Postfix(ActionsSection __instance)
 		{
 			Traverse traverse = Traverse.Create(__instance);
-			//Entity selectedEntity = traverse.Property("selectedEntity").GetValue<Entity>();
+			Entity selectedEntity = traverse.Property("selectedEntity").GetValue<Entity>();
 			//bool disableable = traverse.Property("disableable").GetValue<bool>();
 
 			//if(ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out PrefabData prefabData) && ExtraLib.m_PrefabSystem.TryGetPrefab(prefabData, out PrefabBase prefabBase))
@@ -41,7 +42,7 @@ internal class ActionsSectionPatch
 			//}
 
 			traverse.Property("deletable").SetValue(true);
-			//traverse.Property("moveable").SetValue(true);
+			if (!ExtraLib.m_EntityManager.HasComponent<Car>(selectedEntity)) traverse.Property("moveable").SetValue(true);
 			//traverse.Property("disableable").SetValue(disableable || ExtraLib.m_EntityManager.HasBuffer<EnabledEffect>(selectedEntity));
 
 			//if (ExtraLib.m_EntityManager.TryGetBuffer<EnabledEffect>(selectedEntity, false, out var enabledEffect)) 
