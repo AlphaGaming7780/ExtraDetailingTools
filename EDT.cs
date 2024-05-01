@@ -31,10 +31,9 @@ namespace ExtraDetailingTools
         internal static string ResourcesIcons { get; private set; }
 
 		private Harmony harmony;
-		//internal static ToolRaycastSystem toolRaycastSystem;
-        internal static ObjectToolSystem objectToolSystem;
+		internal static ToolRaycastSystem toolRaycastSystem;
 
-        public void OnLoad(UpdateSystem updateSystem)
+		public void OnLoad(UpdateSystem updateSystem)
 		{
 			Logger.Info(nameof(OnLoad));
 
@@ -66,8 +65,7 @@ namespace ExtraDetailingTools
             SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
             selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
 
-            //toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
-			objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
+            toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
 
             //InputAction elevationStepHotKey = new($"ExtraDetailingTools.ElevationStep");
             //elevationStepHotKey.AddCompositeBinding("ButtonWithOneModifier").With("Modifier", "<Keyboard>/shift").With("Button", "<Keyboard>/page up");
