@@ -5,7 +5,16 @@ import { bindValue, trigger, useValue } from "cs2/api";
 import { useLocalization } from "cs2/l10n";import { Tool, tool } from "cs2/bindings";
 ;
 
-export const markerVisible$ = bindValue<boolean>("edt", 'showmarker');
+export const markerVisible$ = bindValue<boolean>("edt", 'markersvisible');
+
+let firstTime: boolean = true
+let disabled : boolean = false
+let defaultValue: boolean = false;
+
+function DefaultValue(bool : boolean) {
+	defaultValue = bool
+	console.log(defaultValue)
+}
 
 export const ToolOption: ModuleRegistryExtend = (Component: any) => {
 	return (props) => {
@@ -18,7 +27,7 @@ export const ToolOption: ModuleRegistryExtend = (Component: any) => {
 			selected: markerVisible,
 			tooltip: translate("ToolOptions.TOOLTIP[ShowMarker]"), 
 			src: "Media/Tools/Snap Options/All.svg",
-			onSelect: () => { trigger("edt", "showmarker") }
+			onSelect: () => { trigger("edt", "togglemarkers") }
 		}
 
 		let ShowMarkerProps: PropsSection = {
@@ -32,16 +41,17 @@ export const ToolOption: ModuleRegistryExtend = (Component: any) => {
 		// This gets the original component that we may alter and return.
 		var result: JSX.Element = Component();
 
+		trigger("edt", "updatemarkersvisible")
+
 		if (activeTool.id === tool.OBJECT_TOOL || activeTool.id === tool.AREA_TOOL || activeTool.id === tool.NET_TOOL) {
 
-			trigger("edt", "updateshowmarker")
+			disabled = true;
 
 			result.props.children?.unshift(
 				Section(ShowMarkerProps),
 			);
-		} else if (markerVisible) {
-			trigger("edt", "showmarker")
 		}
+
 		return result;
 	};
 }

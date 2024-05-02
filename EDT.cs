@@ -49,7 +49,7 @@ namespace ExtraDetailingTools
 			ResourcesIcons = Path.Combine(fileInfo.DirectoryName, "Icons");
             Icons.LoadIcons(fileInfo.DirectoryName);
 
-			ExtraLocalization.LoadLocalization(Logger, Assembly.GetExecutingAssembly(), false);
+			ExtraLocalization.LoadLocalization(Logger, Assembly.GetExecutingAssembly());
             EditEntities.SetupEditEntities();
 			
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
