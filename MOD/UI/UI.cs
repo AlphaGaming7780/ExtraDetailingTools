@@ -30,5 +30,25 @@ namespace ExtraDetailingTools
             renderingSystem.markersVisible = !renderingSystem.markersVisible;
             showMarker.Update();
         }
+
+        [HarmonyPatch(typeof(ToolUISystem), "OnToolChanged", typeof(ToolBaseSystem))]
+        class ToolUISystem_OnToolChanged
+        {
+            static bool showMarker = false;
+            private static bool Prefix(ToolBaseSystem tool)
+            {
+
+                if(tool is AreaToolSystem || tool is ObjectToolSystem || tool is NetToolSystem)
+                {
+                    showMarker = true;
+                } else if(showMarker)
+                {
+                    showMarker = false;
+                    ShowMarker(false);
+                }
+                return true;
+            }
+        }
+
     }
 }
