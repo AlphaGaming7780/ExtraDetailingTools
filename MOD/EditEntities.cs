@@ -1,13 +1,9 @@
-﻿using Extra.Lib.Helper;
-using Extra.Lib;
+﻿using Extra.Lib;
 using Game.Prefabs;
 using Unity.Collections;
 using Unity.Entities;
 using Colossal.Entities;
-using Game.Objects;
 using Extra.Lib.UI;
-using System.Linq;
-using Colossal.Collections;
 
 namespace ExtraDetailingTools
 {
@@ -150,8 +146,7 @@ namespace ExtraDetailingTools
 
         private static void OnEditSurfacesEntities(NativeArray<Entity> entities)
 		{
-
-			if (entities.Length == 0) return;
+            if (entities.Length == 0) return;
 
             ExtraAssetsMenu.AssetCat assetCat =  ExtraAssetsMenu.GetOrCreateNewAssetCat("Surfaces", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Surfaces.svg");
 
@@ -160,21 +155,6 @@ namespace ExtraDetailingTools
 				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
 				{
                     if (!prefab.builtin) continue;
-
-                    //bool isCustom = false;
-                    //foreach (ComponentBase componentBase in prefab.components)
-                    //{
-                    //    if (componentBase.name == "CustomSurface")
-                    //    {
-                    //        isCustom = true;
-                    //        break;
-                    //    }
-                    //}
-                    //if (isCustom)
-                    //{
-                    //    EDT.Logger.Info(prefab);
-                    //    continue;
-                    //}
 
                     var prefabUI = prefab.GetComponent<UIObject>();
 					if (prefabUI == null)
