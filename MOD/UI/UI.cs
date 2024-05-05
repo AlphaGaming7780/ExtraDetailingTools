@@ -44,7 +44,7 @@ namespace ExtraDetailingTools
         [HarmonyPatch(typeof(ToolUISystem), "OnToolChanged", typeof(ToolBaseSystem))]
         class ToolUISystem_OnToolChanged
         {
-            internal static bool showMarker = false;
+            static bool showMarker = false;
             private static bool Prefix(ToolBaseSystem tool)
             {
 

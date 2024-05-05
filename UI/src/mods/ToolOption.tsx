@@ -45,8 +45,6 @@ export const ToolOption: ModuleRegistryExtend = (Component: any) => {
 
 		if (activeTool.id === tool.OBJECT_TOOL || activeTool.id === tool.AREA_TOOL || activeTool.id === tool.NET_TOOL) {
 
-			disabled = true;
-
 			result.props.children?.unshift(
 				Section(ShowMarkerProps),
 			);
