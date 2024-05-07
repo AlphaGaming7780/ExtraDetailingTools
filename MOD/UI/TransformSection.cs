@@ -115,7 +115,7 @@ internal partial class TransformSection : InfoSectionBase
 	private float3 GetPosition()
 	{
 		EntityManager.TryGetComponent(selectedEntity, out Game.Objects.Transform transform);
-            return transform.m_Position;
+        return transform.m_Position;
 	}
 
 	private float3 GetRotation()
