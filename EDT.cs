@@ -1,4 +1,10 @@
-﻿using Colossal.Logging;
+// <copyright file="EDT.cs" company="Triton Supreme">
+// Copyright (c) Triton Supreme. All rights reserved.
+// </copyright>
+
+namespace ExtraDetailingTools;
+
+using Colossal.Logging;
 using Extra.Lib.Debugger;
 using Extra.Lib.Localization;
 using Game;
@@ -31,8 +37,8 @@ namespace ExtraDetailingTools
         internal static string ResourcesIcons { get; private set; }
 
 		private Harmony harmony;
-		//internal static ToolRaycastSystem toolRaycastSystem;
-        internal static ObjectToolSystem objectToolSystem;
+        // internal static ToolRaycastSystem toolRaycastSystem;
+        //internal static ObjectToolSystem objectToolSystem;
 
         public void OnLoad(UpdateSystem updateSystem)
 		{
@@ -66,13 +72,8 @@ namespace ExtraDetailingTools
             SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
             selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
 
-            //toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
-			objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
-
-            //InputAction elevationStepHotKey = new($"ExtraDetailingTools.ElevationStep");
-            //elevationStepHotKey.AddCompositeBinding("ButtonWithOneModifier").With("Modifier", "<Keyboard>/shift").With("Button", "<Keyboard>/page up");
-            //elevationStepHotKey.performed += test;
-            //elevationStepHotKey.Enable();
+            // toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
+            //objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
 
         }
 
@@ -81,10 +82,12 @@ namespace ExtraDetailingTools
             Logger.Info("YEah");
         }
 
-		public void OnDispose()
-		{
-			Logger.Info(nameof(OnDispose));
-			harmony.UnpatchAll($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
-		}
-	}
+
+    }
+
+    public void OnDispose()
+    {
+        Logger.Info(nameof(OnDispose));
+        Harmony.UnpatchAll($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
+    }
 }

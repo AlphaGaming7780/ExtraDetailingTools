@@ -39,17 +39,17 @@ You’ll find this alongside the other snapping options in the games UI.
 # Translation
 | Language				| Progress	| Participants |
 | --------------------- | ---------	| ------------ |
-| French				| 22%		| |
-| Chinese Simplified	| 0%		| |
+| French				| 20%		| |
+| Chinese Simplified	| 10%		| RilkeXS(无手文) (RilkeXS) |
 | Chinese Traditional	| 0%		| |
-| German				| 22%		| |
+| German				| 41%		| Konsi |
 | Italian				| 0%		| |
 | Japanese				| 0%		| |
-| Korean				| 40%		| Twotoolus-FLY-LShst, Hinanchovo |
-| Polish				| 100%		| Lisek |
+| Korean				| 89%		| Twotoolus-FLY-LShst, Hinanchovo |
+| Polish				| 89%		| Lisek |
 | Portuguese, Brazilian | 0%		| |
 | Russian				| 0%		| |
-| Spanish				| 0%		| |
+| Spanish				| 89%		| Alex (AlexofCA) |
 
 # Thanking
 I must particularly thank all the people who helped me in this major project which lasted several months :
