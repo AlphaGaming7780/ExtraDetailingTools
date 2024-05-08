@@ -37,8 +37,8 @@
     <Reference Include="$(CustomManagedPath)\Game*.dll" Private="False" />
     <Reference Include="$(CustomManagedPath)\Unity.*.dll" Private="False" />
     <Reference Include="$(CustomManagedPath)\cohtml.Net.dll" Private="False" />
-    <!--<Reference Include="$(LocalModsPath)\ExtraLib\ExtraLib.dll" Private="False" />-->
-    <Reference Include="$(UserDataPath)\.cache\Mods\mods_subscribed\75724_*\ExtraLib.dll" Private="False" />
+    <Reference Include="$(LocalModsPath)\ExtraLib\ExtraLib.dll" Private="False" />
+    <!--<Reference Include="$(UserDataPath)\.cache\Mods\mods_subscribed\75724_*\ExtraLib.dll" Private="False" />-->
   </ItemGroup>
 
   <ItemGroup>
@@ -62,16 +62,6 @@
 		<None Include="$(ModPropsFile)" Link="Properties\Mod.props" />
 		<None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
 	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="UI\game-ui\game\components\tool-options\tool-button\" />
-	</ItemGroup>
-
-	<!--<ItemGroup>
-	  <Folder Include="UI\game-ui\editor\widgets\item\" />
-	  <Folder Include="UI\game-ui\game\components\selected-info-panel\shared-components\info-row\" />
-	  <Folder Include="UI\src\mods\Styles\" />
-	</ItemGroup>-->
 
   <Target Name="BuildUI" BeforeTargets="AfterBuild">
     <Exec Command="npm run build" WorkingDirectory="$(ProjectDir)/UI" />
