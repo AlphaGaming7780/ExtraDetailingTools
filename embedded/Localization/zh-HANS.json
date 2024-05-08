@@ -5,6 +5,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTPOS": "粘贴位置。",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPYROT": "复制旋转角度。",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTROT": "粘贴旋转角度。",
+	"SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS": "Enable Local Axis modification instead of global axis. That means the axis follows the object rotation, X axis is always pointing forward of the object.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSI": "The increment of the scroll up/down for the position, scroll up/down or edit the input to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSX": "The position X global axis, scroll up/down to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSY": "The position Y global axis, scroll up/down to change the value.",

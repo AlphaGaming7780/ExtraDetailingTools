@@ -1,6 +1,7 @@
 ﻿using Colossal.Entities;
 using Colossal.Mathematics;
 using Colossal.UI.Binding;
+using Extra.Lib;
 using Game.Buildings;
 using Game.Common;
 using Game.Objects;
@@ -12,6 +13,7 @@ using System;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
+using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools;
 
@@ -27,8 +29,11 @@ internal partial class TransformSection : InfoSectionBase
 	private GetterValueBinding<float3> transformSectionGetRot;
 	private GetterValueBinding<double> transformSectionGetIncPos;
 	private GetterValueBinding<double> transformSectionGetIncRot;
+	private GetterValueBinding<bool> transformSectionGetLocalPos;
 
-	private double2 increment = new(1, 1);
+    private double2 increment = new(1, 1);
+    private Transform transform;
+    private bool useLocalPos = false;
 
     protected override string group => "Transform Tool";
 
@@ -36,23 +41,26 @@ internal partial class TransformSection : InfoSectionBase
 	{
 		base.OnCreate();
 
-		AddBinding(transformSectionGetPos = new GetterValueBinding<float3>("edt", "transformsection_getpos", GetPosition));
-		AddBinding(new TriggerBinding<float3>("edt", "transformsection_getpos", new Action<float3>(SetPosition)));
+		AddBinding(transformSectionGetPos = new GetterValueBinding<float3>("edt", "transformsection_pos", GetPosition));
+		AddBinding(new TriggerBinding<float3>("edt", "transformsection_pos", new Action<float3>(SetPosition)));
 
-		AddBinding(transformSectionGetRot = new GetterValueBinding<float3>("edt", "transformsection_getrot", GetRotation));
-		AddBinding(new TriggerBinding<float3>("edt", "transformsection_getrot", new Action<float3>(SetRotattion)));
+		AddBinding(transformSectionGetRot = new GetterValueBinding<float3>("edt", "transformsection_rot", GetRotation));
+		AddBinding(new TriggerBinding<float3>("edt", "transformsection_rot", new Action<float3>(SetRotattion)));
 
-		AddBinding(transformSectionGetIncPos = new GetterValueBinding<double>("edt", "transformsection_getincpos", () => { return increment.x; })) ;
-		AddBinding(new TriggerBinding<double>("edt", "transformsection_getincpos", (double inc) => { increment.x = inc; transformSectionGetIncPos.Update(); } ));
+		AddBinding(transformSectionGetIncPos = new GetterValueBinding<double>("edt", "transformsection_incpos", () => { return increment.x; })) ;
+		AddBinding(new TriggerBinding<double>("edt", "transformsection_incpos", (double inc) => { increment.x = inc; transformSectionGetIncPos.Update(); } ));
 
-		AddBinding(transformSectionGetIncRot = new GetterValueBinding<double>("edt", "transformsection_getincrot", () => { return increment.y; }));
-		AddBinding(new TriggerBinding<double>("edt", "transformsection_getincrot", (double inc) => { increment.y = inc; transformSectionGetIncRot.Update(); }));
+		AddBinding(transformSectionGetIncRot = new GetterValueBinding<double>("edt", "transformsection_incrot", () => { return increment.y; }));
+		AddBinding(new TriggerBinding<double>("edt", "transformsection_incrot", (double inc) => { increment.y = inc; transformSectionGetIncRot.Update(); }));
 
 		AddBinding(new TriggerBinding("edt", "transformsection_copypos", new Action(CopyPosition) ));
 		AddBinding(new TriggerBinding("edt", "transformsection_pastpos", new Action(PastPosition) ));
 
 		AddBinding(new TriggerBinding("edt", "transformsection_copyrot", new Action(CopyRotation)));
 		AddBinding(new TriggerBinding("edt", "transformsection_pastrot", new Action(PastRotation)));
+
+        AddBinding(transformSectionGetLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localpos", () => useLocalPos));
+        AddBinding(new TriggerBinding("edt", "transformsection_localpos", new Action(UseLocalPos)));
 
         AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
 
@@ -64,6 +72,7 @@ internal partial class TransformSection : InfoSectionBase
 		visible = EntityManager.HasComponent<Game.Objects.Transform>(selectedEntity) && !EntityManager.HasComponent<Building>(selectedEntity); ;
 		if (visible)
 		{
+			transform = EntityManager.GetComponentData<Transform>(selectedEntity);
 			transformSectionGetPos.Update();
 			transformSectionGetRot.Update();
 			RequestUpdate();
@@ -90,15 +99,22 @@ internal partial class TransformSection : InfoSectionBase
 		}
 	}
 
+	private void UseLocalPos()
+	{
+		useLocalPos = !useLocalPos;
+		transformSectionGetLocalPos.Update();
+		transformSectionGetPos.Update();
+	}
+
 	private void CopyPosition()
 	{
-		float3 vector3 = GetPosition();
+		float3 vector3 = transform.m_Position;
 		Clipboard = $"{vector3.x} {vector3.y} {vector3.z}";
 	}
 
 	private void PastPosition()
 	{
-		SetPosition(StringToFloat3(Clipboard, GetPosition()));
+        UpdateSelectedEntity(StringToFloat3(Clipboard, transform.m_Position) - transform.m_Position, float3.zero);
 	}
 
 	private void CopyRotation()
@@ -109,55 +125,51 @@ internal partial class TransformSection : InfoSectionBase
 
 	private void PastRotation()
 	{
-		SetRotattion(StringToFloat3(Clipboard, GetRotation()));
+        UpdateSelectedEntity(float3.zero, StringToFloat3(Clipboard, GetRotation()) - GetRotation());
 	}
 
 	private float3 GetPosition()
 	{
-		EntityManager.TryGetComponent(selectedEntity, out Game.Objects.Transform transform);
-        return transform.m_Position;
+		if (useLocalPos)
+		{
+			return new (0, transform.m_Position.y, 0);
+        }
+		return transform.m_Position;
 	}
 
 	private float3 GetRotation()
-	{
-		EntityManager.TryGetComponent(selectedEntity, out Game.Objects.Transform transform);
-		UnityEngine.Quaternion quaternion = transform.m_Rotation;
-		return quaternion.eulerAngles;
+	{	
+		UnityEngine.Quaternion q = transform.m_Rotation;
+		return q.eulerAngles;
 	}
 
-	private void SetPosition(float3 position)
+	private void SetPosition(float3 positionOffset)
 	{
-            UpdateSelectedEntity(position, null);
+		if (useLocalPos)
+		{
+			float3 rot = GetRotation();
+			float sinX = positionOffset.x * Mathf.Sin(rot.y * Mathf.PI / 180);
+			float cosX = positionOffset.x * Mathf.Cos(rot.y * Mathf.PI / 180);
+
+			float sinZ = positionOffset.z * Mathf.Sin((rot.y + 90) * Mathf.PI / 180);
+			float cosZ = positionOffset.z * Mathf.Cos((rot.y + 90) * Mathf.PI / 180);
+
+			positionOffset = new(sinX + sinZ, positionOffset.y, cosX + cosZ);
+		}
+		UpdateSelectedEntity(positionOffset, float3.zero);
 	}
 
-	private void SetRotattion(float3 rotation)
+	private void SetRotattion(float3 rotationOffset)
 	{
-            UpdateSelectedEntity(null, rotation);
+			UpdateSelectedEntity(float3.zero, rotationOffset);
 	}
 
-	private void UpdateSelectedEntity(float3? position, float3? rotation)
+    private void UpdateSelectedEntity(float3 positionOffset, float3 rotationOffset)
 	{
-		if (!EntityManager.TryGetComponent(selectedEntity, out Game.Objects.Transform transform))
-		{
-			EDT.Logger.Warn("Can't get the transform object.");
-			transformSectionGetPos.Update();
-			transformSectionGetRot.Update();
-			return;
-		}
 
-		float3 positionOffset = float3.zero;
-		float3 rotationOffset = float3.zero;
+		transform.m_Position += positionOffset;
+		transform.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation());
 
-            if (position is float3 positionFloat3)
-		{
-			positionOffset = positionFloat3 - transform.m_Position;
-			transform.m_Position = positionFloat3;
-		}
-		if (rotation is float3 rotationFloat3)
-		{
-                rotationOffset = rotationFloat3 - GetRotation();
-                transform.m_Rotation = Quaternion.Euler(rotationFloat3);
-		}
 		if (EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData) && EntityManager.TryGetComponent(selectedEntity, out CullingInfo cullingInfo))
 		{
 			Bounds3 bounds3 = ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
@@ -167,7 +179,7 @@ internal partial class TransformSection : InfoSectionBase
 
 		UpdateSubElement(selectedEntity, positionOffset, rotationOffset);
 
-            EntityManager.SetComponentData(selectedEntity, transform);
+		EntityManager.SetComponentData(selectedEntity, transform);
 		EntityManager.AddComponentData(selectedEntity, new Game.Common.Updated());
 		transformSectionGetPos.Update();
 		transformSectionGetRot.Update();
@@ -191,16 +203,16 @@ internal partial class TransformSection : InfoSectionBase
 				// UnityEngine.Quaternion quaternion = transform.m_Rotation;
 				// float3 newAngle = quaternion.eulerAngles;
 				transform1.m_Position += positionOffset;
-                    // float3 distance = transform1.m_Position-transform.m_Position;
-                    // float lenght = (float)Math.Sqrt(Math.Pow(distance.x, 2)+Math.Pow(distance.z, 2));
-                    // transform1.m_Position -= distance; // * (float)Math.Cos(newAngle.y) //  * (float)Math.Sin(newAngle.y)
-                    // transform1.m_Position = transform.m_Position + new float3(lenght * (float)Math.Cos(newAngle.y), distance.y, lenght * (float)Math.Sin(newAngle.y));
-                    UnityEngine.Quaternion quaternion = transform1.m_Rotation;
-                    transform1.m_Rotation = Quaternion.Euler(rotationOffset + (float3)quaternion.eulerAngles);
+				// float3 distance = transform1.m_Position-transform.m_Position;
+				// float lenght = (float)Math.Sqrt(Math.Pow(distance.x, 2)+Math.Pow(distance.z, 2));
+				// transform1.m_Position -= distance; // * (float)Math.Cos(newAngle.y) //  * (float)Math.Sin(newAngle.y)
+				// transform1.m_Position = transform.m_Position + new float3(lenght * (float)Math.Cos(newAngle.y), distance.y, lenght * (float)Math.Sin(newAngle.y));
+				//UnityEngine.Quaternion quaternion = transform1.m_Rotation;
+				transform1.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation());
 
-                    UpdateSubElement(installedUpgrade, positionOffset, rotationOffset);
+				UpdateSubElement(installedUpgrade, positionOffset, rotationOffset);
 
-                    EntityManager.SetComponentData(installedUpgrade, transform1);
+				EntityManager.SetComponentData(installedUpgrade, transform1);
 				EntityManager.AddComponentData(installedUpgrade, new Game.Common.Updated());
 			}
 		}
@@ -211,7 +223,7 @@ internal partial class TransformSection : InfoSectionBase
 		UpdateInstalledUpgrade(entity, positionOffset, rotationOffset);
 		UpdateSubArea(entity, positionOffset, rotationOffset);
 		//UpdateSubNet(entity, positionOffset, rotationOffset);
-        }
+		}
 
 	private void UpdateSubArea(Entity entity, float3 positionOffset, float3 rotationOffset)
 	{
@@ -226,30 +238,29 @@ internal partial class TransformSection : InfoSectionBase
 						nodes.ElementAt(i).m_Position += positionOffset;
 					}
 				}
-
-                    EntityManager.AddComponentData(subArea.m_Area, new Game.Common.Updated());
-                }
+				EntityManager.AddComponentData(subArea.m_Area, new Game.Common.Updated());
+			}
 		}
 	}
 
-        private void UpdateSubNet(Entity entity, float3 positionOffset, float3 rotationOffset)
-        {
-            if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Net.SubNet> subNets))
-            {
-                foreach (Game.Net.SubNet subNet in subNets)
-                {
-                    if (EntityManager.TryGetComponent(subNet.m_SubNet, out Game.Net.Node node))
-                    {
-					node.m_Position += positionOffset;
-					EntityManager.SetComponentData(subNet.m_SubNet, node);
-                    }
+	private void UpdateSubNet(Entity entity, float3 positionOffset, float3 rotationOffset)
+	{
+		if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Net.SubNet> subNets))
+		{
+			foreach (Game.Net.SubNet subNet in subNets)
+			{
+				if (EntityManager.TryGetComponent(subNet.m_SubNet, out Game.Net.Node node))
+				{
+				node.m_Position += positionOffset;
+				EntityManager.SetComponentData(subNet.m_SubNet, node);
+				}
 
-                    EntityManager.AddComponentData(subNet.m_SubNet, new Game.Common.Updated());
-                }
-            }
-        }
+				EntityManager.AddComponentData(subNet.m_SubNet, new Game.Common.Updated());
+			}
+		}
+	}
 
-        private float3 StringToFloat3(string sVector, float3 result)
+	private float3 StringToFloat3(string sVector, float3 defaultResult)
 	{
 
 		try
@@ -257,7 +268,7 @@ internal partial class TransformSection : InfoSectionBase
 			string[] sArray = sVector.Split(' ');
 
 			// store as a Vector3
-			result = new(
+			defaultResult = new(
 				float.Parse(sArray[0]),
 				float.Parse(sArray[1]),
 				float.Parse(sArray[2]));
@@ -265,6 +276,6 @@ internal partial class TransformSection : InfoSectionBase
 		catch (Exception e) { EDT.Logger.Warn(e); }
 
 
-		return result;
+		return defaultResult;
 	}
 }

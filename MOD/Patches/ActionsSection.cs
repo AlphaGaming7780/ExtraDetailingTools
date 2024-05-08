@@ -1,27 +1,29 @@
-﻿using Game.UI.InGame;
+﻿
+using Game.UI.InGame;
 using HarmonyLib;
 
-namespace ExtraDetailingTools.Patches;
+namespace ExtraDetailingTools;
 
 internal class ActionsSectionPatch
 {
 	[HarmonyPatch(typeof(ActionsSection), "OnProcess")]
-	class OnProcess
+	public class OnProcess
 	{
 		public static void Postfix(ActionsSection __instance)
 		{
 			Traverse traverse = Traverse.Create(__instance);
+
 			//Entity selectedEntity = traverse.Property("selectedEntity").GetValue<Entity>();
 			//bool disableable = traverse.Property("disableable").GetValue<bool>();
 
-			//if(ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out PrefabData prefabData) && ExtraLib.m_PrefabSystem.TryGetPrefab(prefabData, out PrefabBase prefabBase))
+			//if (ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out PrefabData prefabData) && ExtraLib.m_PrefabSystem.TryGetPrefab(prefabData, out PrefabBase prefabBase))
 			//{
-			//    EDT.Logger.Info(prefabBase);
+			//	EDT.Logger.Info(prefabBase);
 			//}
 
 			//if (ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) && ExtraLib.m_PrefabSystem.TryGetPrefab(prefabRef, out PrefabBase prefabBase2))
 			//{
-			//    EDT.Logger.Info(prefabBase2);
+			//	EDT.Logger.Info(prefabBase2);
 			//}
 
 			traverse.Property("deletable").SetValue(true);
@@ -39,4 +41,3 @@ internal class ActionsSectionPatch
 		}
 	}
 }
-
