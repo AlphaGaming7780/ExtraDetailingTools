@@ -7,8 +7,7 @@ import { bindValue } from "cs2/api";
 import { FormEvent, MouseEvent, WheelEvent } from "react";
 import { ActionButtonSCSS } from "../../game-ui/game/components/selected-info-panel/selected-info-sections/shared-sections/actions-section/action-button.module.scss";
 import { useLocalization } from "cs2/l10n";
-import { Tooltip, TooltipProps } from "cs2/ui";
-import { TooltipTarget } from "cs2/bindings";
+import { Tooltip } from "cs2/ui";
 import classNames from "classnames";
 
 export interface Float3 {
@@ -18,10 +17,11 @@ export interface Float3 {
 }
 
 
-export const pos$ = bindValue<Float3>("edt", 'transformsection_getpos');
-export const rot$ = bindValue<Float3>("edt", 'transformsection_getrot');
-export const incPos$ = bindValue<number>("edt", 'transformsection_getincpos');
-export const incRot$ = bindValue<number>("edt", 'transformsection_getincrot');
+export const pos$ = bindValue<Float3>("edt", 'transformsection_pos');
+export const rot$ = bindValue<Float3>("edt", 'transformsection_rot');
+export const incPos$ = bindValue<number>("edt", 'transformsection_incpos');
+export const incRot$ = bindValue<number>("edt", 'transformsection_incrot');
+export const localPos$ = bindValue<boolean>("edt", 'transformsection_localpos');
 
 export const TransformSection = (componentList: any): any => {
 
@@ -36,6 +36,7 @@ export const TransformSection = (componentList: any): any => {
 		const rot: Float3 = useValue(rot$);
 		var PositionIncrement: number = useValue(incPos$);
 		var RotationIncrement: number = useValue(incRot$);
+		var localPos: boolean = useValue(localPos$);
 		const { translate } = useLocalization();
 
 		function OnChange(event: FormEvent<HTMLInputElement>) {
@@ -59,92 +60,70 @@ export const TransformSection = (componentList: any): any => {
 		function OnScroll(event: WheelEvent) {
 
 			if (event.target instanceof HTMLInputElement) {
+				let posValue: number = - Math.sign(event.deltaY) * PositionIncrement;
+				let rotValue: number = - Math.sign(event.deltaY) * RotationIncrement;
 				switch (event.target.id) {
 					case "pI":
 						if (event.deltaY < 0) {
 							if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
 							else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
-							trigger("audio", "playSound", "increase-elevation", 1);
 						} else {
 							if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
 							else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
-							trigger("audio", "playSound" ,"decrease-elevation", 1);
 						}
 						PositionIncrement = parseFloat(event.target.value)
 						triggerIncPos();
 						break;
 					case "pX":
-						pos.x -= Math.sign(event.deltaY) * PositionIncrement;
-						event.target.value = pos.x.toString();
-						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
-						else trigger("audio", "playSound", "decrease-elevation", 1);
-						triggerPos();
+						triggerPos(posValue,0,0);
 						break;
 					case "pY":
-						pos.y -= Math.sign(event.deltaY) * PositionIncrement;
-						event.target.value = pos.y.toString();
-						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
-						else trigger("audio", "playSound", "decrease-elevation", 1);
-						triggerPos();
+						triggerPos(0, posValue,0);
 						break;
 					case "pZ":
-						pos.z -= Math.sign(event.deltaY) * PositionIncrement;
-						event.target.value = pos.z.toString();
-						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
-						else trigger("audio", "playSound", "decrease-elevation", 1);
-						triggerPos();
+						triggerPos(0, 0, posValue);
 						break;
 					case "rI":
 						if (event.deltaY < 0) {
 							if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
 							else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
-							trigger("audio", "playSound", "increase-elevation", 1);
 						} else {
 							if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
 							else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
-							trigger("audio", "playSound", "decrease-elevation", 1);
 						}
 						RotationIncrement = parseFloat(event.target.value)
 						triggerIncRot();
 						break;
 					case "rX":
-						rot.x -= Math.sign(event.deltaY) * RotationIncrement;
-						event.target.value = rot.x.toString();
-						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
-						else trigger("audio", "playSound", "decrease-elevation", 1);
-						triggerRot()
+						triggerRot(rotValue , 0 ,0)
 						break;
 					case "rY":
-						rot.y -= Math.sign(event.deltaY) * RotationIncrement;
-						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
-						else trigger("audio", "playSound", "decrease-elevation", 1);
-						event.target.value = rot.y.toString();
-						triggerRot()
+						triggerRot(0, rotValue, 0)
 						break;
 					case "rZ":
-						rot.z -= Math.sign(event.deltaY) * RotationIncrement;
-						event.target.value = rot.z.toString();
-						if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
-						else trigger("audio", "playSound", "decrease-elevation", 1);
-						triggerRot()
+						triggerRot(0, 0, rotValue)
 						break;
 				}
+				if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
+				else trigger("audio", "playSound", "decrease-elevation", 1);
 			}
 		}
 
-		function triggerPos() {
-			trigger("edt", "transformsection_getpos", pos)
+		function triggerPos(x: number, y: number, z: number) {
+			let flaot: Float3 = {x,y,z}
+			trigger("edt", "transformsection_pos", flaot )
 		}
 
-		function triggerRot() {
-			trigger("edt", "transformsection_getrot", rot)
+		function triggerRot(x: number, y: number, z: number) {
+			let flaot: Float3 = { x, y, z }
+			trigger("edt", "transformsection_rot", flaot)
 		}
 		function triggerIncPos() {
-			trigger("edt", "transformsection_getincpos", PositionIncrement)
+			trigger("edt", "transformsection_incpos", PositionIncrement)
 		}
 
 		function triggerIncRot() {
-			trigger("edt", "transformsection_getincrot", RotationIncrement)
+			trigger("edt", "transformsection_incrot", RotationIncrement)
 		}
 
 		return <>
@@ -164,6 +143,11 @@ export const TransformSection = (componentList: any): any => {
 							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PASTPOS")}>
 								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_pastpos") }}>
 									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
+								</button>
+							</Tooltip>
+							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS")}>
+								<button className={classNames({ [TransfromSectionSCSS.TransfromSectionButtonSelected]: localPos }, ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_localpos") }}>
+									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="Media/Tools/Snap Options/All.svg"></img>
 								</button>
 							</Tooltip>
 						</div>

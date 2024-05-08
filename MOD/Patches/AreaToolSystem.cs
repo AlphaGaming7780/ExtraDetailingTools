@@ -18,40 +18,46 @@ class AreaToolSystemPatch
 			offMask = onMask;
 			switch (prefabAreaData.m_Type)
 			{
-			case Game.Areas.AreaType.Lot:
-				onMask |= Snap.NetSide | Snap.ObjectSide | Snap.LotGrid;
-				offMask |= Snap.NetSide | Snap.ObjectSide | Snap.LotGrid;
-				if (editorMode)
-				{
-					onMask |= Snap.AutoParent;
-					offMask |= Snap.AutoParent;
-				}
-				break;
-			case Game.Areas.AreaType.District:
-				onMask |= Snap.NetMiddle;
-				offMask |= Snap.NetMiddle;
-				break;
-			case Game.Areas.AreaType.Space:
-				onMask |= Snap.NetSide | Snap.ObjectSide | Snap.ObjectSurface | Snap.LotGrid;
-				offMask |= Snap.NetSide | Snap.ObjectSide | Snap.ObjectSurface | Snap.LotGrid;
-				if (editorMode)
-				{
-					onMask |= Snap.AutoParent;
-					offMask |= Snap.AutoParent;
-				}
-				break;
-			case Game.Areas.AreaType.Surface:
-				onMask |= Snap.NetSide | Snap.ObjectSide | Snap.LotGrid;
-				offMask |= Snap.NetSide | Snap.ObjectSide | Snap.LotGrid;
-				if (editorMode)
-				{
-					onMask |= Snap.AutoParent;
-					offMask |= Snap.AutoParent;
-				}
-				break;
-            case Game.Areas.AreaType.MapTile:
-                break;
+				case Game.Areas.AreaType.Lot:
+					onMask |= Snap.NetSide | Snap.ObjectSide | Snap.LotGrid;
+					offMask |= Snap.NetSide | Snap.ObjectSide | Snap.LotGrid;
+					if (editorMode)
+					{
+						onMask |= Snap.AutoParent;
+						offMask |= Snap.AutoParent;
+					}
+
+					break;
+
+				case Game.Areas.AreaType.District:
+					onMask |= Snap.NetMiddle;
+					offMask |= Snap.NetMiddle;
+					break;
+
+				case Game.Areas.AreaType.Space:
+					onMask |= Snap.NetSide | Snap.ObjectSide | Snap.ObjectSurface | Snap.LotGrid;
+					offMask |= Snap.NetSide | Snap.ObjectSide | Snap.ObjectSurface | Snap.LotGrid;
+					if (editorMode)
+					{
+						onMask |= Snap.AutoParent;
+						offMask |= Snap.AutoParent;
+					}
+					break;
+
+				case Game.Areas.AreaType.Surface:
+					onMask |= Snap.NetSide | Snap.ObjectSide | Snap.LotGrid;
+					offMask |= Snap.NetSide | Snap.ObjectSide | Snap.LotGrid;
+					if (editorMode)
+					{
+						onMask |= Snap.AutoParent;
+						offMask |= Snap.AutoParent;
+					}
+					break;
+
+				case Game.Areas.AreaType.MapTile:
+					break;
 			}
+
 			return false;
 		}
 	}

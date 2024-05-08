@@ -14,8 +14,8 @@ class ObjectToolSystemPatch {
 	{
 		private static bool Prefix(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, bool brushing, bool stamping, out Snap onMask, out Snap offMask)
 		{
-            onMask = Snap.Upright;
-            offMask = Snap.None;
+			onMask = Snap.Upright;
+			offMask = Snap.None;
 			if (EDT.objectToolSystem.actualMode != ObjectToolSystem.Mode.Create) return true;
 			if ((prefabPlaceableData.m_Flags & Game.Objects.PlacementFlags.OwnerSide) != Game.Objects.PlacementFlags.None)
 			{
