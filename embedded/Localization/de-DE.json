@@ -5,7 +5,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTPOS": "Position einfügen.",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPYROT": "Rotation kopieren.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTROT": "Rotation einfügen.",
-	"SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS": "Enable Local Axis modification instead of global axis. That means the axis follows the object rotation, X axis is always pointing forward of the object.",
+	"SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS": "Enable Local Axis modification instead of global axis. That means the axis follows the object Y rotation axis, X axis is always pointing forward of the object.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSI": "Der Inkrement des Scrolls nach oben/unten für die Position, scrollen Sie hoch/runter oder bearbeiten Sie die Eingabe, um den Wert zu ändern.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSX": "Die Position der globalen Achse X scrollen hoch/runter, um den Wert zu ändern.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSY": "The position Y global axis, scroll up/down to change the value.",
