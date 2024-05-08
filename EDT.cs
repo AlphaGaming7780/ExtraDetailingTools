@@ -32,7 +32,7 @@ public class EDT : IMod
 
     private Harmony harmony;
     // internal static ToolRaycastSystem toolRaycastSystem;
-    //internal static ObjectToolSystem objectToolSystem;
+    internal static ObjectToolSystem objectToolSystem;
 
     public void OnLoad(UpdateSystem updateSystem)
     {
@@ -57,12 +57,11 @@ public class EDT : IMod
         selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
 
         // toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
-        //objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
+        objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
 
-        private void test(InputAction.CallbackContext context)
-        Harmony = new ($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
-        Harmony.PatchAll(typeof(EDT).Assembly);
-        var patchedMethods = Harmony.GetPatchedMethods().ToArray();
+        harmony = new ($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
+        harmony.PatchAll(typeof(EDT).Assembly);
+        var patchedMethods = harmony.GetPatchedMethods().ToArray();
         Logger.Info($"Plugin ExtraDetailingTools made patches! Patched methods: " + patchedMethods.Length);
         foreach (var patchedMethod in patchedMethods)
         {
@@ -73,6 +72,6 @@ public class EDT : IMod
     public void OnDispose()
     {
         Logger.Info(nameof(OnDispose));
-        Harmony.UnpatchAll($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
+        harmony.UnpatchAll($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
     }
 }
