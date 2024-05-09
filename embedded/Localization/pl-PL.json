@@ -5,7 +5,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTPOS": "Wklej pozycję.",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPYROT": "Skopiuj obrót.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTROT": "Wklej obrót.",
-	"SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS": "Enable Local Axis modification instead of global axis. That means the axis follows the object Y rotation axis, X axis is always pointing forward of the object.",
+	"SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS": "Włącz lokalna modyfikacje osi zamiast globalnej osi. Oznacza to, że oś podąża za obiektem o osi obrotu Y, oś X zawsze jest skierowana do przodu obiektu.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSI": "Inkrementacja przewijania w górę/dół dla pozycji, przewiń w górę/dół lub edytuj wprowadzenie, aby zmienić wartość.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSX": "Pozycja na osi globalnej X, przewiń w górę/dół, aby zmienić wartość.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSY": "Pozycja na osi globalnej Y, przewiń w górę/dół, aby zmienić wartość.",
