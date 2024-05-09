@@ -45,7 +45,7 @@ You’ll find this alongside the other snapping options in the games UI.
 - ❌Italian 0%
 - ❌Japanese 0%
 - ⚠️Korean 89% : Twotoolus-FLY-LShst, Hinanchovo
-- ⚠️Polish 89% : Lisek
+- ✔️Polish 100% : Lisek, karmel68
 - ❌Portuguese, Brazilian 0%
 - ❌Russian 0%
 - ⚠️Spanish 89% : Alex (AlexofCA)
