@@ -56,7 +56,7 @@ You’ll find this alongside the other snapping options in the games UI.
 - ❌Italian 0%
 - ❌Japanese 0%
 - ⚠️Korean 89% : Twotoolus-FLY-LShst, Hinanchovo
-- ⚠️Polish 89% : Lisek
+- ✔️Polish 100% : Lisek, karmel68
 - ❌Portuguese, Brazilian 0%
 - ❌Russian 0%
 - ⚠️Spanish 89% : Alex (AlexofCA)
@@ -100,6 +100,7 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Dependency for the mod, can be set multiple times-->
   <Dependency Id="75724" />
   <Dependency Id="75250" />
+  <Dependency Id="74604" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<ChangeLog Value="" />
 	<!--ChangeLog>
