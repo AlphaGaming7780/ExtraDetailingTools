@@ -48,7 +48,7 @@ You’ll find this alongside the other snapping options in the games UI.
 - ✔️Polish 100% : Lisek, karmel68
 - ❌Portuguese, Brazilian 0%
 - ❌Russian 0%
-- ⚠️Spanish 89% : Alex (AlexofCA)
+- ✔️Spanish 100% : Alex (AlexofCA)
 
 # Thanking
 I must particularly thank all the people who helped me in this major project which lasted several months :
