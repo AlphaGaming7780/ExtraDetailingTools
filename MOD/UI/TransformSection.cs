@@ -267,7 +267,6 @@ internal partial class TransformSection : InfoSectionBase
 		{
 			string[] sArray = sVector.Split(' ');
 
-			// store as a Vector3
 			defaultResult = new(
 				float.Parse(sArray[0]),
 				float.Parse(sArray[1]),

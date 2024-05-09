@@ -10,6 +10,10 @@
 	<LongDescription>
 # ExtraDetailingTools
 
+### I'm recommending you to read this page on the website not in game, the game doesn't support all the formatting the web page does.
+
+You can see the [trailer video](https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE) made by Sully in the "MORE ABOUT THIS MOD" section.
+
 # Features:
 * Transform Tool
 * More Snapping Option
@@ -26,26 +30,25 @@ This menu also has a new 'delete' button, for all objects.
 
 In the games main navigation, you’ll find the ExtraAssetsMenu. In here you’ll find three different tabs:
 
-## NetLanes
+### NetLanes
 Netlanes (NetTool) use the same functionality as road networks, it can be used to create network fencing, or road markings to any length. This tool is more versatile than using prop line tool with fence props.
 
-## Surfaces
-There are many custom and vanilla surfaces found in this tab. They are separated into categories such as ground and tiles.
+### Surfaces
+There are many vanilla surfaces found in this tab. They are separated into categories such as ground, grass, tiles,...
 
-Note: Surfaces are currently WIP. On launch, the ID will change to the live version, so existing surfaces placed with this beta version of mod will likely break.
-
-## Decals
-Here you’ll find custom and vanilla decals. There are decals to place on the ground, like road markings and stains, and decals you can place on vertical walls.
-
-Note: Decals are currently WIP. On launch, the ID will change to the live version, so existing surfaces placed with this beta version of mod will likely break.
+### Decals
+Here you’ll find vanilla decals. There are decals to place on the ground, like road markings and stains, and decals you can place on vertical walls.
 
 ## Snap to surface toggle
-This is a feature found in the editor, now in game. This will allow you to place decals like graffiti and posters, on vertical walls. This can also be used to snap any object to any surface. From placing props on rooftops, to stacking objects on top of each other, right up to placing trees horizontally on walls.
+This is a feature found in the editor, now in game. This will allow you to place decals like graffiti and posters, on vertical walls. This can also be used to snap any object to any surface. From placing props on rooftops, right up to placing trees horizontally on walls.
 
 You’ll find this alongside the other snapping options in the games UI.
 
+# About the screenshots
+- FewCandy's farm, you can find the full video about this build [here]().
+
 # Translation
-⚠️ I DON'T CHECK THE TRANSLATION, I DON'T TAKE THE RESPONSIBILITY FOR WHAT YOU ARE GOING TO READ. ⚠️
+⚠️ This mod uses crowdin so there maybe inconsistencies with translations due to translations from different translators ⚠️
 - ⚠️French 20%
 - ⚠️Chinese Simplified 10% : RilkeXS(无手文) (RilkeXS)
 - ❌Chinese Traditional 0%
@@ -71,9 +74,19 @@ I must particularly thank all the people who helped me in this major project whi
 * CodiakTheKodiak : Thanks for your streams that I watched while I was coding, you are a great streamer.
 * Jay : You destroyed my mod, I've never seen anyone use a mod so much, I'm glad I had you as a tester.
 
+I have also have to thanks all the content creator who try the mod and build amazing stuff, you can find them under with the link to their channel.
+- [Sully](https://www.youtube.com/@sully_skylines)
+- [Biffa Plays Indie Games](https://www.youtube.com/@BiffaPlaysCitiesSkylines)
+- [CanadianMoosePlays](https://www.twitch.tv/canadianmooseplays)
+- [City Planner Plays](https://www.youtube.com/@CityPlannerPlays)
+- [CodiakTheKodiak](https://www.twitch.tv/codiakthekodiak)
+- [FewCandy](https://www.youtube.com/@fewcandy)
+- [OVERCHARGED EGG](https://www.youtube.com/@OVERCHARGEDEGG)
+- [Slay3K](https://www.twitch.tv/slay3k)
+- [two dollars twenty](https://www.youtube.com/@twodollarstwenty)
   </LongDescription>
 	<!--Thumbnail-->
-	<Thumbnail Value="Properties/Thumbnail_EDT.png" />
+	<Thumbnail Value="Properties/EDT.png" />
 	<!--Screenshot, can be set multiple times-->
 	<Screenshot Value="" />
 	<!--Tag, can be set multiple times-->
@@ -85,13 +98,15 @@ I must particularly thank all the people who helped me in this major project whi
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.0.*" />
 	<!--Dependency for the mod, can be set multiple times-->
-	<Dependency Id="75724" />
+  <Dependency Id="75724" />
+  <Dependency Id="75250" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<ChangeLog Value="" />
 	<!--ChangeLog>
 	</ChangeLog-->
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
-	<ExternalLink Type="crowdin" Url="https://crowdin.com/project/extradetailingtools" />
+  <ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
+  <ExternalLink Type="crowdin" Url="https://crowdin.com/project/extradetailingtools" />
 	<ExternalLink Type="discord" Url="https://discord.gg/HTav7ARPs2" />
 	<ExternalLink Type="github" Url="https://github.com/AlphaGaming7780/ExtraDetailingTools" />
 	<ExternalLink Type="paypal" Url="https://www.paypal.com/paypalme/TritonSupreme" />
