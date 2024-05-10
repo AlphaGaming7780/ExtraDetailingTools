@@ -98,7 +98,7 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Version of the mod-->
 	<ModVersion Value="1.0.0" />
 	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.0.*" />
+	<GameVersion Value="1.1.*" />
 	<!--Dependency for the mod, can be set multiple times-->
   <Dependency Id="75724" />
   <Dependency Id="75250" />
