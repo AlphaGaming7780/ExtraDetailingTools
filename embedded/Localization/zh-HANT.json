@@ -1,5 +1,5 @@
 {
-	"Toolbar.SHOWMARKER": "Show Marker",
+	"Toolbar.SHOWMARKER": "顯示標記",
 	"ToolOptions.TOOLTIP[ShowMarker]": "Show/hide the markers.",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPYPOS": "Copy the position.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTPOS": "Paste the position.",
