@@ -51,13 +51,13 @@ You’ll find this alongside the other snapping options in the games UI.
 
 # Translation
 ⚠️ This mod uses crowdin so there maybe inconsistencies with translations due to translations from different translators ⚠️
-- ⚠️French 20%
-- ⚠️Chinese Simplified 10% : RilkeXS(无手文) (RilkeXS)
-- ❌Chinese Traditional 0%
-- ⚠️German 41% : Konsi
+- ⚠️French 85% : aricoseco
+- ✔️Chinese Simplified 100% : RilkeXS(无手文) (RilkeXS), 一叶杳舟 (Yao_Zhou)
+- ❌Chinese Traditional 0% : Tiger Zhang (tiger42231)
+- ⚠️German 52% : Konsi
 - ❌Italian 0%
 - ❌Japanese 0%
-- ⚠️Korean 89% : Twotoolus-FLY-LShst, Hinanchovo
+- ⚠️Korean 88% : Twotoolus-FLY-LShst, Hinanchovo
 - ✔️Polish 100% : Lisek, karmel68
 - ❌Portuguese, Brazilian 0%
 - ❌Russian 0%
@@ -96,7 +96,7 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/extradetailingtools.1675592/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.0.0" />
+	<ModVersion Value="1.0.1" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.1.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -106,8 +106,10 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
   <ChangeLog>
-# 1.0.0
-* Initial Release
+# 1.0.1
+- Add: French localization by aricoseco
+- Update: Chinese Simplified localization by RilkeXS(无手文) (RilkeXS) and 一叶杳舟 (Yao_Zhou)
+- Update: German localization by Konsi
   </ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
   <ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
