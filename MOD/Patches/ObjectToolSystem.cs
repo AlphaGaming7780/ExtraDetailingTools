@@ -7,7 +7,21 @@ namespace ExtraDetailingTools;
 
 class ObjectToolSystemPatch {
 
-	[HarmonyPatch(typeof(ObjectToolSystem), nameof(ObjectToolSystem.GetAvailableSnapMask),
+    [HarmonyPatch(typeof(ObjectToolSystem), "OnStartRunning")]
+    class ObjectToolSystem_OnStartRunning
+    {
+		static bool first = true;
+        public static void Postfix(ObjectToolSystem __instance)
+        {
+			if (first)
+			{
+				__instance.selectedSnap &= ~(Snap.NetArea);
+				first = false;
+			}
+        }
+    }
+
+    [HarmonyPatch(typeof(ObjectToolSystem), nameof(ObjectToolSystem.GetAvailableSnapMask),
 		new Type[] { typeof(PlaceableObjectData), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(Snap), typeof(Snap) },
 		new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out })]
 	class ObjectToolSystem_GetAvailableSnapMask

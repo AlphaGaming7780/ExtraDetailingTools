@@ -65,7 +65,7 @@ public class EDT : IMod
         Logger.Info($"Plugin ExtraDetailingTools made patches! Patched methods: " + patchedMethods.Length);
         foreach (var patchedMethod in patchedMethods)
         {
-            Logger.Info($"Patched method: {patchedMethod.Module.Name}:{patchedMethod.Name}");
+            Logger.Info($"Patched method: {patchedMethod.Module.ScopeName}:{patchedMethod.Name}");
         }
     }
 

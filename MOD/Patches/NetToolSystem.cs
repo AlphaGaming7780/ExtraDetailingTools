@@ -6,12 +6,27 @@ using HarmonyLib;
 namespace ExtraDetailingTools;
 
 class NetToolSystemPatch {
-	[HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.GetAvailableSnapMask),
+
+    [HarmonyPatch(typeof(NetToolSystem), "OnStartRunning")]
+    class NetToolSystem_OnStartRunning
+    {
+        static bool first = true;
+        public static void Postfix(NetToolSystem __instance) 
+		{
+            if (first)
+            {
+                __instance.selectedSnap &= ~(Snap.ObjectSurface);
+                first = false;
+            }
+        }
+	}
+
+    [HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.GetAvailableSnapMask),
 		new Type[] { typeof(NetGeometryData), typeof(PlaceableNetData), typeof(NetToolSystem.Mode), typeof(bool), typeof(bool), typeof(bool), typeof(Snap), typeof(Snap) },
 		new ArgumentType[] {ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out })]
 	class NetToolSystem_GetAvailableSnapMask
 	{
-		private static bool Prefix( NetGeometryData prefabGeometryData, PlaceableNetData placeableNetData, NetToolSystem.Mode mode, bool editorMode, bool laneContainer, bool underground, out Snap onMask, out Snap offMask) {
+		public static bool Prefix( NetGeometryData prefabGeometryData, PlaceableNetData placeableNetData, NetToolSystem.Mode mode, bool editorMode, bool laneContainer, bool underground, out Snap onMask, out Snap offMask) {
 
 			if (mode == NetToolSystem.Mode.Replace)
 			{
@@ -74,7 +89,7 @@ class NetToolSystemPatch {
 			}
 
 			onMask |= Snap.ObjectSurface | Snap.LotGrid;
-			offMask |= Snap.ObjectSurface | Snap.LotGrid;
+            offMask |= Snap.ObjectSurface | Snap.LotGrid;
 
 			if (editorMode)
 			{

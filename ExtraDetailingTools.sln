@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34714.143
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtraDetailingTools", "ExtraDetailingTools.csproj", "{9395F5AA-AF12-411B-A115-A148B12D8055}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExtraDetailingTools", "ExtraDetailingTools.csproj", "{9395F5AA-AF12-411B-A115-A148B12D8055}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
