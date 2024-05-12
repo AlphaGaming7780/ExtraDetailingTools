@@ -5,7 +5,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTPOS": "위치값 붙여넣기",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPYROT": "회전값 복사",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTROT": "회전값 붙여넣기",
-	"SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS": "로컬 축 수정을 활성화하여 축이 객체의 Y 회전 축을 따르도록 하고, X 축은 항상 객체의 전방을 가리키도록 설정하세요.",
+	"SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS": "Enable Local Axis modification instead of global axis. That means the axis follows the object Y rotation axis, X axis is always pointing forward of the object.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSI": "스크롤을 위/아래로 이동하거나 입력값을 편집하여 위치값을 변경하세요.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSX": "위치의 X 전역 축, 값을 변경하려면 위/아래로 스크롤하세요.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSY": "위치의 Y 전역 축, 값을 변경하려면 위/아래로 스크롤하세요.",
