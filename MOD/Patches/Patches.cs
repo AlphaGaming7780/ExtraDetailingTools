@@ -3,6 +3,8 @@ using System.Reflection;
 using Game;
 using System.Diagnostics;
 using Game.Tools;
+using Game.Common;
+using Game.Objects;
 
 namespace ExtraDetailingTools;
 
@@ -17,7 +19,7 @@ public class GameModeExtensions_IsEditor
 			(caller.DeclaringType == typeof(ObjectToolSystem) && caller.Name == "GetObjectPrefab")
 			//(caller.DeclaringType == typeof(DefaultToolSystem) && caller.Name == "InitializeRaycast")
 			) {
-					__result = true;
+                    __result = true;
 		}
 	}
 }

@@ -21,7 +21,7 @@ export const pos$ = bindValue<Float3>("edt", 'transformsection_pos');
 export const rot$ = bindValue<Float3>("edt", 'transformsection_rot');
 export const incPos$ = bindValue<number>("edt", 'transformsection_incpos');
 export const incRot$ = bindValue<number>("edt", 'transformsection_incrot');
-export const localPos$ = bindValue<boolean>("edt", 'transformsection_localpos');
+export const localAxis$ = bindValue<boolean>("edt", 'transformsection_localaxis');
 
 export const TransformSection = (componentList: any): any => {
 
@@ -36,7 +36,7 @@ export const TransformSection = (componentList: any): any => {
 		const rot: Float3 = useValue(rot$);
 		var PositionIncrement: number = useValue(incPos$);
 		var RotationIncrement: number = useValue(incRot$);
-		var localPos: boolean = useValue(localPos$);
+		var localAxis: boolean = useValue(localAxis$);
 		const { translate } = useLocalization();
 
 		function OnChange(event: FormEvent<HTMLInputElement>) {
@@ -145,8 +145,8 @@ export const TransformSection = (componentList: any): any => {
 									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
 								</button>
 							</Tooltip>
-							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS")}>
-								<button className={classNames({ [TransfromSectionSCSS.TransfromSectionButtonSelected]: localPos }, ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_localpos") }}>
+							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS")}>
+								<button className={classNames({ [TransfromSectionSCSS.TransfromSectionButtonSelected]: localAxis }, ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_localaxis") }}>
 									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="Media/Tools/Snap Options/All.svg"></img>
 								</button>
 							</Tooltip>

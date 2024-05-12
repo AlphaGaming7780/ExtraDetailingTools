@@ -96,7 +96,7 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/extradetailingtools.1675592/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.1.0" />
+	<ModVersion Value="1.1.0" /> <!--DEJA LA BONNE VERSION-->
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.1.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -107,9 +107,13 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--<ChangeLog Value="" />-->
   <ChangeLog>
 # 1.1.0
-- Add: You can now see the axis when you use the transform tool, big thanks to Yenyang who help me with the burst side of the code.
-- Update: Korean localization by Twotoolus-FLY-LShst and Hinanchovo
-- Update: Chinese Simplified localization by RilkeXS(无手文) (RilkeXS)
+- Add: You can now see the axis when you use the transform tool, big thanks to Yenyang who helped me with the burst side of the code.
+- Add: Support for AIL, he need to update AIL on his side to make this work.
+- Update: The Snap to Surface now snap on props.
+- Update: Snap to surface for Net Object and Snap to road for static object is now disabled by default.
+- Update: Change default increment value for the rotation to 45°.
+- Update: Korean localization by Twotoolus-FLY-LShst and Hinanchovo.
+- Update: Chinese Simplified localization by RilkeXS(无手文) (RilkeXS).
   </ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
   <ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />

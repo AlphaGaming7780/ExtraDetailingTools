@@ -4,12 +4,17 @@ using Unity.Collections;
 using Unity.Entities;
 using Colossal.Entities;
 using Extra.Lib.UI;
+using Game.SceneFlow;
+using System.Linq;
 
 namespace ExtraDetailingTools;
 
 internal static class EditEntities
 {
-	internal static void SetupEditEntities()
+    private static bool? isAssetIconLibraryEnabled;
+    public static bool IsAssetIconLibraryEnabled => isAssetIconLibraryEnabled ??= GameManager.instance.modManager.ListModsEnabled().Any(x => x == "AssetIconLibrary");
+
+    internal static void SetupEditEntities()
 	{
 		EntityQueryDesc surfaceEntityQueryDesc = new()
 		{
@@ -186,30 +191,9 @@ internal static class EditEntities
 
 				if (!prefab.builtin) continue;
 
-				//bool isCustom = false;
-				//foreach(ComponentBase componentBase in prefab.components)
-				//{
-				//	if (componentBase.name == "CustomDecal")
-				//	{
-				//		isCustom = true;
-				//		break;
-				//	}
-				//}
-				//if (isCustom)
-				//{
-				//	EDT.Logger.Info(prefab);
-				//	continue;
-				//}
-
 				DynamicBuffer<SubMesh> subMeshes =  ExtraLib.m_EntityManager.GetBuffer<SubMesh>(entity);
 				if (!ExtraLib.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
 				else if (component.m_State != MeshFlags.Decal) continue;
-
-				//if (ExtraLib.m_EntityManager.TryGetComponent(entity, out ObjectGeometryData objectGeometryData))
-				//{
-				//	objectGeometryData.m_Flags &= ~GeometryFlags.Overridable;
-				//	ExtraLib.m_EntityManager.SetComponentData(entity, objectGeometryData);
-				//}
 
 				var prefabUI = prefab.GetComponent<UIObject>();
 				if (prefabUI == null)
@@ -217,7 +201,7 @@ internal static class EditEntities
 					prefabUI = prefab.AddComponent<UIObject>();
 					prefabUI.active = true;
 					prefabUI.m_IsDebugObject = false;
-					prefabUI.m_Icon = Icons.GetIcon(prefab);
+					prefabUI.m_Icon = IsAssetIconLibraryEnabled ? "" : Icons.GetIcon(prefab);
 					prefabUI.m_Priority = 1;
 				}
 
@@ -249,8 +233,8 @@ internal static class EditEntities
 					prefabUI = prefab.AddComponent<UIObject>();
 					prefabUI.active = true;
 					prefabUI.m_IsDebugObject = false;
-					prefabUI.m_Icon = Icons.GetIcon(prefab);
-					prefabUI.m_Priority = 1;
+					prefabUI.m_Icon = IsAssetIconLibraryEnabled ? "" : Icons.GetIcon(prefab);
+                    prefabUI.m_Priority = 1;
 				}
 
 				prefabUI.m_Group?.RemoveElement(entity);

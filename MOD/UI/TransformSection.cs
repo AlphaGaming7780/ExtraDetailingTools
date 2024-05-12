@@ -37,9 +37,9 @@ internal partial class TransformSection : InfoSectionBase
 	private GetterValueBinding<double> transformSectionGetIncRot;
 	private GetterValueBinding<bool> transformSectionGetLocalPos;
 
-	private double2 increment = new(1, 1);
+	private double2 increment = new(1, 45);
 	private Transform transform;
-	private bool useLocalPos = false;
+	private bool useLocalAxis = false;
 	private bool showAxis = false;
 
 	protected override string group => "Transform Tool";
@@ -68,8 +68,8 @@ internal partial class TransformSection : InfoSectionBase
 		AddBinding(new TriggerBinding("edt", "transformsection_copyrot", new Action(CopyRotation)));
 		AddBinding(new TriggerBinding("edt", "transformsection_pastrot", new Action(PastRotation)));
 
-		AddBinding(transformSectionGetLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localpos", () => useLocalPos));
-		AddBinding(new TriggerBinding("edt", "transformsection_localpos", new Action(UseLocalPos)));
+		AddBinding(transformSectionGetLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localaxis", () => useLocalAxis));
+		AddBinding(new TriggerBinding("edt", "transformsection_localaxis", new Action(UseLocalAxis)));
 
 		AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
 
@@ -91,21 +91,21 @@ internal partial class TransformSection : InfoSectionBase
 
 				if (EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
 				{
-					bounds3 = geometryData.m_Bounds; //ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
+					bounds3 = useLocalAxis ? geometryData.m_Bounds : ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
 				}
 
                 float3 linesLenght = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
-				linesLenght = new(linesLenght.x + linesLenght.x * 0.1f, linesLenght.y + linesLenght.y * 0.1f, linesLenght.z + linesLenght.z * 0.1f);
+				//linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
 
-				TreeCircleRenderJob treeCircleRenderJob = new()
+                RenderAxisJob renderAxisJob = new()
 				{
 					m_OverlayBuffer = m_OverlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
 					pos = transform.m_Position,
 					linesLenght = linesLenght,
                     rot = GetRotation(),
-					useLocalAxis = useLocalPos,
+					useLocalAxis = useLocalAxis,
                 };
-				JobHandle jobHandle = treeCircleRenderJob.Schedule(Dependency);
+				JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
 				m_OverlayRenderSystem.AddBufferWriter(jobHandle);
 				Dependency = jobHandle;
 			}
@@ -115,7 +115,7 @@ internal partial class TransformSection : InfoSectionBase
 #if RELEASE
 	[BurstCompile]
 #endif
-	private struct TreeCircleRenderJob : IJob
+	private struct RenderAxisJob : IJob
 	{
 		public OverlayRenderSystem.Buffer m_OverlayBuffer;
 		public float3 pos;
@@ -167,9 +167,9 @@ internal partial class TransformSection : InfoSectionBase
 		}
 	}
 
-	private void UseLocalPos()
+	private void UseLocalAxis()
 	{
-		useLocalPos = !useLocalPos;
+		useLocalAxis = !useLocalAxis;
 		transformSectionGetLocalPos.Update();
 		transformSectionGetPos.Update();
 	}
@@ -198,7 +198,7 @@ internal partial class TransformSection : InfoSectionBase
 
 	private float3 GetPosition()
 	{
-		if (useLocalPos)
+		if (useLocalAxis)
 		{
 			return new (0, transform.m_Position.y, 0);
 		}
@@ -211,9 +211,15 @@ internal partial class TransformSection : InfoSectionBase
 		return q.eulerAngles;
 	}
 
-	private void SetPosition(float3 positionOffset)
+    private float3 GetRotation(Transform transform)
+    {
+        UnityEngine.Quaternion q = transform.m_Rotation;
+        return q.eulerAngles;
+    }
+
+    private void SetPosition(float3 positionOffset)
 	{
-		if (useLocalPos)
+		if (useLocalAxis)
 		{
 			float3 rot = GetRotation();
 			float sinX = positionOffset.x * Mathf.Sin(rot.y * Mathf.PI / 180);
@@ -290,8 +296,9 @@ internal partial class TransformSection : InfoSectionBase
 	{
 		UpdateInstalledUpgrade(entity, positionOffset, rotationOffset);
 		UpdateSubArea(entity, positionOffset, rotationOffset);
-		//UpdateSubNet(entity, positionOffset, rotationOffset);
-		}
+        UpdateSubObject(entity, positionOffset, rotationOffset);
+        //UpdateSubNet(entity, positionOffset, rotationOffset);
+    }
 
 	private void UpdateSubArea(Entity entity, float3 positionOffset, float3 rotationOffset)
 	{
@@ -311,7 +318,23 @@ internal partial class TransformSection : InfoSectionBase
 		}
 	}
 
-	private void UpdateSubNet(Entity entity, float3 positionOffset, float3 rotationOffset)
+    private void UpdateSubObject(Entity entity, float3 positionOffset, float3 rotationOffset)
+    {
+        if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Objects.SubObject> subObjects))
+        {
+            foreach (Game.Objects.SubObject subObject in subObjects)
+            {
+                if (EntityManager.TryGetComponent(subObject.m_SubObject, out Transform transform))
+                {
+                    transform.m_Position += positionOffset;
+                    transform.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation(transform));
+                }
+                EntityManager.AddComponentData(subObject.m_SubObject, new Game.Common.Updated());
+            }
+        }
+    }
+
+    private void UpdateSubNet(Entity entity, float3 positionOffset, float3 rotationOffset)
 	{
 		if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Net.SubNet> subNets))
 		{
