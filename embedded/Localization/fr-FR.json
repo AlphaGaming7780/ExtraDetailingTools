@@ -5,7 +5,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTPOS": "Coller la position.",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPYROT": "Copier la rotation.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTROT": "Coller la rotation.",
-	"SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS": "Active la modification des axes locaux au lieu de l'axe global. Cela signifie que l'axe de rotation de l'objet Y est toujours orienté vers l'avant de l'objet.",
+	"SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS": "Active la modification des axes locaux au lieu de l'axe global. Cela signifie que les axes de position tournent en fonction de l'axe de rotation Y de l'objet. Cela signifie que l'axe de position X est toujours orienté vers l'avant de l'objet.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSI": "L'incrément du défilement vers le haut/bas pour la position, faites défiler vers le haut/bas ou éditez l'entrée pour changer la valeur.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSX": "La position de l'axe global X, faites défiler vers le haut/bas pour changer la valeur.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSY": "La position de l'axe global Y, faites défiler vers le haut/bas pour changer la valeur.",
