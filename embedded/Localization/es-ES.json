@@ -5,7 +5,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTPOS": "Pegar la posición.",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPYROT": "Copiar la rotación.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTROT": "Pegar la rotación.",
-	"SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS": "Activa la modificación del eje local en lugar del eje global. Esto significa que el eje sigue el eje de rotación Y del objeto, el eje X siempre apunta hacia adelante del objeto.",
+	"SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS": "Enable Local Axis modification instead of global axis. That means the axis follows the object Y rotation axis, X axis is always pointing forward of the object.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSI": "El incremento del desplazamiento arriba/abajo para la posición, desplaza arriba/abajo o edita el texto para cambiar el valor.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSX": "La posición del eje X, desplaza arriba/abajo para cambiar el valor.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSY": "La posición del eje Y, desplaza arriba/abajo para cambiar el valor.",
