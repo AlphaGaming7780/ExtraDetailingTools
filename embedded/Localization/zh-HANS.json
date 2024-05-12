@@ -5,7 +5,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTPOS": "粘贴位置。",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPYROT": "复制旋转角度。",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTROT": "粘贴旋转角度。",
-	"SelectedInfoPanel.TRANSFORMTOOL.LOCALPOS": "启用局部坐标修改而不是全局坐标。这意味着该贴花将会沿着其吸附的物体表面的Y轴变化，X轴始终指向贴花的前方。",
+	"SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS": "Enable Local Axis modification instead of global axis. That means the axis follows the object Y rotation axis, X axis is always pointing forward of the object.",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSI": "上 / 下滚动鼠标滚轮改变数值的幅度大小。上 / 下滚动鼠标滚轮或编辑输入以更改数值。",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSX": "全局坐标的 X 轴坐标值，上 / 下滚动鼠标滚轮以更改数值。",
 	"SelectedInfoPanel.TRANSFORMTOOL.POSY": "全局坐标的 Y 轴坐标值，上 / 下滚动鼠标滚轮以更改数值。",
