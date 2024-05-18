@@ -1,6 +1,6 @@
 # ExtraDetailingTools
 
---> PDX Mods Page : 
+--> PDX Mods Page : https://mods.paradoxplaza.com/mods/80528/Windows
 
 ### I'm recommending you to read this page on the website not in game, the game doesn't support all the formatting the web page does.
 
