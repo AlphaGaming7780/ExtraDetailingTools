@@ -132,9 +132,9 @@ class ObjectToolSystemPatch {
 
 	//		ToolRaycastSystem toolRaycastSystem = Traverse.Create(__instance).Field("m_ToolRaycastSystem").GetValue<ToolRaycastSystem>();
 	//		toolRaycastSystem.typeMask |= TypeMask.All;
-	//		toolRaycastSystem.netLayerMask |= Layer.All; // (Layer.Road | Layer.TrainTrack | Layer.TramTrack | Layer.SubwayTrack | Layer.PublicTransportRoad);
-	//		toolRaycastSystem.raycastFlags |= RaycastFlags.Markers | RaycastFlags.EditorContainers | RaycastFlags.ElevateOffset | RaycastFlags.PartialSurface | RaycastFlags.NoMainElements | RaycastFlags.SubElements;
-	//		toolRaycastSystem.utilityTypeMask |= UtilityTypes.Fence; 
+	//		toolRaycastSystem.netLayerMask |= Layer.Fence; // (Layer.Road | Layer.TrainTrack | Layer.TramTrack | Layer.SubwayTrack | Layer.PublicTransportRoad);
+	//		toolRaycastSystem.raycastFlags |= RaycastFlags.Markers | RaycastFlags.EditorContainers | RaycastFlags.ElevateOffset | RaycastFlags.PartialSurface | RaycastFlags.NoMainElements | RaycastFlags.SubElements | RaycastFlags.UpgradeIsMain;
+	//		toolRaycastSystem.utilityTypeMask |= UtilityTypes.Fence;
 
 	//	}
 	//}

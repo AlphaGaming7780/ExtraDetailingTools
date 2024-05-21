@@ -51,7 +51,7 @@ You’ll find this alongside the other snapping options in the games UI.
 
 # Translation
 ⚠️ This mod uses crowdin so there maybe inconsistencies with translations due to translations from different translators ⚠️
-- ⚠️French 85% : aricoseco
+- ✔️French 100% : aricoseco
 - ✔️Chinese Simplified 100% : RilkeXS(无手文) (RilkeXS), 一叶杳舟 (Yao_Zhou)
 - ⚠️Chinese Traditional 2% : Tiger Zhang (tiger42231), boan51204
 - ⚠️German 52% : Konsi
@@ -59,8 +59,8 @@ You’ll find this alongside the other snapping options in the games UI.
 - ❌Japanese 0%
 - ✔️Korean 100% : Twotoolus-FLY-LShst, Hinanchovo
 - ✔️Polish 100% : Lisek, karmel68
-- ❌Portuguese, Brazilian 0%
-- ❌Russian 0%
+- ✔️Portuguese, Brazilian 100% : Miguel Pereira Campos (mpcamposz)
+- ⚠️Russian 7% : Mihail (kaktyc)
 - ✔️Spanish 100% : Alex (AlexofCA)
 
 # Thanking
@@ -96,7 +96,7 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/extradetailingtools.1675592/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.1.0" /> <!--DEJA LA BONNE VERSION-->
+	<ModVersion Value="1.1.1" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.1.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -106,14 +106,10 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
   <ChangeLog>
-# 1.1.0
-- Add: You can now see the axis when you use the transform tool, big thanks to Yenyang who helped me with the burst side of the code.
-- Add: Support for AIL, he need to update AIL on his side to make this work.
-- Update: The Snap to Surface now snap on props.
-- Update: Snap to surface for Net Object and Snap to road for static object is now disabled by default.
-- Update: Change default increment value for the rotation to 45°.
-- Update: Korean localization by Twotoolus-FLY-LShst and Hinanchovo.
-- Update: Chinese Simplified localization by RilkeXS(无手文) (RilkeXS).
+# 1.1.1
+- Update: French localization by aricoseco.
+- Update: Portuguese, Brazilian localization by Miguel Pereira Campos (mpcamposz).
+- Update: Russian localization by Mihail (kaktyc).
   </ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
   <ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />

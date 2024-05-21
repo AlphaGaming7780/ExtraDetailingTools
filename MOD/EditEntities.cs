@@ -12,7 +12,7 @@ namespace ExtraDetailingTools;
 internal static class EditEntities
 {
     private static bool? isAssetIconLibraryEnabled;
-    public static bool IsAssetIconLibraryEnabled => isAssetIconLibraryEnabled ??= GameManager.instance.modManager.ListModsEnabled().Any(x => x == "AssetIconLibrary");
+    public static bool IsAssetIconLibraryEnabled => isAssetIconLibraryEnabled ??= GameManager.instance.modManager.ListModsEnabled().Any(x => x.StartsWith("AssetIconLibrary,"));
 
     internal static void SetupEditEntities()
 	{
@@ -241,7 +241,7 @@ internal static class EditEntities
 				if (prefab.GetComponent<UtilityLane>()?.m_UtilityType == Game.Net.UtilityTypes.Fence) prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab("Fence", Icons.GetIcon, assetCat);
 				else if (prefab.GetComponent<SecondaryLane>() != null && prefab.GetComponent<ThemeObject>() != null) prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab("RoadMarking", Icons.GetIcon, assetCat);
 				else prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab("Misc", Icons.GetIcon, assetCat);
-				prefabUI.m_Icon = $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/{prefabUI.m_Group.name}.svg";
+				if(!IsAssetIconLibraryEnabled) prefabUI.m_Icon = $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/{prefabUI.m_Group.name}.svg";
 				prefabUI.m_Group.AddElement(entity);
 
 				ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());

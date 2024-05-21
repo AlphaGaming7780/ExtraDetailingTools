@@ -15,7 +15,7 @@ class NetToolSystemPatch {
 		{
             if (first)
             {
-                __instance.selectedSnap &= ~(Snap.ObjectSurface);
+                __instance.selectedSnap &= ~(Snap.ObjectSurface & Snap.LotGrid);
                 first = false;
             }
         }

@@ -38,16 +38,16 @@ You’ll find this alongside the other snapping options in the games UI.
 
 # Translation
 ⚠️ This mod uses crowdin so there maybe inconsistencies with translations due to translations from different translators ⚠️
-- ⚠️French 20%
-- ⚠️Chinese Simplified 10% : RilkeXS(无手文) (RilkeXS)
-- ❌Chinese Traditional 0%
-- ⚠️German 41% : Konsi
+- ✔️French 100% : aricoseco
+- ✔️Chinese Simplified 100% : RilkeXS(无手文) (RilkeXS), 一叶杳舟 (Yao_Zhou)
+- ⚠️Chinese Traditional 2% : Tiger Zhang (tiger42231), boan51204
+- ⚠️German 52% : Konsi
 - ❌Italian 0%
 - ❌Japanese 0%
-- ⚠️Korean 89% : Twotoolus-FLY-LShst, Hinanchovo
+- ✔️Korean 100% : Twotoolus-FLY-LShst, Hinanchovo
 - ✔️Polish 100% : Lisek, karmel68
-- ❌Portuguese, Brazilian 0%
-- ❌Russian 0%
+- ✔️Portuguese, Brazilian 100% : Miguel Pereira Campos (mpcamposz)
+- ⚠️Russian 7% : Mihail (kaktyc)
 - ✔️Spanish 100% : Alex (AlexofCA)
 
 # Thanking
