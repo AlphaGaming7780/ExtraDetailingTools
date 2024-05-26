@@ -33,8 +33,7 @@ internal partial class TransformSection : InfoSectionBase
 	}
 
 	private OverlayRenderSystem _overlayRenderSystem;
-	private BatchManagerSystem _batchManagerSystem;
-	private PreCullingSystem _preCullingSystem;
+
 
     private GetterValueBinding<float3> transformSectionGetPos;
 	private GetterValueBinding<float3> transformSectionGetRot;
@@ -54,8 +53,6 @@ internal partial class TransformSection : InfoSectionBase
 		base.OnCreate();
 
 		_overlayRenderSystem = World.GetOrCreateSystemManaged<OverlayRenderSystem>();
-		_batchManagerSystem = World.GetOrCreateSystemManaged<BatchManagerSystem>();
-		_preCullingSystem = World.GetExistingSystemManaged<PreCullingSystem>();
 
 		AddBinding(transformSectionGetPos = new GetterValueBinding<float3>("edt", "transformsection_pos", GetPosition));
 		AddBinding(new TriggerBinding<float3>("edt", "transformsection_pos", new Action<float3>(SetPosition)));
@@ -93,22 +90,6 @@ internal partial class TransformSection : InfoSectionBase
             transformSectionGetRot.Update();
             RequestUpdate();
 
-            NativeBatchGroups<CullingData, GroupData, BatchData, InstanceData> nativeBatchGroups = _batchManagerSystem.GetNativeBatchGroups(true, out JobHandle job);
-            NativeBatchInstances<CullingData, GroupData, BatchData, InstanceData> nativeBatchInstances = _batchManagerSystem.GetNativeBatchInstances(false, out JobHandle jb);
-            jb.Complete();
-
-            ScalMeshJob scalMeshJob = new()
-            {
-                m_NativeBatchInstances = nativeBatchInstances.AsParallelInstanceWriter(),
-                m_NativeBatchGroups = nativeBatchGroups,
-                scale = new(2, 2, 2),
-                dynamicBuffer = EntityManager.GetBuffer<MeshBatch>(selectedEntity),
-                cullingInfo = EntityManager.GetComponentData<CullingInfo>(selectedEntity),
-                transform = transform,
-                isHidden = EntityManager.HasComponent<Hidden>(selectedEntity),
-            };
-            JobHandle jobHandle = scalMeshJob.Schedule(JobHandle.CombineDependencies(Dependency, job));
-
 			if(showAxis)
 			{
 				Bounds3 bounds3 = new (new(0,0,0), new(10,10,10));
@@ -129,13 +110,10 @@ internal partial class TransformSection : InfoSectionBase
                     rot = GetRotation(),
 					useLocalAxis = useLocalAxis,
                 };
-				JobHandle jobHandle2 = renderAxisJob.Schedule(Dependency);
-				_overlayRenderSystem.AddBufferWriter(jobHandle2);
-				Dependency = JobHandle.CombineDependencies(jobHandle, jobHandle2);
-				return;
-				
+				JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
+				_overlayRenderSystem.AddBufferWriter(jobHandle);
+                Dependency = jobHandle;
 			}
-            Dependency = jobHandle;
         }	
 	}
 
@@ -171,39 +149,6 @@ internal partial class TransformSection : InfoSectionBase
 			m_OverlayBuffer.DrawLine( UnityEngine.Color.blue, UnityEngine.Color.blue, 0, OverlayRenderSystem.StyleFlags.Grid, new ( pos, pos + zAxis ), 0.1f, 0.5f );
 		}
 	}
-
-#if RELEASE
-    [BurstCompile]
-#endif
-    private struct ScalMeshJob : IJob
-    {
-        public DynamicBuffer<MeshBatch> dynamicBuffer;
-        public NativeBatchInstances<CullingData, GroupData, BatchData, InstanceData>.ParallelInstanceWriter m_NativeBatchInstances;
-        public NativeBatchGroups<CullingData, GroupData, BatchData, InstanceData> m_NativeBatchGroups;
-        public CullingInfo cullingInfo;
-		public Transform transform;
-		public float3 scale;
-		public bool isHidden;
-
-        public void Execute()
-        {
-			for(int i = 0; i < dynamicBuffer.Length; i++)
-            {
-                MeshBatch meshBatch = dynamicBuffer[i];
-                GroupData groupData = this.m_NativeBatchGroups.GetGroupData(meshBatch.m_GroupIndex);
-
-                float3 translation2 = transform.m_Position + math.rotate(transform.m_Rotation, scale * groupData.m_SecondaryCenter);
-                float3 scale2 = scale * groupData.m_SecondarySize;
-                float3x4 float3x = TransformHelper.TRS(transform.m_Position, transform.m_Rotation, scale);
-                float3x4 secondaryValue = TransformHelper.TRS(translation2, transform.m_Rotation, scale2);
-
-                ref CullingData ptr2 = ref this.m_NativeBatchInstances.SetTransformValue(float3x, secondaryValue, meshBatch.m_GroupIndex, meshBatch.m_InstanceIndex);
-				ptr2.m_Bounds = cullingInfo.m_Bounds;
-                ptr2.isHidden = isHidden;
-                ptr2.lodOffset = 0;
-            }
-        }
-    }
 
     public override void OnWriteProperties(IJsonWriter writer) {}
 
