@@ -1,47 +1,48 @@
 ﻿using Game.Prefabs;
 using System.IO;
 
-namespace ExtraDetailingTools;
-
-internal class Icons
+namespace ExtraDetailingTools
 {
-    internal const string IconsResourceKey = "extradetailingtools";
-    internal static readonly string COUIBaseLocation = $"coui://{IconsResourceKey}";
-
-    public static readonly string DecalPlaceholder = $"{COUIBaseLocation}/Icons/Decals/Decal_Placeholder.svg";
-
-    internal static void LoadIcons(string path)
+    internal class Icons
     {
-        Extra.Lib.UI.Icons.LoadIconsFolder(IconsResourceKey, path);
-    }
+        internal const string IconsResourceKey = "extradetailingtools";
+        internal static readonly string COUIBaseLocation = $"coui://{IconsResourceKey}";
 
-    public static string GetIcon(PrefabBase prefab)
-    {
+        public static readonly string DecalPlaceholder = $"{COUIBaseLocation}/Icons/Decals/Decal_Placeholder.svg";
 
-        if (prefab is null) return Extra.Lib.UI.Icons.Placeholder;
-
-        if (File.Exists($"{EDT.ResourcesIcons}/{prefab.GetType().Name}/{prefab.name}.svg")) return $"{COUIBaseLocation}/Icons/{prefab.GetType().Name}/{prefab.name}.svg";
-
-        if (prefab is SurfacePrefab)
+        internal static void LoadIcons(string path)
         {
-            return "Media/Game/Icons/LotTool.svg";
+            Extra.Lib.UI.Icons.LoadIconsFolder(IconsResourceKey, path);
         }
-        else if (prefab is UIAssetCategoryPrefab)
+
+        public static string GetIcon(PrefabBase prefab)
         {
+
+            if (prefab is null) return Extra.Lib.UI.Icons.Placeholder;
+
+            if (File.Exists($"{EDT.ResourcesIcons}/{prefab.GetType().Name}/{prefab.name}.svg")) return $"{COUIBaseLocation}/Icons/{prefab.GetType().Name}/{prefab.name}.svg";
+
+            if (prefab is SurfacePrefab)
+            {
+                return "Media/Game/Icons/LotTool.svg";
+            }
+            else if (prefab is UIAssetCategoryPrefab)
+            {
+
+                return Extra.Lib.UI.Icons.Placeholder;
+            }
+            else if (prefab is UIAssetMenuPrefab)
+            {
+
+                return Extra.Lib.UI.Icons.Placeholder;
+            }
+            else if (prefab.name.ToLower().Contains("decal") || prefab.name.ToLower().Contains("roadarrow") || prefab.name.ToLower().Contains("lanemarkings"))
+            {
+                return DecalPlaceholder;
+            }
 
             return Extra.Lib.UI.Icons.Placeholder;
         }
-        else if (prefab is UIAssetMenuPrefab)
-        {
 
-            return Extra.Lib.UI.Icons.Placeholder;
-        }
-        else if (prefab.name.ToLower().Contains("decal") || prefab.name.ToLower().Contains("roadarrow") || prefab.name.ToLower().Contains("lanemarkings"))
-        {
-            return DecalPlaceholder;
-        }
-
-        return Extra.Lib.UI.Icons.Placeholder;
     }
-
 }
