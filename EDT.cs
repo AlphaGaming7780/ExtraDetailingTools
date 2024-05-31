@@ -55,7 +55,8 @@ namespace ExtraDetailingTools
             EditEntities.SetupEditEntities();
 
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
-            updateSystem.UpdateAt<TransformSystem>(SystemUpdatePhase.Rendering);
+            updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.Modification1);
+            updateSystem.UpdateAfter<TransformObjectSystem>(SystemUpdatePhase.Rendering);
 
             SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
             selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());

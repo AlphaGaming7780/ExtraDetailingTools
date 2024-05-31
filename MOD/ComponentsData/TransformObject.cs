@@ -7,28 +7,28 @@ namespace ExtraDetailingTools.ComponentsData
 {
     internal struct TransformObject : IComponentData, IQueryTypeParameter, IEquatable<TransformObject>, ISerializable
     {
-        public float3 Scale;
+        public float3 m_Scale;
 
-        public TransformObject(float3 Scale)
+        public TransformObject(float3 Scale = new())
         {
-            this.Scale = Scale;
+            m_Scale = Scale;
         }
 
         public readonly bool Equals(TransformObject other)
         {
-            return other.Scale.Equals(Scale);
+            return other.m_Scale.Equals(m_Scale);
             
             //return false;
         }
 
         public void Serialize<TWriter>(TWriter writer) where TWriter : IWriter
         {
-            writer.Write(Scale);
+            writer.Write(m_Scale);
         }
 
         public void Deserialize<TReader>(TReader reader) where TReader : IReader
         {
-            reader.Read(out Scale);
+            reader.Read(out m_Scale);
         }
     }
 }
