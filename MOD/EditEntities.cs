@@ -52,100 +52,33 @@ internal static class EditEntities
 			],
 		};
 
-		//EntityQueryDesc UIToolbarGroupQuery = new()
+		//EntityQueryDesc radioEventEntityQueryDesc = new()
 		//{
 		//	All = [
-   //                 ComponentType.ReadOnly<UIToolbarGroupData>(),
-   //             ]
-		//}; 
-
-		//EntityQueryDesc EffectEntityQueryDesc = new()
-		//{
-		//	All = [ComponentType.ReadOnly<EffectData>()]
+		//		ComponentType.ReadOnly<RadioEventData>()
+		//	]
 		//};
 
-		//EntityQueryDesc ActivityLocationEntityQueryDesc = new()
-		//{
-		//	All = [ComponentType.ReadOnly<ActivityLocationData>()]
-		//};
 
 
 		ExtraLib.AddOnEditEnities(new (OnEditSurfacesEntities, surfaceEntityQueryDesc));
 		ExtraLib.AddOnEditEnities(new (OnEditDecalsEntities, decalsEntityQueryDesc));
 		ExtraLib.AddOnEditEnities(new (OnEditNetLaneEntities, netLaneEntityQueryDesc));
 
-		//ExtraLib.AddOnEditEnities(new(OnEditUIToolbarGroupEntity, UIToolbarGroupQuery));
-
-		//ExtraLib.AddOnEditEnities(new(OnEditEffectEntities, EffectEntityQueryDesc));
-		//ExtraLib.AddOnEditEnities(new(OnEditActivityLocationEntities, ActivityLocationEntityQueryDesc));
+		//ExtraLib.AddOnEditEnities(new(OnEditRadioEventEntity, radioEventEntityQueryDesc));
 	}
 
-	//private static void OnEditEffectEntities(NativeArray<Entity> entities)
+	//private static void OnEditRadioEventEntity(NativeArray<Entity> entities)
 	//{
 	//	foreach (Entity entity in entities)
 	//	{
-	//		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out EffectPrefab prefab))
+	//		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out PrefabBase prefab))
 	//		{
-
-	//			var prefabUI = prefab.GetComponent<UIObject>();
-	//			if (prefabUI == null)
-	//			{
-	//				prefabUI = prefab.AddComponent<UIObject>();
-	//				prefabUI.active = true;
-	//				prefabUI.m_IsDebugObject = false;
-	//				prefabUI.m_Icon = Icons.GetIcon(prefab);
-	//				prefabUI.m_Priority = 1;
-	//			}
-
-	//			prefabUI.m_Group?.RemoveElement(entity);
-	//			prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "Effect", Icons.GetIcon, "Decals");
-	//			prefabUI.m_Group.AddElement(entity);
-
-	//			EffectData effectData = ExtraLib.m_EntityManager.GetComponentData<EffectData>(entity);
-	//			effectData.m_Flags.m_RequiredFlags = EffectConditionFlags.None;
-	//			ExtraLib.m_EntityManager.SetComponentData(entity, effectData);
-
-	//			ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
+	//			RadioEvent radioEvent = prefab.GetComponent<RadioEvent>();
+	//			EDT.Logger.Info($"{radioEvent.m_SegmentType} | {prefab.name}");
 	//		}
 	//	}
 	//}
-
-	//private static void OnEditActivityLocationEntities(NativeArray<Entity> entities)
-	//{
-	//	foreach (Entity entity in entities)
-	//	{
-	//		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out ActivityLocationPrefab prefab))
-	//		{
-
-	//			var prefabUI = prefab.GetComponent<UIObject>();
-	//			if (prefabUI == null)
-	//			{
-	//				prefabUI = prefab.AddComponent<UIObject>();
-	//				prefabUI.active = true;
-	//				prefabUI.m_IsDebugObject = false;
-	//				prefabUI.m_Icon = Icons.GetIcon(prefab);
-	//				prefabUI.m_Priority = 1;
-	//			}
-
-	//			prefabUI.m_Group?.RemoveElement(entity);
-	//			prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "ActivityLocation", Icons.GetIcon, "Effect");
-	//			prefabUI.m_Group.AddElement(entity);
-
-	//			ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
-	//		}
-	//	}
-	//}
-
-	//private static void OnEditUIToolbarGroupEntity(NativeArray<Entity> entities)
-	//{
-  //          foreach (Entity entity in entities)
-  //          {
-  //              if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out UIToolbarGroupPrefab prefab))
-  //              {
-	//			EDT.Logger.Info(prefab.name);
-  //              }
-  //          }
-  //      }
 
 
 	private static void OnEditSurfacesEntities(NativeArray<Entity> entities)
