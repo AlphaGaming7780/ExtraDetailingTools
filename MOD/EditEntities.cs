@@ -45,100 +45,32 @@ namespace ExtraDetailingTools
                 },
             };
 
-            //EntityQueryDesc UIToolbarGroupQuery = new()
-            //{
-            //	All = [
-            //                 ComponentType.ReadOnly<UIToolbarGroupData>(),
-            //             ]
-            //}; 
+		//EntityQueryDesc brandEntityQueryDesc = new()
+		//{
+		//	All = [
+		//		ComponentType.ReadOnly<BrandData>()
+		//	]
+		//};
 
-            //EntityQueryDesc EffectEntityQueryDesc = new()
-            //{
-            //	All = [ComponentType.ReadOnly<EffectData>()]
-            //};
+		ExtraLib.AddOnEditEnities(new (OnEditSurfacesEntities, surfaceEntityQueryDesc));
+		ExtraLib.AddOnEditEnities(new (OnEditDecalsEntities, decalsEntityQueryDesc));
+		ExtraLib.AddOnEditEnities(new (OnEditNetLaneEntities, netLaneEntityQueryDesc));
 
-            //EntityQueryDesc ActivityLocationEntityQueryDesc = new()
-            //{
-            //	All = [ComponentType.ReadOnly<ActivityLocationData>()]
-            //};
+		//ExtraLib.AddOnEditEnities(new(OnEditBrandEntity, brandEntityQueryDesc));
+	}
 
-
-            ExtraLib.AddOnEditEnities(new(OnEditSurfacesEntities, surfaceEntityQueryDesc));
-            ExtraLib.AddOnEditEnities(new(OnEditDecalsEntities, decalsEntityQueryDesc));
-            ExtraLib.AddOnEditEnities(new(OnEditNetLaneEntities, netLaneEntityQueryDesc));
-
-            //ExtraLib.AddOnEditEnities(new(OnEditUIToolbarGroupEntity, UIToolbarGroupQuery));
-
-            //ExtraLib.AddOnEditEnities(new(OnEditEffectEntities, EffectEntityQueryDesc));
-            //ExtraLib.AddOnEditEnities(new(OnEditActivityLocationEntities, ActivityLocationEntityQueryDesc));
-        }
-
-        //private static void OnEditEffectEntities(NativeArray<Entity> entities)
-        //{
-        //	foreach (Entity entity in entities)
-        //	{
-        //		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out EffectPrefab prefab))
-        //		{
-
-        //			var prefabUI = prefab.GetComponent<UIObject>();
-        //			if (prefabUI == null)
-        //			{
-        //				prefabUI = prefab.AddComponent<UIObject>();
-        //				prefabUI.active = true;
-        //				prefabUI.m_IsDebugObject = false;
-        //				prefabUI.m_Icon = Icons.GetIcon(prefab);
-        //				prefabUI.m_Priority = 1;
-        //			}
-
-        //			prefabUI.m_Group?.RemoveElement(entity);
-        //			prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "Effect", Icons.GetIcon, "Decals");
-        //			prefabUI.m_Group.AddElement(entity);
-
-        //			EffectData effectData = ExtraLib.m_EntityManager.GetComponentData<EffectData>(entity);
-        //			effectData.m_Flags.m_RequiredFlags = EffectConditionFlags.None;
-        //			ExtraLib.m_EntityManager.SetComponentData(entity, effectData);
-
-        //			ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
-        //		}
-        //	}
-        //}
-
-        //private static void OnEditActivityLocationEntities(NativeArray<Entity> entities)
-        //{
-        //	foreach (Entity entity in entities)
-        //	{
-        //		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out ActivityLocationPrefab prefab))
-        //		{
-
-        //			var prefabUI = prefab.GetComponent<UIObject>();
-        //			if (prefabUI == null)
-        //			{
-        //				prefabUI = prefab.AddComponent<UIObject>();
-        //				prefabUI.active = true;
-        //				prefabUI.m_IsDebugObject = false;
-        //				prefabUI.m_Icon = Icons.GetIcon(prefab);
-        //				prefabUI.m_Priority = 1;
-        //			}
-
-        //			prefabUI.m_Group?.RemoveElement(entity);
-        //			prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetCategoryPrefab("Landscaping", "ActivityLocation", Icons.GetIcon, "Effect");
-        //			prefabUI.m_Group.AddElement(entity);
-
-        //			ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
-        //		}
-        //	}
-        //}
-
-        //private static void OnEditUIToolbarGroupEntity(NativeArray<Entity> entities)
-        //{
-        //          foreach (Entity entity in entities)
-        //          {
-        //              if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out UIToolbarGroupPrefab prefab))
-        //              {
-        //			EDT.Logger.Info(prefab.name);
-        //              }
-        //          }
-        //      }
+	//private static void OnEditBrandEntity(NativeArray<Entity> entities)
+	//{
+	//	string list = "Possible values :";
+	//	foreach (Entity entity in entities)
+	//	{
+	//		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out BrandPrefab prefab))
+	//		{
+	//			list += $" `{prefab.name}`,";
+	//		}
+	//	}
+	//	EDT.Logger.Info(list);
+	//}
 
 
         private static void OnEditSurfacesEntities(NativeArray<Entity> entities)
