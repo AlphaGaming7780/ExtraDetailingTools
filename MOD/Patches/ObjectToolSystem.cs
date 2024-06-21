@@ -13,30 +13,30 @@ namespace ExtraDetailingTools;
 
 class ObjectToolSystemPatch {
 
-    [HarmonyPatch(typeof(ObjectToolSystem), "OnStartRunning")]
-    class ObjectToolSystem_OnStartRunning
-    {
+	[HarmonyPatch(typeof(ObjectToolSystem), "OnStartRunning")]
+	class ObjectToolSystem_OnStartRunning
+	{
 		static bool first = true;
-        public static void Postfix(ObjectToolSystem __instance)
-        {
+		public static void Postfix(ObjectToolSystem __instance)
+		{
 			if (first)
 			{
 				__instance.selectedSnap &= ~(Snap.NetArea);
 				first = false;
 			}
-        }
-    }
+		}
+	}
 
-    [HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
-    class ObjectToolSystem_SnapControlPoint
-    {
+	[HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
+	class ObjectToolSystem_SnapControlPoint
+	{
 		static Entity oldEntity = Entity.Null;
 
-        public static bool Prefix(ObjectToolSystem __instance)
-        {
+		public static bool Prefix(ObjectToolSystem __instance)
+		{
 			if ((__instance.selectedSnap & Snap.ObjectSurface) == Snap.None) return true;
 
-            ControlPoint controlPoint = Traverse.Create(__instance).Field("m_ControlPoints").GetValue<NativeList<ControlPoint>>()[0];
+			ControlPoint controlPoint = Traverse.Create(__instance).Field("m_ControlPoints").GetValue<NativeList<ControlPoint>>()[0];
 
 			if (controlPoint.m_OriginalEntity == Entity.Null || controlPoint.m_OriginalEntity == oldEntity) return true;
 
@@ -48,11 +48,11 @@ class ObjectToolSystemPatch {
 
 			ExtraLib.m_EntityManager.AddBuffer<SubObject>(controlPoint.m_OriginalEntity);
 
-            return true;
-        }
-    }
+			return true;
+		}
+	}
 
-    [HarmonyPatch(typeof(ObjectToolSystem), nameof(ObjectToolSystem.GetAvailableSnapMask),
+	[HarmonyPatch(typeof(ObjectToolSystem), nameof(ObjectToolSystem.GetAvailableSnapMask),
 		new Type[] { typeof(PlaceableObjectData), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(Snap), typeof(Snap) },
 		new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out })]
 	class ObjectToolSystem_GetAvailableSnapMask
@@ -102,7 +102,7 @@ class ObjectToolSystemPatch {
 				offMask |= Snap.Upright;
 			}
 			if (editorMode && (!isAssetStamp || stamping)) //
-            {
+			{
 				onMask |= Snap.AutoParent;
 				offMask |= Snap.AutoParent;
 			}

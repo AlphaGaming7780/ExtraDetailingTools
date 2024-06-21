@@ -52,32 +52,31 @@ internal static class EditEntities
 			],
 		};
 
-		//EntityQueryDesc radioEventEntityQueryDesc = new()
+		//EntityQueryDesc brandEntityQueryDesc = new()
 		//{
 		//	All = [
-		//		ComponentType.ReadOnly<RadioEventData>()
+		//		ComponentType.ReadOnly<BrandData>()
 		//	]
 		//};
-
-
 
 		ExtraLib.AddOnEditEnities(new (OnEditSurfacesEntities, surfaceEntityQueryDesc));
 		ExtraLib.AddOnEditEnities(new (OnEditDecalsEntities, decalsEntityQueryDesc));
 		ExtraLib.AddOnEditEnities(new (OnEditNetLaneEntities, netLaneEntityQueryDesc));
 
-		//ExtraLib.AddOnEditEnities(new(OnEditRadioEventEntity, radioEventEntityQueryDesc));
+		//ExtraLib.AddOnEditEnities(new(OnEditBrandEntity, brandEntityQueryDesc));
 	}
 
-	//private static void OnEditRadioEventEntity(NativeArray<Entity> entities)
+	//private static void OnEditBrandEntity(NativeArray<Entity> entities)
 	//{
+	//	string list = "Possible values :";
 	//	foreach (Entity entity in entities)
 	//	{
-	//		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out PrefabBase prefab))
+	//		if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out BrandPrefab prefab))
 	//		{
-	//			RadioEvent radioEvent = prefab.GetComponent<RadioEvent>();
-	//			EDT.Logger.Info($"{radioEvent.m_SegmentType} | {prefab.name}");
+	//			list += $" `{prefab.name}`,";
 	//		}
 	//	}
+	//	EDT.Logger.Info(list);
 	//}
 
 
