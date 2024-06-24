@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using Game.Prefabs;
 using Game.Tools;
 using HarmonyLib;
@@ -7,21 +8,56 @@ namespace ExtraDetailingTools;
 
 class NetToolSystemPatch {
 
-    [HarmonyPatch(typeof(NetToolSystem), "OnStartRunning")]
-    class NetToolSystem_OnStartRunning
-    {
-        static bool first = true;
-        public static void Postfix(NetToolSystem __instance) 
+	//[HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.prefab), MethodType.Setter)]
+	//class NetToolPreferences_OnStartRunning
+	//{
+	//    static bool first = true;
+	//    public static void Postfix(NetToolSystem __instance, NetPrefab value)
+	//    {
+	//        if (first)
+	//        {
+	//            __instance.selectedSnap &= ~(Snap.ObjectSurface & Snap.LotGrid);
+	//            first = true;
+	//        }
+	//    }
+	//}
+
+	[HarmonyPatch(typeof(NetToolSystem), "OnStartRunning")]
+	class NetToolPreferences_OnStartRunning
+	{
+		static bool first = true;
+		public static void Postfix(NetToolSystem __instance)
 		{
-            if (first)
-            {
-                __instance.selectedSnap &= ~(Snap.ObjectSurface & Snap.LotGrid);
-                first = false;
-            }
-        }
+			if (first)
+			{
+
+				//Type[] privateClassType = typeof(NetToolSystem).Assembly.GetTypes();
+				Type privateClassType = typeof(NetToolSystem).Assembly.GetType("Game.Tools.NetToolSystem+NetToolPreferences");
+
+				//foreach (Type privateType in privateClassType) UnityEngine.Debug.Log(privateType.ToString());
+
+				var instance = Activator.CreateInstance(privateClassType, true);
+				var snapInfo = privateClassType.GetField("m_Snap", BindingFlags.Public | BindingFlags.Instance);
+
+				Snap snap = (Snap)snapInfo.GetValue(instance);
+				snap &= ~(Snap.ObjectSurface & Snap.LotGrid);
+				snapInfo.SetValue(instance, snap);
+
+				Traverse netToolSystemTravers = Traverse.Create(__instance);
+				netToolSystemTravers.Field("m_DefaultToolPreferences").SetValue(instance);
+				privateClassType.GetMethod("Save", BindingFlags.Public | BindingFlags.Instance).Invoke(instance, [__instance]);
+				//privateClassType.GetMethod("Load", BindingFlags.Public | BindingFlags.Instance).Invoke(instance, [__instance]);
+
+				//var instance2 = netToolSystemTravers.Field("m_DefaultToolPreferences").GetValue();
+
+				UnityEngine.Debug.Log(((Snap)snapInfo.GetValue(instance)) == __instance.selectedSnap);
+
+				first = true;
+			}
+		}
 	}
 
-    [HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.GetAvailableSnapMask),
+	[HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.GetAvailableSnapMask),
 		new Type[] { typeof(NetGeometryData), typeof(PlaceableNetData), typeof(NetToolSystem.Mode), typeof(bool), typeof(bool), typeof(bool), typeof(Snap), typeof(Snap) },
 		new ArgumentType[] {ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out })]
 	class NetToolSystem_GetAvailableSnapMask
@@ -89,7 +125,7 @@ class NetToolSystemPatch {
 			}
 
 			onMask |= Snap.ObjectSurface | Snap.LotGrid;
-            offMask |= Snap.ObjectSurface | Snap.LotGrid;
+			offMask |= Snap.ObjectSurface | Snap.LotGrid;
 
 			if (editorMode)
 			{

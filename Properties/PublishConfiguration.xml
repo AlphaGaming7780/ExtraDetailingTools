@@ -55,7 +55,7 @@ You’ll find this alongside the other snapping options in the games UI.
 - ✔️French 100% : aricoseco
 - ✔️Chinese Simplified 100% : RilkeXS(无手文) (RilkeXS), 一叶杳舟 (Yao_Zhou)
 - ⚠️Chinese Traditional 2% : Tiger Zhang (tiger42231), boan51204
-- ⚠️German 52% : Konsi
+- ⚠️German 100% : Konsi, Kai Stammen (stammenkai)
 - ❌Italian 0%
 - ❌Japanese 0%
 - ✔️Korean 100% : Twotoolus-FLY-LShst, Hinanchovo
@@ -97,7 +97,7 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/extradetailingtools.1675592/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.1.1" />
+	<ModVersion Value="1.1.2" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.1.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -107,10 +107,9 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
   <ChangeLog>
-# 1.1.1
-- Update: French localization by aricoseco.
-- Update: Portuguese, Brazilian localization by Miguel Pereira Campos (mpcamposz).
-- Update: Russian localization by Mihail (kaktyc).
+# 1.1.2
+- Support for 1.1.5f1 game version
+- Update German translation by Kai Stammen (stammenkai)
   </ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
   <ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
