@@ -3,6 +3,8 @@ using System.Reflection;
 using Game;
 using System.Diagnostics;
 using Game.Tools;
+using Game.Prefabs;
+using Colossal.Annotations;
 
 namespace ExtraDetailingTools
 {
@@ -22,4 +24,31 @@ namespace ExtraDetailingTools
 			}
 		}
 	}
+
+    //[HarmonyPatch(typeof(ToolSystem), "ActivatePrefabTool")]
+    //public class ToolSystem_ActivatePrefabTool
+    //{
+    //    public static bool Prefix(ToolSystem __instance, ref bool __result, [CanBeNull] PrefabBase prefab)
+    //    {
+    //        EDT.Logger.Info("ActivatePrefabTool");
+    //        if (prefab != null)
+    //        {
+    //            foreach (ToolBaseSystem toolBaseSystem in __instance.tools)
+    //            {
+    //                EDT.Logger.Info(toolBaseSystem.GetType().Name);
+    //                if (toolBaseSystem.TrySetPrefab(prefab))
+    //                {
+    //                    EDT.Logger.Info("TRUE");
+    //                    __instance.activeTool = toolBaseSystem;
+    //                    __result = true;
+    //                    return true;
+    //                }
+    //            }
+    //        }
+    //        __instance.activeTool = Traverse.Create(__instance).Field("m_DefaultToolSystem").GetValue<DefaultToolSystem>();
+    //        __result = false;
+    //        return false;
+    //    }
+    //}
+
 }

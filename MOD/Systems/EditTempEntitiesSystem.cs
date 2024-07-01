@@ -4,6 +4,7 @@ using Game.Common;
 using Game.Objects;
 using Game.Rendering;
 using Game.Tools;
+using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
@@ -13,12 +14,12 @@ namespace ExtraDetailingTools.Systems
 {
     internal partial class EditTempEntitiesSystem : GameSystemBase
     {
-        private ModificationBarrier1 _modificationBarrier;
+        private ModificationEndBarrier _modificationBarrier;
         private EntityQuery _updateQueryTempEntities;
         protected override void OnCreate()
         {
             base.OnCreate();
-            _modificationBarrier = World.GetOrCreateSystemManaged<ModificationBarrier1>();
+            _modificationBarrier = World.GetOrCreateSystemManaged<ModificationEndBarrier>();
             _updateQueryTempEntities = GetEntityQuery(
                 new EntityQueryDesc
                 {
@@ -45,6 +46,9 @@ namespace ExtraDetailingTools.Systems
             Dependency = addTransformObjectToTempObjectJob;
         }
 
+#if RELEASE
+	[BurstCompile]
+#endif
         private struct AddTransformObjectToTempObject : IJobChunk
         {
             public EntityTypeHandle EntityTypeHandle;

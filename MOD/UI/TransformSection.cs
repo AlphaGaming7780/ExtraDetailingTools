@@ -11,6 +11,7 @@ using Game.Rendering;
 using Game.Tools;
 using Game.UI.InGame;
 using System;
+using Unity.Burst;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;

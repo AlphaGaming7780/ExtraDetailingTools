@@ -6,6 +6,7 @@ using Game.Objects;
 using Game.Rendering;
 using Game.Simulation;
 using Game.Tools;
+using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
@@ -63,7 +64,7 @@ namespace ExtraDetailingTools.Systems
 
 			// V2
 
-            NativeBatchGroups<CullingData, GroupData, BatchData, InstanceData> nativeBatchGroups = _batchManagerSystem.GetNativeBatchGroups(true, out JobHandle job);
+			NativeBatchGroups<CullingData, GroupData, BatchData, InstanceData> nativeBatchGroups = _batchManagerSystem.GetNativeBatchGroups(true, out JobHandle job);
 			NativeBatchInstances<CullingData, GroupData, BatchData, InstanceData> nativeBatchInstances = _batchManagerSystem.GetNativeBatchInstances(false, out JobHandle jb);
 			jb.Complete();
 
@@ -91,13 +92,16 @@ namespace ExtraDetailingTools.Systems
 #endif
 		private struct ScalMeshJob : IJobChunk
 		{
-			public EntityTypeHandle EntityTypeHandle;
-			public BufferLookup<MeshBatch> MeshBatcheLookup;
-			public ComponentLookup<Transform> TransformLookup;
+            public EntityTypeHandle EntityTypeHandle;
+            public BufferLookup<MeshBatch> MeshBatcheLookup;
+            public ComponentLookup<Transform> TransformLookup;
             public ComponentLookup<InterpolatedTransform> InterpolatedTransformLookup;
             public ComponentLookup<CullingInfo> CullingInfoLookup;
 			public ComponentLookup<TransformObject> TransformObjectLookup;
-			public ComponentLookup<Hidden> HiddenLookup;
+
+            [ReadOnly]
+            public ComponentLookup<Hidden> HiddenLookup;
+
 			public NativeBatchInstances<CullingData, GroupData, BatchData, InstanceData>.ParallelInstanceWriter NativeBatchInstances;
 			public NativeBatchGroups<CullingData, GroupData, BatchData, InstanceData> NativeBatchGroups;
 
