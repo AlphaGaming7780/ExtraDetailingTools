@@ -35,6 +35,7 @@ using Colossal.Serialization.Entities;
 using UnityEngine.Scripting;
 using Game.Debug.Tests;
 using UnityEngine.UIElements;
+using AgeMask = Game.Tools.AgeMask;
 
 namespace ExtraDetailingTools.BetterObjectTool
 {
@@ -531,6 +532,10 @@ namespace ExtraDetailingTools.BetterObjectTool
 
                 public float2 m_Direction;
 
+                public Entity m_IgnoreOwner;
+
+                public ComponentLookup<Owner> m_OwnerData;
+
                 public ComponentLookup<Block> m_BlockData;
 
                 public bool Intersect(Bounds2 bounds)
@@ -540,42 +545,56 @@ namespace ExtraDetailingTools.BetterObjectTool
 
                 public void Iterate(Bounds2 bounds, Entity blockEntity)
                 {
-                    if (MathUtils.Intersect(bounds, m_Bounds))
+                    if (!MathUtils.Intersect(bounds, this.m_Bounds))
                     {
-                        Block block = m_BlockData[blockEntity];
-                        Quad2 quad = ZoneUtils.CalculateCorners(block);
-                        Line2.Segment line = new Line2.Segment(quad.a, quad.b);
-                        Line2.Segment line2 = new Line2.Segment(m_ControlPoint.m_HitPosition.xz, m_ControlPoint.m_HitPosition.xz);
-                        float2 @float = m_Direction * (math.max(0f, m_LotSize.y - m_LotSize.x) * 4f);
-                        line2.a -= @float;
-                        line2.b += @float;
-                        float2 t;
-                        float num = MathUtils.Distance(line, line2, out t);
-                        if (num == 0f)
+                        return;
+                    }
+                    if (this.m_IgnoreOwner != Entity.Null)
+                    {
+                        Entity entity = blockEntity;
+                        Owner owner;
+                        while (this.m_OwnerData.TryGetComponent(entity, out owner))
                         {
-                            num -= 0.5f - math.abs(t.y - 0.5f);
+                            if (owner.m_Owner == this.m_IgnoreOwner)
+                            {
+                                return;
+                            }
+                            entity = owner.m_Owner;
                         }
+                    }
+                    Block block = m_BlockData[blockEntity];
+                    Quad2 quad = ZoneUtils.CalculateCorners(block);
+                    Line2.Segment line = new Line2.Segment(quad.a, quad.b);
+                    Line2.Segment line2 = new Line2.Segment(m_ControlPoint.m_HitPosition.xz, m_ControlPoint.m_HitPosition.xz);
+                    float2 @float = m_Direction * (math.max(0f, m_LotSize.y - m_LotSize.x) * 4f);
+                    line2.a -= @float;
+                    line2.b += @float;
+                    float2 t;
+                    float num = MathUtils.Distance(line, line2, out t);
+                    if (num == 0f)
+                    {
+                        num -= 0.5f - math.abs(t.y - 0.5f);
+                    }
 
-                        if (!(num >= m_BestDistance))
-                        {
-                            m_BestDistance = num;
-                            float2 y = m_ControlPoint.m_HitPosition.xz - block.m_Position.xz;
-                            float2 float2 = MathUtils.Left(block.m_Direction);
-                            float num2 = (float)block.m_Size.y * 4f;
-                            float num3 = (float)m_LotSize.y * 4f;
-                            float num4 = math.dot(block.m_Direction, y);
-                            float num5 = math.dot(float2, y);
-                            float num6 = math.select(0f, 0.5f, ((block.m_Size.x ^ m_LotSize.x) & 1) != 0);
-                            num5 -= (math.round(num5 / 8f - num6) + num6) * 8f;
-                            m_BestSnapPosition = m_ControlPoint;
-                            m_BestSnapPosition.m_Position = m_ControlPoint.m_HitPosition;
-                            m_BestSnapPosition.m_Position.xz += block.m_Direction * (num2 - num3 - num4);
-                            m_BestSnapPosition.m_Position.xz -= float2 * num5;
-                            m_BestSnapPosition.m_Direction = block.m_Direction;
-                            m_BestSnapPosition.m_Rotation = ToolUtils.CalculateRotation(m_BestSnapPosition.m_Direction);
-                            m_BestSnapPosition.m_SnapPriority = ToolUtils.CalculateSnapPriority(0f, 1f, m_ControlPoint.m_HitPosition.xz * 0.5f, m_BestSnapPosition.m_Position.xz * 0.5f, m_BestSnapPosition.m_Direction);
-                            m_BestSnapPosition.m_OriginalEntity = blockEntity;
-                        }
+                    if (!(num >= m_BestDistance))
+                    {
+                        m_BestDistance = num;
+                        float2 y = m_ControlPoint.m_HitPosition.xz - block.m_Position.xz;
+                        float2 float2 = MathUtils.Left(block.m_Direction);
+                        float num2 = (float)block.m_Size.y * 4f;
+                        float num3 = (float)m_LotSize.y * 4f;
+                        float num4 = math.dot(block.m_Direction, y);
+                        float num5 = math.dot(float2, y);
+                        float num6 = math.select(0f, 0.5f, ((block.m_Size.x ^ m_LotSize.x) & 1) != 0);
+                        num5 -= (math.round(num5 / 8f - num6) + num6) * 8f;
+                        m_BestSnapPosition = m_ControlPoint;
+                        m_BestSnapPosition.m_Position = m_ControlPoint.m_HitPosition;
+                        m_BestSnapPosition.m_Position.xz += block.m_Direction * (num2 - num3 - num4);
+                        m_BestSnapPosition.m_Position.xz -= float2 * num5;
+                        m_BestSnapPosition.m_Direction = block.m_Direction;
+                        m_BestSnapPosition.m_Rotation = ToolUtils.CalculateRotation(m_BestSnapPosition.m_Direction);
+                        m_BestSnapPosition.m_SnapPriority = ToolUtils.CalculateSnapPriority(0f, 1f, m_ControlPoint.m_HitPosition.xz * 0.5f, m_BestSnapPosition.m_Position.xz * 0.5f, m_BestSnapPosition.m_Direction);
+                        m_BestSnapPosition.m_OriginalEntity = blockEntity;
                     }
                 }
             }
@@ -704,7 +723,7 @@ namespace ExtraDetailingTools.BetterObjectTool
             public void Execute()
             {
                 ControlPoint controlPoint = m_ControlPoints[0];
-                if ((m_Snap & (Snap.NetArea | Snap.NetNode)) != 0 && m_TerrainData.HasComponent(controlPoint.m_OriginalEntity))
+                if ((m_Snap & (Snap.NetArea | Snap.NetNode)) != 0 && m_TerrainData.HasComponent(controlPoint.m_OriginalEntity) && !m_BuildingData.HasComponent(m_Prefab))
                 {
                     FindLoweredParent(ref controlPoint);
                 }
@@ -721,12 +740,11 @@ namespace ExtraDetailingTools.BetterObjectTool
                 {
                     float radius = 1f;
                     float3 offset = 0f;
-                    BuildingExtensionData componentData2;
                     if (m_BuildingData.TryGetComponent(m_Prefab, out var componentData))
                     {
                         radius = math.length(componentData.m_LotSize) * 4f;
                     }
-                    else if (m_BuildingExtensionData.TryGetComponent(m_Prefab, out componentData2))
+                    else if (m_BuildingExtensionData.TryGetComponent(m_Prefab, out BuildingExtensionData componentData2))
                     {
                         radius = math.length(componentData2.m_LotSize) * 4f;
                     }
@@ -751,6 +769,8 @@ namespace ExtraDetailingTools.BetterObjectTool
                     zoneBlockIterator.m_LotSize = buildingData.m_LotSize;
                     zoneBlockIterator.m_Bounds = new Bounds2(controlPoint.m_Position.xz - num, controlPoint.m_Position.xz + num);
                     zoneBlockIterator.m_Direction = math.forward(m_Rotation.value.m_Rotation).xz;
+                    zoneBlockIterator.m_IgnoreOwner = (m_Mode == Mode.Move) ? this.m_Selected : Entity.Null;
+                    zoneBlockIterator.m_OwnerData = this.m_OwnerData;
                     zoneBlockIterator.m_BlockData = m_BlockData;
                     ZoneBlockIterator iterator = zoneBlockIterator;
                     m_ZoneSearchTree.Iterate(ref iterator);
@@ -759,7 +779,7 @@ namespace ExtraDetailingTools.BetterObjectTool
 
                 if ((m_Snap & Snap.OwnerSide) != 0)
                 {
-                    Entity entity = controlPoint.m_OriginalEntity;
+                    Entity entity = Entity.Null;
                     if (m_Mode == Mode.Upgrade)
                     {
                         entity = m_Selected;
@@ -861,7 +881,26 @@ namespace ExtraDetailingTools.BetterObjectTool
 
                 if ((m_Snap & Snap.NetArea) != 0)
                 {
-                    if (m_EdgeGeometryData.HasComponent(controlPoint.m_OriginalEntity))
+                    if (this.m_BuildingData.HasComponent(this.m_Prefab))
+                    {
+                        Curve curve;
+                        if (this.m_CurveData.TryGetComponent(controlPoint.m_OriginalEntity, out curve))
+                        {
+                            ControlPoint controlPoint3 = controlPoint;
+                            controlPoint3.m_OriginalEntity = Entity.Null;
+                            controlPoint3.m_Position = MathUtils.Position(curve.m_Bezier, controlPoint.m_CurvePosition);
+                            controlPoint3.m_Direction = math.normalizesafe(MathUtils.Tangent(curve.m_Bezier, controlPoint.m_CurvePosition).xz, default(float2));
+                            controlPoint3.m_Direction = MathUtils.Left(controlPoint3.m_Direction);
+                            if (math.dot(math.forward(this.m_Rotation.value.m_Rotation).xz, controlPoint3.m_Direction) < 0f)
+                            {
+                                controlPoint3.m_Direction = -controlPoint3.m_Direction;
+                            }
+                            controlPoint3.m_Rotation = ToolUtils.CalculateRotation(controlPoint3.m_Direction);
+                            controlPoint3.m_SnapPriority = ToolUtils.CalculateSnapPriority(1f, 1f, controlPoint.m_HitPosition.xz, controlPoint3.m_Position.xz, controlPoint3.m_Direction);
+                            AddSnapPosition(ref bestPosition, controlPoint3);
+                        }
+                    }
+                    else if (this.m_EdgeGeometryData.HasComponent(controlPoint.m_OriginalEntity))
                     {
                         EdgeGeometry edgeGeometry = m_EdgeGeometryData[controlPoint.m_OriginalEntity];
                         Composition composition = m_CompositionData[controlPoint.m_OriginalEntity];
@@ -948,7 +987,7 @@ namespace ExtraDetailingTools.BetterObjectTool
                 {
                     if ((m_Snap & Snap.AutoParent) == 0)
                     {
-                        if ((m_Snap & (Snap.NetArea | Snap.NetNode)) == 0 || m_TransformData.HasComponent(bestPosition.m_OriginalEntity))
+                        if ((m_Snap & (Snap.NetArea | Snap.NetNode)) == 0 || m_TransformData.HasComponent(bestPosition.m_OriginalEntity) || m_BuildingData.HasComponent(m_Prefab))
                         {
                             bestPosition.m_OriginalEntity = Entity.Null;
                         }
@@ -1691,6 +1730,10 @@ namespace ExtraDetailingTools.BetterObjectTool
 
         private ProxyAction m_CancelAction;
 
+        private DisplayNameOverride m_ApplyDisplayOverride;
+
+        private DisplayNameOverride m_SecondaryApplyDisplayOverride;
+
         private NativeList<ControlPoint> m_ControlPoints;
 
         private NativeValue<Rotation> m_Rotation;
@@ -1764,6 +1807,24 @@ namespace ExtraDetailingTools.BetterObjectTool
             }
         }
 
+        public AgeMask ageMask { get; set; }
+
+        public AgeMask actualAgeMask
+        {
+            get
+            {
+                if (!this.allowAge)
+                {
+                    return AgeMask.Sapling;
+                }
+                if ((this.ageMask & (AgeMask.Sapling | AgeMask.Young | AgeMask.Mature | AgeMask.Elderly)) == (AgeMask)0)
+                {
+                    return AgeMask.Sapling;
+                }
+                return this.ageMask;
+            }
+        }
+
         [CanBeNull]
         public ObjectPrefab prefab
         {
@@ -1783,6 +1844,7 @@ namespace ExtraDetailingTools.BetterObjectTool
                 allowCreate = true;
                 allowBrush = false;
                 allowStamp = false;
+                allowAge = false;
                 if (value != null)
                 {
                     m_TransformPrefab = null;
@@ -1792,6 +1854,7 @@ namespace ExtraDetailingTools.BetterObjectTool
                         allowStamp = (component.m_Flags & Game.Objects.GeometryFlags.Stampable) != 0;
                         allowCreate = !allowStamp || m_ToolSystem.actionMode.IsEditor();
                     }
+                    allowAge = (m_ToolSystem.actionMode.IsGame() && m_PrefabSystem.HasComponent<TreeData>(m_SelectedPrefab));
                 }
 
                 m_ToolSystem.EventPrefabChanged?.Invoke(value);
@@ -1816,6 +1879,7 @@ namespace ExtraDetailingTools.BetterObjectTool
                         allowCreate = true;
                         allowBrush = false;
                         allowStamp = false;
+                        allowAge = false;
                     }
 
                     m_ToolSystem.EventPrefabChanged?.Invoke(value);
@@ -1830,6 +1894,8 @@ namespace ExtraDetailingTools.BetterObjectTool
         public bool allowBrush { get; private set; }
 
         public bool allowStamp { get; private set; }
+
+        public bool allowAge { get; private set; }
 
         public override bool brushing => actualMode == Mode.Brush;
 
@@ -1898,10 +1964,13 @@ namespace ExtraDetailingTools.BetterObjectTool
             m_ApplyAction = InputManager.instance.FindAction("Tool", "Apply");
             m_SecondaryApplyAction = InputManager.instance.FindAction("Tool", "Secondary Apply");
             m_CancelAction = InputManager.instance.FindAction("Tool", "Mouse Cancel");
+            m_ApplyDisplayOverride = new DisplayNameOverride("RouteToolSystem", this.m_ApplyAction, null, 20);
+            m_SecondaryApplyDisplayOverride = new DisplayNameOverride("RouteToolSystem", this.m_SecondaryApplyAction, null, 25);
             brushSize = 200f;
             brushAngle = 0f;
             brushStrength = 0.5f;
             selectedSnap &= ~(Snap.AutoParent | Snap.ContourLines);
+            ageMask = AgeMask.Sapling;
 
             __Game_Prefabs_PlaceableObjectData_RO_ComponentLookup = SystemAPI.GetComponentLookup<PlaceableObjectData>(isReadOnly: true);
             __Game_Common_Owner_RO_ComponentLookup = SystemAPI.GetComponentLookup<Owner>(isReadOnly: true);
@@ -2020,9 +2089,19 @@ namespace ExtraDetailingTools.BetterObjectTool
         [Preserve]
         protected override void OnStopRunning()
         {
+            // New Game Code
+            //this.m_ApplyAction.enabled = false;
+            //this.m_SecondaryApplyAction.enabled = false;
+            //this.m_CancelAction.enabled = false;
+
+            //OLD Game code
             m_ApplyAction.shouldBeEnabled = false;
             m_SecondaryApplyAction.shouldBeEnabled = false;
             m_CancelAction.shouldBeEnabled = false;
+
+
+            m_ApplyDisplayOverride.state = DisplayNameOverride.State.Off;
+            m_SecondaryApplyDisplayOverride.state = DisplayNameOverride.State.Off;
             base.OnStopRunning();
         }
 
@@ -2230,7 +2309,7 @@ namespace ExtraDetailingTools.BetterObjectTool
                     }
                 }
 
-                if ((actualSnap & (Snap.NetArea | Snap.NetNode | Snap.ObjectSurface)) != 0)
+                if ((actualSnap & (Snap.NetArea | Snap.NetNode | Snap.ObjectSurface)) != Snap.None && !m_PrefabSystem.HasComponent<BuildingData>(m_Prefab))
                 {
                     if (underground)
                     {
@@ -2393,7 +2472,7 @@ namespace ExtraDetailingTools.BetterObjectTool
                         break;
                 }
 
-                if ((ToolBaseSystem.GetActualSnap(selectedSnap, m_SnapOnMask, m_SnapOffMask) & (Snap.NetArea | Snap.NetNode | Snap.ObjectSurface)) != 0)
+                if ((ToolBaseSystem.GetActualSnap(selectedSnap, m_SnapOnMask, m_SnapOffMask) & (Snap.NetArea | Snap.NetNode | Snap.ObjectSurface)) != Snap.None && !m_PrefabSystem.HasComponent<BuildingData>(m_Prefab))
                 {
                     allowUnderground = true;
                 }
@@ -2527,43 +2606,62 @@ namespace ExtraDetailingTools.BetterObjectTool
 
         public override void ToggleToolOptions(bool enabled)
         {
+            //OLD GAME CODE
             m_ApplyAction.shouldBeEnabled = !enabled;
             m_SecondaryApplyAction.shouldBeEnabled = !enabled;
+
+            // NEW GAME CODE
+            //this.m_ApplyAction.enabled = !enabled;
+            //this.m_SecondaryApplyAction.enabled = !enabled;
+
+            this.m_ApplyDisplayOverride.state = (m_ApplyAction.enabled ? DisplayNameOverride.State.GlobalHint : DisplayNameOverride.State.Off);
+            this.m_SecondaryApplyDisplayOverride.state = (m_SecondaryApplyAction.enabled ? DisplayNameOverride.State.GlobalHint : DisplayNameOverride.State.Off);
+
         }
 
         private void UpdateActions(bool forceEnabled)
         {
             if (forceEnabled)
             {
+                // OLD GAME CODE
                 m_ApplyAction.shouldBeEnabled = true;
                 m_SecondaryApplyAction.shouldBeEnabled = true;
                 m_CancelAction.shouldBeEnabled = actualMode == Mode.Upgrade;
+
+                //NEW GAME CODE
+                //this.m_ApplyAction.enabled = true;
+                //this.m_SecondaryApplyAction.enabled = true;
+                //this.m_CancelAction.enabled = (this.actualMode == ObjectToolSystem.Mode.Upgrade);
+                this.m_ApplyDisplayOverride.state = DisplayNameOverride.State.GlobalHint;
+                this.m_SecondaryApplyDisplayOverride.state = DisplayNameOverride.State.GlobalHint;
+
             }
             else
             {
                 m_CancelAction.shouldBeEnabled = m_ApplyAction.enabled && actualMode == Mode.Upgrade;
+                //this.m_CancelAction.enabled = (this.m_ApplyAction.enabled && this.actualMode == ObjectToolSystem.Mode.Upgrade);
             }
 
             if (actualMode == Mode.Upgrade)
             {
-                m_ApplyAction.SetDisplayProperties("Place Upgrade", 20);
-                m_SecondaryApplyAction.SetDisplayProperties("Rotate Object", 25);
+                this.m_ApplyDisplayOverride.displayName = "Place Upgrade";
+                this.m_SecondaryApplyDisplayOverride.displayName = "Rotate Object";
+                return;
             }
             else if (actualMode == Mode.Move)
             {
-                m_ApplyAction.SetDisplayProperties("Move Object", 20);
-                m_SecondaryApplyAction.SetDisplayProperties("Rotate Object", 25);
+                this.m_ApplyDisplayOverride.displayName = "Move Object";
+                this.m_SecondaryApplyDisplayOverride.displayName = "Rotate Object";
+                return;
             }
             else if (actualMode == Mode.Brush)
             {
-                m_ApplyAction.SetDisplayProperties("Paint Object", 20);
-                m_SecondaryApplyAction.SetDisplayProperties("Erase Object", 25);
+                this.m_ApplyDisplayOverride.displayName = "Paint Object";
+                this.m_SecondaryApplyDisplayOverride.displayName = "Erase Object";
+                return;
             }
-            else
-            {
-                m_ApplyAction.SetDisplayProperties("Place Object", 20);
-                m_SecondaryApplyAction.SetDisplayProperties("Rotate Object", 25);
-            }
+            this.m_ApplyDisplayOverride.displayName = "Place Object";
+            this.m_SecondaryApplyDisplayOverride.displayName = "Rotate Object";
         }
 
         public override void GetAvailableSnapMask(out Snap onMask, out Snap offMask)
@@ -2610,6 +2708,12 @@ namespace ExtraDetailingTools.BetterObjectTool
                 {
                     onMask |= Snap.NetSide;
                     offMask |= Snap.NetSide;
+                }
+
+                if ((prefabPlaceableData.m_Flags & Game.Objects.PlacementFlags.RoadEdge) != Game.Objects.PlacementFlags.None)
+                {
+                    onMask |= Snap.NetArea;
+                    offMask |= Snap.NetArea;
                 }
 
                 if ((prefabPlaceableData.m_Flags & Game.Objects.PlacementFlags.Shoreline) != 0)
@@ -3096,7 +3200,7 @@ namespace ExtraDetailingTools.BetterObjectTool
                     chunks.Dispose(inputDeps);
                 }
 
-                jobHandle = JobHandle.CombineDependencies(jobHandle, CreateDefinitions(entity, transformPrefab, brushPrefab, m_UpgradingObject, m_MovingObject, laneContainer, m_CityConfigurationSystem.defaultTheme, m_ControlPoints, attachmentPrefab, m_ToolSystem.actionMode.IsEditor(), m_CityConfigurationSystem.leftHandTraffic, m_State == State.Removing, actualMode == Mode.Stamp, base.brushSize, math.radians(base.brushAngle), base.brushStrength, deltaTime, m_RandomSeed, GetActualSnap(), inputDeps));
+                jobHandle = JobHandle.CombineDependencies(jobHandle, CreateDefinitions(entity, transformPrefab, brushPrefab, m_UpgradingObject, m_MovingObject, laneContainer, m_CityConfigurationSystem.defaultTheme, m_ControlPoints, attachmentPrefab, m_ToolSystem.actionMode.IsEditor(), m_CityConfigurationSystem.leftHandTraffic, m_State == State.Removing, actualMode == Mode.Stamp, base.brushSize, math.radians(base.brushAngle), base.brushStrength, deltaTime, m_RandomSeed, GetActualSnap(), actualAgeMask, inputDeps));
                 if (attachmentPrefab.IsCreated)
                 {
                     attachmentPrefab.Dispose(jobHandle);

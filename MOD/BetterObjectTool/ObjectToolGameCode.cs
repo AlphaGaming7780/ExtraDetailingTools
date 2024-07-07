@@ -28,12 +28,12 @@ using UnityEngine.Scripting;
 
 namespace Game.Tools
 {
-    // Token: 0x0200030D RID: 781
+    // Token: 0x02000311 RID: 785
     [CompilerGenerated]
     public class ObjectToolSystem : ObjectToolBaseSystem
     {
-        // Token: 0x1700023A RID: 570
-        // (get) Token: 0x06000E10 RID: 3600 RVA: 0x00089712 File Offset: 0x00087912
+        // Token: 0x17000243 RID: 579
+        // (get) Token: 0x06000E3A RID: 3642 RVA: 0x0008C2CE File Offset: 0x0008A4CE
         public override string toolID
         {
             get
@@ -42,8 +42,8 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x1700023B RID: 571
-        // (get) Token: 0x06000E11 RID: 3601 RVA: 0x00089719 File Offset: 0x00087919
+        // Token: 0x17000244 RID: 580
+        // (get) Token: 0x06000E3B RID: 3643 RVA: 0x0008C2D5 File Offset: 0x0008A4D5
         public override int uiModeIndex
         {
             get
@@ -52,7 +52,7 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x06000E12 RID: 3602 RVA: 0x00089724 File Offset: 0x00087924
+        // Token: 0x06000E3C RID: 3644 RVA: 0x0008C2E0 File Offset: 0x0008A4E0
         public override void GetUIModes(List<ToolMode> modes)
         {
             ObjectToolSystem.Mode mode = this.mode;
@@ -73,13 +73,13 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x1700023C RID: 572
-        // (get) Token: 0x06000E13 RID: 3603 RVA: 0x000897AA File Offset: 0x000879AA
-        // (set) Token: 0x06000E14 RID: 3604 RVA: 0x000897B2 File Offset: 0x000879B2
+        // Token: 0x17000245 RID: 581
+        // (get) Token: 0x06000E3D RID: 3645 RVA: 0x0008C366 File Offset: 0x0008A566
+        // (set) Token: 0x06000E3E RID: 3646 RVA: 0x0008C36E File Offset: 0x0008A56E
         public ObjectToolSystem.Mode mode { get; set; }
 
-        // Token: 0x1700023D RID: 573
-        // (get) Token: 0x06000E15 RID: 3605 RVA: 0x000897BC File Offset: 0x000879BC
+        // Token: 0x17000246 RID: 582
+        // (get) Token: 0x06000E3F RID: 3647 RVA: 0x0008C378 File Offset: 0x0008A578
         public ObjectToolSystem.Mode actualMode
         {
             get
@@ -105,9 +105,32 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x1700023E RID: 574
-        // (get) Token: 0x06000E16 RID: 3606 RVA: 0x00089817 File Offset: 0x00087A17
-        // (set) Token: 0x06000E17 RID: 3607 RVA: 0x00089820 File Offset: 0x00087A20
+        // Token: 0x17000247 RID: 583
+        // (get) Token: 0x06000E40 RID: 3648 RVA: 0x0008C3D3 File Offset: 0x0008A5D3
+        // (set) Token: 0x06000E41 RID: 3649 RVA: 0x0008C3DB File Offset: 0x0008A5DB
+        public AgeMask ageMask { get; set; }
+
+        // Token: 0x17000248 RID: 584
+        // (get) Token: 0x06000E42 RID: 3650 RVA: 0x0008C3E4 File Offset: 0x0008A5E4
+        public AgeMask actualAgeMask
+        {
+            get
+            {
+                if (!this.allowAge)
+                {
+                    return AgeMask.Sapling;
+                }
+                if ((this.ageMask & (AgeMask.Sapling | AgeMask.Young | AgeMask.Mature | AgeMask.Elderly)) == (AgeMask)0)
+                {
+                    return AgeMask.Sapling;
+                }
+                return this.ageMask;
+            }
+        }
+
+        // Token: 0x17000249 RID: 585
+        // (get) Token: 0x06000E43 RID: 3651 RVA: 0x0008C403 File Offset: 0x0008A603
+        // (set) Token: 0x06000E44 RID: 3652 RVA: 0x0008C40C File Offset: 0x0008A60C
         [CanBeNull]
         public ObjectPrefab prefab
         {
@@ -124,6 +147,7 @@ namespace Game.Tools
                     this.allowCreate = true;
                     this.allowBrush = false;
                     this.allowStamp = false;
+                    this.allowAge = false;
                     if (value != null)
                     {
                         this.m_TransformPrefab = null;
@@ -134,6 +158,7 @@ namespace Game.Tools
                             this.allowStamp = ((objectGeometryData.m_Flags & Game.Objects.GeometryFlags.Stampable) > Game.Objects.GeometryFlags.None);
                             this.allowCreate = (!this.allowStamp || this.m_ToolSystem.actionMode.IsEditor());
                         }
+                        this.allowAge = (this.m_ToolSystem.actionMode.IsGame() && this.m_PrefabSystem.HasComponent<TreeData>(this.m_SelectedPrefab));
                     }
                     Action<PrefabBase> eventPrefabChanged = this.m_ToolSystem.EventPrefabChanged;
                     if (eventPrefabChanged == null)
@@ -145,9 +170,9 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x1700023F RID: 575
-        // (get) Token: 0x06000E18 RID: 3608 RVA: 0x000898E7 File Offset: 0x00087AE7
-        // (set) Token: 0x06000E19 RID: 3609 RVA: 0x000898F0 File Offset: 0x00087AF0
+        // Token: 0x1700024A RID: 586
+        // (get) Token: 0x06000E45 RID: 3653 RVA: 0x0008C509 File Offset: 0x0008A709
+        // (set) Token: 0x06000E46 RID: 3654 RVA: 0x0008C514 File Offset: 0x0008A714
         public TransformPrefab transform
         {
             get
@@ -166,6 +191,7 @@ namespace Game.Tools
                         this.allowCreate = true;
                         this.allowBrush = false;
                         this.allowStamp = false;
+                        this.allowAge = false;
                     }
                     Action<PrefabBase> eventPrefabChanged = this.m_ToolSystem.EventPrefabChanged;
                     if (eventPrefabChanged == null)
@@ -177,28 +203,33 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x17000240 RID: 576
-        // (get) Token: 0x06000E1A RID: 3610 RVA: 0x00089954 File Offset: 0x00087B54
-        // (set) Token: 0x06000E1B RID: 3611 RVA: 0x0008995C File Offset: 0x00087B5C
+        // Token: 0x1700024B RID: 587
+        // (get) Token: 0x06000E47 RID: 3655 RVA: 0x0008C57F File Offset: 0x0008A77F
+        // (set) Token: 0x06000E48 RID: 3656 RVA: 0x0008C587 File Offset: 0x0008A787
         public bool underground { get; set; }
 
-        // Token: 0x17000241 RID: 577
-        // (get) Token: 0x06000E1C RID: 3612 RVA: 0x00089965 File Offset: 0x00087B65
-        // (set) Token: 0x06000E1D RID: 3613 RVA: 0x0008996D File Offset: 0x00087B6D
+        // Token: 0x1700024C RID: 588
+        // (get) Token: 0x06000E49 RID: 3657 RVA: 0x0008C590 File Offset: 0x0008A790
+        // (set) Token: 0x06000E4A RID: 3658 RVA: 0x0008C598 File Offset: 0x0008A798
         public bool allowCreate { get; private set; }
 
-        // Token: 0x17000242 RID: 578
-        // (get) Token: 0x06000E1E RID: 3614 RVA: 0x00089976 File Offset: 0x00087B76
-        // (set) Token: 0x06000E1F RID: 3615 RVA: 0x0008997E File Offset: 0x00087B7E
+        // Token: 0x1700024D RID: 589
+        // (get) Token: 0x06000E4B RID: 3659 RVA: 0x0008C5A1 File Offset: 0x0008A7A1
+        // (set) Token: 0x06000E4C RID: 3660 RVA: 0x0008C5A9 File Offset: 0x0008A7A9
         public bool allowBrush { get; private set; }
 
-        // Token: 0x17000243 RID: 579
-        // (get) Token: 0x06000E20 RID: 3616 RVA: 0x00089987 File Offset: 0x00087B87
-        // (set) Token: 0x06000E21 RID: 3617 RVA: 0x0008998F File Offset: 0x00087B8F
+        // Token: 0x1700024E RID: 590
+        // (get) Token: 0x06000E4D RID: 3661 RVA: 0x0008C5B2 File Offset: 0x0008A7B2
+        // (set) Token: 0x06000E4E RID: 3662 RVA: 0x0008C5BA File Offset: 0x0008A7BA
         public bool allowStamp { get; private set; }
 
-        // Token: 0x17000244 RID: 580
-        // (get) Token: 0x06000E22 RID: 3618 RVA: 0x00089998 File Offset: 0x00087B98
+        // Token: 0x1700024F RID: 591
+        // (get) Token: 0x06000E4F RID: 3663 RVA: 0x0008C5C3 File Offset: 0x0008A7C3
+        // (set) Token: 0x06000E50 RID: 3664 RVA: 0x0008C5CB File Offset: 0x0008A7CB
+        public bool allowAge { get; private set; }
+
+        // Token: 0x17000250 RID: 592
+        // (get) Token: 0x06000E51 RID: 3665 RVA: 0x0008C5D4 File Offset: 0x0008A7D4
         public override bool brushing
         {
             get
@@ -207,7 +238,7 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x06000E23 RID: 3619 RVA: 0x000899A4 File Offset: 0x00087BA4
+        // Token: 0x06000E52 RID: 3666 RVA: 0x0008C5E0 File Offset: 0x0008A7E0
         [Preserve]
         protected override void OnCreate()
         {
@@ -254,13 +285,16 @@ namespace Game.Tools
             this.m_ApplyAction = InputManager.instance.FindAction("Tool", "Apply");
             this.m_SecondaryApplyAction = InputManager.instance.FindAction("Tool", "Secondary Apply");
             this.m_CancelAction = InputManager.instance.FindAction("Tool", "Mouse Cancel");
+            this.m_ApplyDisplayOverride = new DisplayNameOverride("RouteToolSystem", this.m_ApplyAction, null, 20);
+            this.m_SecondaryApplyDisplayOverride = new DisplayNameOverride("RouteToolSystem", this.m_SecondaryApplyAction, null, 25);
             base.brushSize = 200f;
             base.brushAngle = 0f;
             base.brushStrength = 0.5f;
             this.selectedSnap &= ~(Snap.AutoParent | Snap.ContourLines);
+            this.ageMask = AgeMask.Sapling;
         }
 
-        // Token: 0x06000E24 RID: 3620 RVA: 0x00089BEF File Offset: 0x00087DEF
+        // Token: 0x06000E53 RID: 3667 RVA: 0x0008C864 File Offset: 0x0008AA64
         protected override void OnGameLoaded(Context serializationContext)
         {
             base.OnGameLoaded(serializationContext);
@@ -270,7 +304,7 @@ namespace Game.Tools
             base.brushStrength = 0.5f;
         }
 
-        // Token: 0x06000E25 RID: 3621 RVA: 0x00089C2B File Offset: 0x00087E2B
+        // Token: 0x06000E54 RID: 3668 RVA: 0x0008C8A0 File Offset: 0x0008AAA0
         [Preserve]
         protected override void OnDestroy()
         {
@@ -279,7 +313,7 @@ namespace Game.Tools
             base.OnDestroy();
         }
 
-        // Token: 0x06000E26 RID: 3622 RVA: 0x00089C4C File Offset: 0x00087E4C
+        // Token: 0x06000E55 RID: 3669 RVA: 0x0008C8C0 File Offset: 0x0008AAC0
         [Preserve]
         protected override void OnStartRunning()
         {
@@ -303,17 +337,19 @@ namespace Game.Tools
             this.UpdateActions(true);
         }
 
-        // Token: 0x06000E27 RID: 3623 RVA: 0x00089CEB File Offset: 0x00087EEB
+        // Token: 0x06000E56 RID: 3670 RVA: 0x0008C960 File Offset: 0x0008AB60
         [Preserve]
         protected override void OnStopRunning()
         {
-            this.m_ApplyAction.shouldBeEnabled = false;
-            this.m_SecondaryApplyAction.shouldBeEnabled = false;
-            this.m_CancelAction.shouldBeEnabled = false;
+            this.m_ApplyAction.enabled = false;
+            this.m_SecondaryApplyAction.enabled = false;
+            this.m_CancelAction.enabled = false;
+            this.m_ApplyDisplayOverride.state = DisplayNameOverride.State.Off;
+            this.m_SecondaryApplyDisplayOverride.state = DisplayNameOverride.State.Off;
             base.OnStopRunning();
         }
 
-        // Token: 0x06000E28 RID: 3624 RVA: 0x00089D18 File Offset: 0x00087F18
+        // Token: 0x06000E57 RID: 3671 RVA: 0x0008C9B0 File Offset: 0x0008ABB0
         public override PrefabBase GetPrefab()
         {
             ObjectToolSystem.Mode actualMode = this.actualMode;
@@ -328,13 +364,13 @@ namespace Game.Tools
             return this.prefab;
         }
 
-        // Token: 0x06000E29 RID: 3625 RVA: 0x00089D52 File Offset: 0x00087F52
+        // Token: 0x06000E58 RID: 3672 RVA: 0x0008C9EA File Offset: 0x0008ABEA
         protected override bool GetAllowApply()
         {
             return base.GetAllowApply() && !this.m_TempQuery.IsEmptyIgnoreFilter;
         }
 
-        // Token: 0x06000E2A RID: 3626 RVA: 0x00089D6C File Offset: 0x00087F6C
+        // Token: 0x06000E59 RID: 3673 RVA: 0x0008CA04 File Offset: 0x0008AC04
         public override bool TrySetPrefab(PrefabBase prefab)
         {
             ObjectPrefab objectPrefab = prefab as ObjectPrefab;
@@ -370,7 +406,7 @@ namespace Game.Tools
             return false;
         }
 
-        // Token: 0x06000E2B RID: 3627 RVA: 0x00089E30 File Offset: 0x00088030
+        // Token: 0x06000E5A RID: 3674 RVA: 0x0008CAC8 File Offset: 0x0008ACC8
         public void StartMoving(Entity movingObject)
         {
             this.m_MovingObject = movingObject;
@@ -383,7 +419,7 @@ namespace Game.Tools
             this.prefab = this.m_PrefabSystem.GetPrefab<ObjectPrefab>(base.EntityManager.GetComponentData<PrefabRef>(this.m_MovingObject));
         }
 
-        // Token: 0x06000E2C RID: 3628 RVA: 0x00089EBC File Offset: 0x000880BC
+        // Token: 0x06000E5B RID: 3675 RVA: 0x0008CB54 File Offset: 0x0008AD54
         private void Randomize()
         {
             this.m_RandomSeed = RandomSeed.Next();
@@ -422,7 +458,7 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x06000E2D RID: 3629 RVA: 0x00089FF8 File Offset: 0x000881F8
+        // Token: 0x06000E5C RID: 3676 RVA: 0x0008CC90 File Offset: 0x0008AE90
         private ObjectPrefab GetObjectPrefab()
         {
             Entity entity;
@@ -448,31 +484,31 @@ namespace Game.Tools
             return this.m_SelectedPrefab;
         }
 
-        // Token: 0x06000E2E RID: 3630 RVA: 0x0008A0B3 File Offset: 0x000882B3
+        // Token: 0x06000E5D RID: 3677 RVA: 0x0008CD4B File Offset: 0x0008AF4B
         public override void SetUnderground(bool underground)
         {
             this.underground = underground;
         }
 
-        // Token: 0x06000E2F RID: 3631 RVA: 0x0008A0BC File Offset: 0x000882BC
+        // Token: 0x06000E5E RID: 3678 RVA: 0x0008CD54 File Offset: 0x0008AF54
         public override void ElevationUp()
         {
             this.underground = false;
         }
 
-        // Token: 0x06000E30 RID: 3632 RVA: 0x0008A0C5 File Offset: 0x000882C5
+        // Token: 0x06000E5F RID: 3679 RVA: 0x0008CD5D File Offset: 0x0008AF5D
         public override void ElevationDown()
         {
             this.underground = true;
         }
 
-        // Token: 0x06000E31 RID: 3633 RVA: 0x0008A0CE File Offset: 0x000882CE
+        // Token: 0x06000E60 RID: 3680 RVA: 0x0008CD66 File Offset: 0x0008AF66
         public override void ElevationScroll()
         {
             this.underground = !this.underground;
         }
 
-        // Token: 0x06000E32 RID: 3634 RVA: 0x0008A0E0 File Offset: 0x000882E0
+        // Token: 0x06000E61 RID: 3681 RVA: 0x0008CD78 File Offset: 0x0008AF78
         public override void InitializeRaycast()
         {
             base.InitializeRaycast();
@@ -514,7 +550,7 @@ namespace Game.Tools
                         this.m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Placeholders;
                     }
                 }
-                if ((actualSnap & (Snap.NetArea | Snap.NetNode | Snap.ObjectSurface)) != Snap.None)
+                if ((actualSnap & (Snap.NetArea | Snap.NetNode | Snap.ObjectSurface)) != Snap.None && !this.m_PrefabSystem.HasComponent<BuildingData>(this.m_Prefab))
                 {
                     if (this.underground)
                     {
@@ -556,7 +592,7 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x06000E33 RID: 3635 RVA: 0x0008A3A4 File Offset: 0x000885A4
+        // Token: 0x06000E62 RID: 3682 RVA: 0x0008D050 File Offset: 0x0008B250
         private void InitializeRotation(Entity entity, PlaceableObjectData placeableObjectData)
         {
             ObjectToolSystem.Rotation rotation = default(ObjectToolSystem.Rotation);
@@ -603,7 +639,7 @@ namespace Game.Tools
             this.m_Rotation.value = rotation2;
         }
 
-        // Token: 0x06000E34 RID: 3636 RVA: 0x0008A4D8 File Offset: 0x000886D8
+        // Token: 0x06000E63 RID: 3683 RVA: 0x0008D184 File Offset: 0x0008B384
         [Preserve]
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
@@ -667,7 +703,7 @@ namespace Game.Tools
                 {
                     this.m_UpgradingObject = this.m_ToolSystem.selected;
                 }
-                if ((ToolBaseSystem.GetActualSnap(this.selectedSnap, this.m_SnapOnMask, this.m_SnapOffMask) & (Snap.NetArea | Snap.NetNode | Snap.ObjectSurface)) != Snap.None)
+                if ((ToolBaseSystem.GetActualSnap(this.selectedSnap, this.m_SnapOnMask, this.m_SnapOffMask) & (Snap.NetArea | Snap.NetNode | Snap.ObjectSurface)) != Snap.None && !this.m_PrefabSystem.HasComponent<BuildingData>(this.m_Prefab))
                 {
                     this.allowUnderground = true;
                 }
@@ -780,49 +816,53 @@ namespace Game.Tools
             return this.Clear(inputDeps);
         }
 
-        // Token: 0x06000E35 RID: 3637 RVA: 0x0008AAA4 File Offset: 0x00088CA4
+        // Token: 0x06000E64 RID: 3684 RVA: 0x0008D764 File Offset: 0x0008B964
         public override void ToggleToolOptions(bool enabled)
         {
-            this.m_ApplyAction.shouldBeEnabled = !enabled;
-            this.m_SecondaryApplyAction.shouldBeEnabled = !enabled;
+            this.m_ApplyAction.enabled = !enabled;
+            this.m_SecondaryApplyAction.enabled = !enabled;
+            this.m_ApplyDisplayOverride.state = (this.m_ApplyAction.enabled ? DisplayNameOverride.State.GlobalHint : DisplayNameOverride.State.Off);
+            this.m_SecondaryApplyDisplayOverride.state = (this.m_SecondaryApplyAction.enabled ? DisplayNameOverride.State.GlobalHint : DisplayNameOverride.State.Off);
         }
 
-        // Token: 0x06000E36 RID: 3638 RVA: 0x0008AAC4 File Offset: 0x00088CC4
+        // Token: 0x06000E65 RID: 3685 RVA: 0x0008D7C8 File Offset: 0x0008B9C8
         private void UpdateActions(bool forceEnabled)
         {
             if (forceEnabled)
             {
-                this.m_ApplyAction.shouldBeEnabled = true;
-                this.m_SecondaryApplyAction.shouldBeEnabled = true;
-                this.m_CancelAction.shouldBeEnabled = (this.actualMode == ObjectToolSystem.Mode.Upgrade);
+                this.m_ApplyAction.enabled = true;
+                this.m_SecondaryApplyAction.enabled = true;
+                this.m_CancelAction.enabled = (this.actualMode == ObjectToolSystem.Mode.Upgrade);
+                this.m_ApplyDisplayOverride.state = DisplayNameOverride.State.GlobalHint;
+                this.m_SecondaryApplyDisplayOverride.state = DisplayNameOverride.State.GlobalHint;
             }
             else
             {
-                this.m_CancelAction.shouldBeEnabled = (this.m_ApplyAction.enabled && this.actualMode == ObjectToolSystem.Mode.Upgrade);
+                this.m_CancelAction.enabled = (this.m_ApplyAction.enabled && this.actualMode == ObjectToolSystem.Mode.Upgrade);
             }
             if (this.actualMode == ObjectToolSystem.Mode.Upgrade)
             {
-                this.m_ApplyAction.SetDisplayProperties("Place Upgrade", 20);
-                this.m_SecondaryApplyAction.SetDisplayProperties("Rotate Object", 25);
+                this.m_ApplyDisplayOverride.displayName = "Place Upgrade";
+                this.m_SecondaryApplyDisplayOverride.displayName = "Rotate Object";
                 return;
             }
             if (this.actualMode == ObjectToolSystem.Mode.Move)
             {
-                this.m_ApplyAction.SetDisplayProperties("Move Object", 20);
-                this.m_SecondaryApplyAction.SetDisplayProperties("Rotate Object", 25);
+                this.m_ApplyDisplayOverride.displayName = "Move Object";
+                this.m_SecondaryApplyDisplayOverride.displayName = "Rotate Object";
                 return;
             }
             if (this.actualMode == ObjectToolSystem.Mode.Brush)
             {
-                this.m_ApplyAction.SetDisplayProperties("Paint Object", 20);
-                this.m_SecondaryApplyAction.SetDisplayProperties("Erase Object", 25);
+                this.m_ApplyDisplayOverride.displayName = "Paint Object";
+                this.m_SecondaryApplyDisplayOverride.displayName = "Erase Object";
                 return;
             }
-            this.m_ApplyAction.SetDisplayProperties("Place Object", 20);
-            this.m_SecondaryApplyAction.SetDisplayProperties("Rotate Object", 25);
+            this.m_ApplyDisplayOverride.displayName = "Place Object";
+            this.m_SecondaryApplyDisplayOverride.displayName = "Rotate Object";
         }
 
-        // Token: 0x06000E37 RID: 3639 RVA: 0x0008ABD4 File Offset: 0x00088DD4
+        // Token: 0x06000E66 RID: 3686 RVA: 0x0008D8E0 File Offset: 0x0008BAE0
         public override void GetAvailableSnapMask(out Snap onMask, out Snap offMask)
         {
             if (!(this.m_Prefab != null))
@@ -843,7 +883,7 @@ namespace Game.Tools
             ObjectToolSystem.GetAvailableSnapMask(default(PlaceableObjectData), this.m_ToolSystem.actionMode.IsEditor(), flag, isAssetStamp, brushing, stamping, out onMask, out offMask);
         }
 
-        // Token: 0x06000E38 RID: 3640 RVA: 0x0008AC9C File Offset: 0x00088E9C
+        // Token: 0x06000E67 RID: 3687 RVA: 0x0008D9A8 File Offset: 0x0008BBA8
         private static void GetAvailableSnapMask(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, bool brushing, bool stamping, out Snap onMask, out Snap offMask)
         {
             onMask = Snap.Upright;
@@ -863,6 +903,11 @@ namespace Game.Tools
                 {
                     onMask |= Snap.NetSide;
                     offMask |= Snap.NetSide;
+                }
+                if ((prefabPlaceableData.m_Flags & Game.Objects.PlacementFlags.RoadEdge) != Game.Objects.PlacementFlags.None)
+                {
+                    onMask |= Snap.NetArea;
+                    offMask |= Snap.NetArea;
                 }
                 if ((prefabPlaceableData.m_Flags & Game.Objects.PlacementFlags.Shoreline) != Game.Objects.PlacementFlags.None)
                 {
@@ -911,14 +956,14 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x06000E39 RID: 3641 RVA: 0x0006DC26 File Offset: 0x0006BE26
+        // Token: 0x06000E68 RID: 3688 RVA: 0x00070652 File Offset: 0x0006E852
         private JobHandle Clear(JobHandle inputDeps)
         {
             base.applyMode = ApplyMode.Clear;
             return inputDeps;
         }
 
-        // Token: 0x06000E3A RID: 3642 RVA: 0x0008AE40 File Offset: 0x00089040
+        // Token: 0x06000E69 RID: 3689 RVA: 0x0008DB6C File Offset: 0x0008BD6C
         private JobHandle Cancel(JobHandle inputDeps, bool singleFrameOnly = false)
         {
             if (this.actualMode != ObjectToolSystem.Mode.Brush)
@@ -973,7 +1018,7 @@ namespace Game.Tools
             return this.UpdateDefinitions(inputDeps);
         }
 
-        // Token: 0x06000E3B RID: 3643 RVA: 0x0008AFC8 File Offset: 0x000891C8
+        // Token: 0x06000E6A RID: 3690 RVA: 0x0008DCF4 File Offset: 0x0008BEF4
         private void StopRotating()
         {
             if (!this.m_RotationModified)
@@ -997,8 +1042,8 @@ namespace Game.Tools
             this.m_State = ObjectToolSystem.State.Default;
         }
 
-        // Token: 0x17000245 RID: 581
-        // (get) Token: 0x06000E3C RID: 3644 RVA: 0x0008B09D File Offset: 0x0008929D
+        // Token: 0x17000251 RID: 593
+        // (get) Token: 0x06000E6B RID: 3691 RVA: 0x0008DDC9 File Offset: 0x0008BFC9
         private float cameraAngle
         {
             get
@@ -1011,7 +1056,7 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x06000E3D RID: 3645 RVA: 0x0008B0C4 File Offset: 0x000892C4
+        // Token: 0x06000E6C RID: 3692 RVA: 0x0008DDF0 File Offset: 0x0008BFF0
         private JobHandle Apply(JobHandle inputDeps, bool singleFrameOnly = false)
         {
             if (this.actualMode != ObjectToolSystem.Mode.Brush)
@@ -1106,7 +1151,7 @@ namespace Game.Tools
             return this.UpdateDefinitions(inputDeps);
         }
 
-        // Token: 0x06000E3E RID: 3646 RVA: 0x0008B404 File Offset: 0x00089604
+        // Token: 0x06000E6D RID: 3693 RVA: 0x0008E130 File Offset: 0x0008C330
         private JobHandle Update(JobHandle inputDeps)
         {
             if (this.actualMode != ObjectToolSystem.Mode.Brush)
@@ -1195,7 +1240,7 @@ namespace Game.Tools
             }
         }
 
-        // Token: 0x06000E3F RID: 3647 RVA: 0x0008B604 File Offset: 0x00089804
+        // Token: 0x06000E6E RID: 3694 RVA: 0x0008E330 File Offset: 0x0008C530
         private JobHandle SnapControlPoint(JobHandle inputDeps)
         {
             Entity selected = (this.actualMode == ObjectToolSystem.Mode.Move) ? this.m_MovingObject : this.m_ToolSystem.selected;
@@ -1282,7 +1327,7 @@ namespace Game.Tools
             return jobHandle;
         }
 
-        // Token: 0x06000E40 RID: 3648 RVA: 0x0008BBDC File Offset: 0x00089DDC
+        // Token: 0x06000E6F RID: 3695 RVA: 0x0008E908 File Offset: 0x0008CB08
         private JobHandle UpdateDefinitions(JobHandle inputDeps)
         {
             JobHandle jobHandle = base.DestroyDefinitions(this.m_DefinitionQuery, this.m_ToolOutputBarrier, inputDeps);
@@ -1343,7 +1388,7 @@ namespace Game.Tools
                     inputDeps = jobData.Schedule(JobHandle.CombineDependencies(inputDeps, job));
                     chunks.Dispose(inputDeps);
                 }
-                jobHandle = JobHandle.CombineDependencies(jobHandle, base.CreateDefinitions(entity, transformPrefab, brushPrefab, this.m_UpgradingObject, this.m_MovingObject, @null, this.m_CityConfigurationSystem.defaultTheme, this.m_ControlPoints, attachmentPrefab, this.m_ToolSystem.actionMode.IsEditor(), this.m_CityConfigurationSystem.leftHandTraffic, this.m_State == ObjectToolSystem.State.Removing, this.actualMode == ObjectToolSystem.Mode.Stamp, base.brushSize, math.radians(base.brushAngle), base.brushStrength, deltaTime, this.m_RandomSeed, base.GetActualSnap(), inputDeps));
+                jobHandle = JobHandle.CombineDependencies(jobHandle, base.CreateDefinitions(entity, transformPrefab, brushPrefab, this.m_UpgradingObject, this.m_MovingObject, @null, this.m_CityConfigurationSystem.defaultTheme, this.m_ControlPoints, attachmentPrefab, this.m_ToolSystem.actionMode.IsEditor(), this.m_CityConfigurationSystem.leftHandTraffic, this.m_State == ObjectToolSystem.State.Removing, this.actualMode == ObjectToolSystem.Mode.Stamp, base.brushSize, math.radians(base.brushAngle), base.brushStrength, deltaTime, this.m_RandomSeed, base.GetActualSnap(), this.actualAgeMask, inputDeps));
                 if (attachmentPrefab.IsCreated)
                 {
                     attachmentPrefab.Dispose(jobHandle);
@@ -1352,13 +1397,13 @@ namespace Game.Tools
             return jobHandle;
         }
 
-        // Token: 0x06000E41 RID: 3649 RVA: 0x000030F5 File Offset: 0x000012F5
+        // Token: 0x06000E70 RID: 3696 RVA: 0x000030F5 File Offset: 0x000012F5
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void __AssignQueries(ref SystemState state)
         {
         }
 
-        // Token: 0x06000E42 RID: 3650 RVA: 0x0008BF04 File Offset: 0x0008A104
+        // Token: 0x06000E71 RID: 3697 RVA: 0x0008EC36 File Offset: 0x0008CE36
         protected override void OnCreateForCompiler()
         {
             base.OnCreateForCompiler();
@@ -1366,167 +1411,173 @@ namespace Game.Tools
             this.__TypeHandle.__AssignHandles(base.CheckedStateRef);
         }
 
-        // Token: 0x06000E43 RID: 3651 RVA: 0x0008BF29 File Offset: 0x0008A129
+        // Token: 0x06000E72 RID: 3698 RVA: 0x0008EC5B File Offset: 0x0008CE5B
         [Preserve]
         public ObjectToolSystem()
         {
         }
 
-        // Token: 0x040017F5 RID: 6133
+        // Token: 0x0400181F RID: 6175
         public const string kToolID = "Object Tool";
 
-        // Token: 0x040017FB RID: 6139
+        // Token: 0x04001827 RID: 6183
         private AreaToolSystem m_AreaToolSystem;
 
-        // Token: 0x040017FC RID: 6140
+        // Token: 0x04001828 RID: 6184
         private Game.Net.SearchSystem m_NetSearchSystem;
 
-        // Token: 0x040017FD RID: 6141
+        // Token: 0x04001829 RID: 6185
         private Game.Zones.SearchSystem m_ZoneSearchSystem;
 
-        // Token: 0x040017FE RID: 6142
+        // Token: 0x0400182A RID: 6186
         private CityConfigurationSystem m_CityConfigurationSystem;
 
-        // Token: 0x040017FF RID: 6143
+        // Token: 0x0400182B RID: 6187
         private AudioManager m_AudioManager;
 
-        // Token: 0x04001800 RID: 6144
+        // Token: 0x0400182C RID: 6188
         private EntityQuery m_DefinitionQuery;
 
-        // Token: 0x04001801 RID: 6145
+        // Token: 0x0400182D RID: 6189
         private EntityQuery m_TempQuery;
 
-        // Token: 0x04001802 RID: 6146
+        // Token: 0x0400182E RID: 6190
         private EntityQuery m_ContainerQuery;
 
-        // Token: 0x04001803 RID: 6147
+        // Token: 0x0400182F RID: 6191
         private EntityQuery m_BrushQuery;
 
-        // Token: 0x04001804 RID: 6148
+        // Token: 0x04001830 RID: 6192
         private EntityQuery m_LotQuery;
 
-        // Token: 0x04001805 RID: 6149
+        // Token: 0x04001831 RID: 6193
         private EntityQuery m_BuildingQuery;
 
-        // Token: 0x04001806 RID: 6150
+        // Token: 0x04001832 RID: 6194
         private ProxyAction m_ApplyAction;
 
-        // Token: 0x04001807 RID: 6151
+        // Token: 0x04001833 RID: 6195
         private ProxyAction m_SecondaryApplyAction;
 
-        // Token: 0x04001808 RID: 6152
+        // Token: 0x04001834 RID: 6196
         private ProxyAction m_CancelAction;
 
-        // Token: 0x04001809 RID: 6153
+        // Token: 0x04001835 RID: 6197
+        private DisplayNameOverride m_ApplyDisplayOverride;
+
+        // Token: 0x04001836 RID: 6198
+        private DisplayNameOverride m_SecondaryApplyDisplayOverride;
+
+        // Token: 0x04001837 RID: 6199
         private NativeList<ControlPoint> m_ControlPoints;
 
-        // Token: 0x0400180A RID: 6154
+        // Token: 0x04001838 RID: 6200
         private NativeValue<ObjectToolSystem.Rotation> m_Rotation;
 
-        // Token: 0x0400180B RID: 6155
+        // Token: 0x04001839 RID: 6201
         private ControlPoint m_LastRaycastPoint;
 
-        // Token: 0x0400180C RID: 6156
+        // Token: 0x0400183A RID: 6202
         private ControlPoint m_StartPoint;
 
-        // Token: 0x0400180D RID: 6157
+        // Token: 0x0400183B RID: 6203
         private Entity m_UpgradingObject;
 
-        // Token: 0x0400180E RID: 6158
+        // Token: 0x0400183C RID: 6204
         private Entity m_MovingObject;
 
-        // Token: 0x0400180F RID: 6159
+        // Token: 0x0400183D RID: 6205
         private Entity m_MovingInitialized;
 
-        // Token: 0x04001810 RID: 6160
+        // Token: 0x0400183E RID: 6206
         private ObjectToolSystem.State m_State;
 
-        // Token: 0x04001811 RID: 6161
+        // Token: 0x0400183F RID: 6207
         private bool m_RotationModified;
 
-        // Token: 0x04001812 RID: 6162
+        // Token: 0x04001840 RID: 6208
         private bool m_ForceCancel;
 
-        // Token: 0x04001813 RID: 6163
+        // Token: 0x04001841 RID: 6209
         private float3 m_RotationStartPosition;
 
-        // Token: 0x04001814 RID: 6164
+        // Token: 0x04001842 RID: 6210
         private quaternion m_StartRotation;
 
-        // Token: 0x04001815 RID: 6165
+        // Token: 0x04001843 RID: 6211
         private float m_StartCameraAngle;
 
-        // Token: 0x04001816 RID: 6166
+        // Token: 0x04001844 RID: 6212
         private EntityQuery m_SoundQuery;
 
-        // Token: 0x04001817 RID: 6167
+        // Token: 0x04001845 RID: 6213
         private RandomSeed m_RandomSeed;
 
-        // Token: 0x04001818 RID: 6168
+        // Token: 0x04001846 RID: 6214
         private ObjectPrefab m_Prefab;
 
-        // Token: 0x04001819 RID: 6169
+        // Token: 0x04001847 RID: 6215
         private ObjectPrefab m_SelectedPrefab;
 
-        // Token: 0x0400181A RID: 6170
+        // Token: 0x04001848 RID: 6216
         private TransformPrefab m_TransformPrefab;
 
-        // Token: 0x0400181B RID: 6171
+        // Token: 0x04001849 RID: 6217
         private CameraController m_CameraController;
 
-        // Token: 0x0400181C RID: 6172
+        // Token: 0x0400184A RID: 6218
         private ObjectToolSystem.TypeHandle __TypeHandle;
 
-        // Token: 0x0200030E RID: 782
+        // Token: 0x02000312 RID: 786
         public enum Mode
         {
-            // Token: 0x0400181E RID: 6174
+            // Token: 0x0400184C RID: 6220
             Create,
-            // Token: 0x0400181F RID: 6175
+            // Token: 0x0400184D RID: 6221
             Upgrade,
-            // Token: 0x04001820 RID: 6176
+            // Token: 0x0400184E RID: 6222
             Move,
-            // Token: 0x04001821 RID: 6177
+            // Token: 0x0400184F RID: 6223
             Brush,
-            // Token: 0x04001822 RID: 6178
+            // Token: 0x04001850 RID: 6224
             Stamp
         }
 
-        // Token: 0x0200030F RID: 783
+        // Token: 0x02000313 RID: 787
         private enum State
         {
-            // Token: 0x04001824 RID: 6180
+            // Token: 0x04001852 RID: 6226
             Default,
-            // Token: 0x04001825 RID: 6181
+            // Token: 0x04001853 RID: 6227
             Rotating,
-            // Token: 0x04001826 RID: 6182
+            // Token: 0x04001854 RID: 6228
             Adding,
-            // Token: 0x04001827 RID: 6183
+            // Token: 0x04001855 RID: 6229
             Removing
         }
 
-        // Token: 0x02000310 RID: 784
+        // Token: 0x02000314 RID: 788
         private struct Rotation
         {
-            // Token: 0x04001828 RID: 6184
+            // Token: 0x04001856 RID: 6230
             public quaternion m_Rotation;
 
-            // Token: 0x04001829 RID: 6185
+            // Token: 0x04001857 RID: 6231
             public quaternion m_ParentRotation;
 
-            // Token: 0x0400182A RID: 6186
+            // Token: 0x04001858 RID: 6232
             public bool m_IsAligned;
         }
 
-        // Token: 0x02000311 RID: 785
+        // Token: 0x02000315 RID: 789
         [BurstCompile]
         private struct SnapJob : IJob
         {
-            // Token: 0x06000E44 RID: 3652 RVA: 0x0008BF34 File Offset: 0x0008A134
+            // Token: 0x06000E73 RID: 3699 RVA: 0x0008EC64 File Offset: 0x0008CE64
             public void Execute()
             {
                 ControlPoint controlPoint = this.m_ControlPoints[0];
-                if ((this.m_Snap & (Snap.NetArea | Snap.NetNode)) != Snap.None && this.m_TerrainData.HasComponent(controlPoint.m_OriginalEntity))
+                if ((this.m_Snap & (Snap.NetArea | Snap.NetNode)) != Snap.None && this.m_TerrainData.HasComponent(controlPoint.m_OriginalEntity) && !this.m_BuildingData.HasComponent(this.m_Prefab))
                 {
                     this.FindLoweredParent(ref controlPoint);
                 }
@@ -1570,6 +1621,8 @@ namespace Game.Tools
                     zoneBlockIterator.m_LotSize = buildingData2.m_LotSize;
                     zoneBlockIterator.m_Bounds = new Bounds2(controlPoint.m_Position.xz - rhs, controlPoint.m_Position.xz + rhs);
                     zoneBlockIterator.m_Direction = math.forward(this.m_Rotation.value.m_Rotation).xz;
+                    zoneBlockIterator.m_IgnoreOwner = ((this.m_Mode == ObjectToolSystem.Mode.Move) ? this.m_Selected : Entity.Null);
+                    zoneBlockIterator.m_OwnerData = this.m_OwnerData;
                     zoneBlockIterator.m_BlockData = this.m_BlockData;
                     ObjectToolSystem.SnapJob.ZoneBlockIterator zoneBlockIterator2 = zoneBlockIterator;
                     this.m_ZoneSearchTree.Iterate<ObjectToolSystem.SnapJob.ZoneBlockIterator>(ref zoneBlockIterator2, 0);
@@ -1618,7 +1671,26 @@ namespace Game.Tools
                 }
                 if ((this.m_Snap & Snap.NetArea) != Snap.None)
                 {
-                    if (this.m_EdgeGeometryData.HasComponent(controlPoint.m_OriginalEntity))
+                    if (this.m_BuildingData.HasComponent(this.m_Prefab))
+                    {
+                        Curve curve;
+                        if (this.m_CurveData.TryGetComponent(controlPoint.m_OriginalEntity, out curve))
+                        {
+                            ControlPoint controlPoint3 = controlPoint;
+                            controlPoint3.m_OriginalEntity = Entity.Null;
+                            controlPoint3.m_Position = MathUtils.Position(curve.m_Bezier, controlPoint.m_CurvePosition);
+                            controlPoint3.m_Direction = math.normalizesafe(MathUtils.Tangent(curve.m_Bezier, controlPoint.m_CurvePosition).xz, default(float2));
+                            controlPoint3.m_Direction = MathUtils.Left(controlPoint3.m_Direction);
+                            if (math.dot(math.forward(this.m_Rotation.value.m_Rotation).xz, controlPoint3.m_Direction) < 0f)
+                            {
+                                controlPoint3.m_Direction = -controlPoint3.m_Direction;
+                            }
+                            controlPoint3.m_Rotation = ToolUtils.CalculateRotation(controlPoint3.m_Direction);
+                            controlPoint3.m_SnapPriority = ToolUtils.CalculateSnapPriority(1f, 1f, controlPoint.m_HitPosition.xz, controlPoint3.m_Position.xz, controlPoint3.m_Direction);
+                            ObjectToolSystem.SnapJob.AddSnapPosition(ref controlPoint2, controlPoint3);
+                        }
+                    }
+                    else if (this.m_EdgeGeometryData.HasComponent(controlPoint.m_OriginalEntity))
                     {
                         EdgeGeometry edgeGeometry = this.m_EdgeGeometryData[controlPoint.m_OriginalEntity];
                         Composition composition = this.m_CompositionData[controlPoint.m_OriginalEntity];
@@ -1717,7 +1789,7 @@ namespace Game.Tools
                 {
                     if ((this.m_Snap & Snap.AutoParent) == Snap.None)
                     {
-                        if ((this.m_Snap & (Snap.NetArea | Snap.NetNode)) == Snap.None || this.m_TransformData.HasComponent(controlPoint2.m_OriginalEntity))
+                        if ((this.m_Snap & (Snap.NetArea | Snap.NetNode)) == Snap.None || this.m_TransformData.HasComponent(controlPoint2.m_OriginalEntity) || this.m_BuildingData.HasComponent(this.m_Prefab))
                         {
                             controlPoint2.m_OriginalEntity = Entity.Null;
                         }
@@ -1765,7 +1837,7 @@ namespace Game.Tools
                 this.m_ControlPoints[0] = controlPoint2;
             }
 
-            // Token: 0x06000E45 RID: 3653 RVA: 0x0008CA9C File Offset: 0x0008AC9C
+            // Token: 0x06000E74 RID: 3700 RVA: 0x0008F950 File Offset: 0x0008DB50
             private void FindLoweredParent(ref ControlPoint controlPoint)
             {
                 ObjectToolSystem.SnapJob.LoweredParentIterator loweredParentIterator = default(ObjectToolSystem.SnapJob.LoweredParentIterator);
@@ -1785,7 +1857,7 @@ namespace Game.Tools
                 controlPoint = loweredParentIterator2.m_Result;
             }
 
-            // Token: 0x06000E46 RID: 3654 RVA: 0x0008CB5C File Offset: 0x0008AD5C
+            // Token: 0x06000E75 RID: 3701 RVA: 0x0008FA10 File Offset: 0x0008DC10
             private void FindOriginalObject(ref ControlPoint bestSnapPosition, ControlPoint controlPoint)
             {
                 ObjectToolSystem.SnapJob.OriginalObjectIterator originalObjectIterator = default(ObjectToolSystem.SnapJob.OriginalObjectIterator);
@@ -1819,7 +1891,7 @@ namespace Game.Tools
                 }
             }
 
-            // Token: 0x06000E47 RID: 3655 RVA: 0x0008CC80 File Offset: 0x0008AE80
+            // Token: 0x06000E76 RID: 3702 RVA: 0x0008FB34 File Offset: 0x0008DD34
             private void HandleWorldSize(ref ControlPoint bestSnapPosition, ControlPoint controlPoint)
             {
                 Bounds3 bounds = TerrainUtils.GetBounds(ref this.m_TerrainHeightData);
@@ -1868,7 +1940,7 @@ namespace Game.Tools
                 ObjectToolSystem.SnapJob.AddSnapPosition(ref bestSnapPosition, controlPoint2);
             }
 
-            // Token: 0x06000E48 RID: 3656 RVA: 0x0008CE7C File Offset: 0x0008B07C
+            // Token: 0x06000E77 RID: 3703 RVA: 0x0008FD30 File Offset: 0x0008DF30
             public static void AlignRotation(ref quaternion rotation, quaternion parentRotation, bool zAxis)
             {
                 if (zAxis)
@@ -1909,7 +1981,7 @@ namespace Game.Tools
                 rotation = math.normalizesafe(q2, quaternion.identity);
             }
 
-            // Token: 0x06000E49 RID: 3657 RVA: 0x0008CFE8 File Offset: 0x0008B1E8
+            // Token: 0x06000E78 RID: 3704 RVA: 0x0008FE9C File Offset: 0x0008E09C
             private void AlignObject(ref ControlPoint controlPoint, ref quaternion parentRotation, bool alignRotation)
             {
                 PlaceableObjectData placeableObjectData = default(PlaceableObjectData);
@@ -1984,7 +2056,7 @@ namespace Game.Tools
                 }
             }
 
-            // Token: 0x06000E4A RID: 3658 RVA: 0x0008D320 File Offset: 0x0008B520
+            // Token: 0x06000E79 RID: 3705 RVA: 0x000901D4 File Offset: 0x0008E3D4
             private void CalculateHeight(ref ControlPoint controlPoint, float waterSurfaceHeight)
             {
                 if (this.m_PlaceableObjectData.HasComponent(this.m_Prefab))
@@ -2039,7 +2111,7 @@ namespace Game.Tools
                 }
             }
 
-            // Token: 0x06000E4B RID: 3659 RVA: 0x0008D4F0 File Offset: 0x0008B6F0
+            // Token: 0x06000E7A RID: 3706 RVA: 0x000903A4 File Offset: 0x0008E5A4
             private void SnapSurface(ControlPoint controlPoint, ref ControlPoint bestPosition, Entity entity, int parentMesh)
             {
                 Game.Objects.Transform transform = this.m_TransformData[entity];
@@ -2052,7 +2124,7 @@ namespace Game.Tools
                 ObjectToolSystem.SnapJob.AddSnapPosition(ref bestPosition, controlPoint2);
             }
 
-            // Token: 0x06000E4C RID: 3660 RVA: 0x0008D584 File Offset: 0x0008B784
+            // Token: 0x06000E7B RID: 3707 RVA: 0x00090438 File Offset: 0x0008E638
             private void SnapNode(ControlPoint controlPoint, ref ControlPoint bestPosition, Entity entity, Game.Net.Node node)
             {
                 Bounds1 bounds = new Bounds1(float.MaxValue, float.MinValue);
@@ -2087,7 +2159,7 @@ namespace Game.Tools
                 ObjectToolSystem.SnapJob.AddSnapPosition(ref bestPosition, controlPoint2);
             }
 
-            // Token: 0x06000E4D RID: 3661 RVA: 0x0008D718 File Offset: 0x0008B918
+            // Token: 0x06000E7C RID: 3708 RVA: 0x000905CC File Offset: 0x0008E7CC
             private void SnapShoreline(ControlPoint controlPoint, ref ControlPoint bestPosition, ref float waterSurfaceHeight, float radius, float3 offset)
             {
                 int2 @int = (int2)math.floor(WaterUtils.ToSurfaceSpace(ref this.m_WaterSurfaceData, controlPoint.m_HitPosition - radius).xz);
@@ -2142,7 +2214,7 @@ namespace Game.Tools
                 }
             }
 
-            // Token: 0x06000E4E RID: 3662 RVA: 0x0008DA7C File Offset: 0x0008BC7C
+            // Token: 0x06000E7D RID: 3709 RVA: 0x00090930 File Offset: 0x0008EB30
             private void SnapSegmentAreas(ControlPoint controlPoint, ref ControlPoint bestPosition, float radius, Entity entity, Segment segment1, NetCompositionData prefabCompositionData1, DynamicBuffer<NetCompositionArea> areas1)
             {
                 for (int i = 0; i < areas1.Length; i++)
@@ -2182,7 +2254,7 @@ namespace Game.Tools
                 }
             }
 
-            // Token: 0x06000E4F RID: 3663 RVA: 0x0000E33B File Offset: 0x0000C53B
+            // Token: 0x06000E7E RID: 3710 RVA: 0x0000FB07 File Offset: 0x0000DD07
             private static Bounds3 SetHeightRange(Bounds3 bounds, Bounds1 heightRange)
             {
                 bounds.min.y = bounds.min.y + heightRange.min;
@@ -2190,7 +2262,7 @@ namespace Game.Tools
                 return bounds;
             }
 
-            // Token: 0x06000E50 RID: 3664 RVA: 0x0008DCFC File Offset: 0x0008BEFC
+            // Token: 0x06000E7F RID: 3711 RVA: 0x00090BB0 File Offset: 0x0008EDB0
             private static void CheckSnapLine(BuildingData buildingData, Game.Objects.Transform ownerTransformData, ControlPoint controlPoint, ref ControlPoint bestPosition, Line2 line, int maxOffset, float angle, bool forceSnap)
             {
                 float num;
@@ -2212,7 +2284,7 @@ namespace Game.Tools
                 ObjectToolSystem.SnapJob.AddSnapPosition(ref bestPosition, controlPoint2);
             }
 
-            // Token: 0x06000E51 RID: 3665 RVA: 0x0008DEAA File Offset: 0x0008C0AA
+            // Token: 0x06000E80 RID: 3712 RVA: 0x00090D5E File Offset: 0x0008EF5E
             private static void AddSnapPosition(ref ControlPoint bestSnapPosition, ControlPoint snapPosition)
             {
                 if (ToolUtils.CompareSnapPriority(snapPosition.m_SnapPriority, bestSnapPosition.m_SnapPriority))
@@ -2221,178 +2293,178 @@ namespace Game.Tools
                 }
             }
 
-            // Token: 0x0400182B RID: 6187
+            // Token: 0x04001859 RID: 6233
             [ReadOnly]
             public bool m_EditorMode;
 
-            // Token: 0x0400182C RID: 6188
+            // Token: 0x0400185A RID: 6234
             [ReadOnly]
             public Snap m_Snap;
 
-            // Token: 0x0400182D RID: 6189
+            // Token: 0x0400185B RID: 6235
             [ReadOnly]
             public ObjectToolSystem.Mode m_Mode;
 
-            // Token: 0x0400182E RID: 6190
+            // Token: 0x0400185C RID: 6236
             [ReadOnly]
             public Entity m_Prefab;
 
-            // Token: 0x0400182F RID: 6191
+            // Token: 0x0400185D RID: 6237
             [ReadOnly]
             public Entity m_Selected;
 
-            // Token: 0x04001830 RID: 6192
+            // Token: 0x0400185E RID: 6238
             [ReadOnly]
             public ComponentLookup<Owner> m_OwnerData;
 
-            // Token: 0x04001831 RID: 6193
+            // Token: 0x0400185F RID: 6239
             [ReadOnly]
             public ComponentLookup<Game.Objects.Transform> m_TransformData;
 
-            // Token: 0x04001832 RID: 6194
+            // Token: 0x04001860 RID: 6240
             [ReadOnly]
             public ComponentLookup<Attached> m_AttachedData;
 
-            // Token: 0x04001833 RID: 6195
+            // Token: 0x04001861 RID: 6241
             [ReadOnly]
             public ComponentLookup<Game.Common.Terrain> m_TerrainData;
 
-            // Token: 0x04001834 RID: 6196
+            // Token: 0x04001862 RID: 6242
             [ReadOnly]
             public ComponentLookup<LocalTransformCache> m_LocalTransformCacheData;
 
-            // Token: 0x04001835 RID: 6197
+            // Token: 0x04001863 RID: 6243
             [ReadOnly]
             public ComponentLookup<Edge> m_EdgeData;
 
-            // Token: 0x04001836 RID: 6198
+            // Token: 0x04001864 RID: 6244
             [ReadOnly]
             public ComponentLookup<Game.Net.Node> m_NodeData;
 
-            // Token: 0x04001837 RID: 6199
+            // Token: 0x04001865 RID: 6245
             [ReadOnly]
             public ComponentLookup<Orphan> m_OrphanData;
 
-            // Token: 0x04001838 RID: 6200
+            // Token: 0x04001866 RID: 6246
             [ReadOnly]
             public ComponentLookup<Curve> m_CurveData;
 
-            // Token: 0x04001839 RID: 6201
+            // Token: 0x04001867 RID: 6247
             [ReadOnly]
             public ComponentLookup<Composition> m_CompositionData;
 
-            // Token: 0x0400183A RID: 6202
+            // Token: 0x04001868 RID: 6248
             [ReadOnly]
             public ComponentLookup<EdgeGeometry> m_EdgeGeometryData;
 
-            // Token: 0x0400183B RID: 6203
+            // Token: 0x04001869 RID: 6249
             [ReadOnly]
             public ComponentLookup<StartNodeGeometry> m_StartNodeGeometryData;
 
-            // Token: 0x0400183C RID: 6204
+            // Token: 0x0400186A RID: 6250
             [ReadOnly]
             public ComponentLookup<EndNodeGeometry> m_EndNodeGeometryData;
 
-            // Token: 0x0400183D RID: 6205
+            // Token: 0x0400186B RID: 6251
             [ReadOnly]
             public ComponentLookup<PrefabRef> m_PrefabRefData;
 
-            // Token: 0x0400183E RID: 6206
+            // Token: 0x0400186C RID: 6252
             [ReadOnly]
             public ComponentLookup<ObjectGeometryData> m_ObjectGeometryData;
 
-            // Token: 0x0400183F RID: 6207
+            // Token: 0x0400186D RID: 6253
             [ReadOnly]
             public ComponentLookup<BuildingData> m_BuildingData;
 
-            // Token: 0x04001840 RID: 6208
+            // Token: 0x0400186E RID: 6254
             [ReadOnly]
             public ComponentLookup<BuildingExtensionData> m_BuildingExtensionData;
 
-            // Token: 0x04001841 RID: 6209
+            // Token: 0x0400186F RID: 6255
             [ReadOnly]
             public ComponentLookup<NetCompositionData> m_PrefabCompositionData;
 
-            // Token: 0x04001842 RID: 6210
+            // Token: 0x04001870 RID: 6256
             [ReadOnly]
             public ComponentLookup<PlaceableObjectData> m_PlaceableObjectData;
 
-            // Token: 0x04001843 RID: 6211
+            // Token: 0x04001871 RID: 6257
             [ReadOnly]
             public ComponentLookup<AssetStampData> m_AssetStampData;
 
-            // Token: 0x04001844 RID: 6212
+            // Token: 0x04001872 RID: 6258
             [ReadOnly]
             public ComponentLookup<OutsideConnectionData> m_OutsideConnectionData;
 
-            // Token: 0x04001845 RID: 6213
+            // Token: 0x04001873 RID: 6259
             [ReadOnly]
             public ComponentLookup<NetObjectData> m_NetObjectData;
 
-            // Token: 0x04001846 RID: 6214
+            // Token: 0x04001874 RID: 6260
             [ReadOnly]
             public ComponentLookup<TransportStopData> m_TransportStopData;
 
-            // Token: 0x04001847 RID: 6215
+            // Token: 0x04001875 RID: 6261
             [ReadOnly]
             public ComponentLookup<StackData> m_StackData;
 
-            // Token: 0x04001848 RID: 6216
+            // Token: 0x04001876 RID: 6262
             [ReadOnly]
             public ComponentLookup<ServiceUpgradeData> m_ServiceUpgradeData;
 
-            // Token: 0x04001849 RID: 6217
+            // Token: 0x04001877 RID: 6263
             [ReadOnly]
             public ComponentLookup<Block> m_BlockData;
 
-            // Token: 0x0400184A RID: 6218
+            // Token: 0x04001878 RID: 6264
             [ReadOnly]
             public BufferLookup<Game.Objects.SubObject> m_SubObjects;
 
-            // Token: 0x0400184B RID: 6219
+            // Token: 0x04001879 RID: 6265
             [ReadOnly]
             public BufferLookup<ConnectedEdge> m_ConnectedEdges;
 
-            // Token: 0x0400184C RID: 6220
+            // Token: 0x0400187A RID: 6266
             [ReadOnly]
             public BufferLookup<NetCompositionArea> m_PrefabCompositionAreas;
 
-            // Token: 0x0400184D RID: 6221
+            // Token: 0x0400187B RID: 6267
             [ReadOnly]
             public NativeQuadTree<Entity, QuadTreeBoundsXZ> m_ObjectSearchTree;
 
-            // Token: 0x0400184E RID: 6222
+            // Token: 0x0400187C RID: 6268
             [ReadOnly]
             public NativeQuadTree<Entity, QuadTreeBoundsXZ> m_NetSearchTree;
 
-            // Token: 0x0400184F RID: 6223
+            // Token: 0x0400187D RID: 6269
             [ReadOnly]
             public NativeQuadTree<Entity, Bounds2> m_ZoneSearchTree;
 
-            // Token: 0x04001850 RID: 6224
+            // Token: 0x0400187E RID: 6270
             [ReadOnly]
             public WaterSurfaceData m_WaterSurfaceData;
 
-            // Token: 0x04001851 RID: 6225
+            // Token: 0x0400187F RID: 6271
             [ReadOnly]
             public TerrainHeightData m_TerrainHeightData;
 
-            // Token: 0x04001852 RID: 6226
+            // Token: 0x04001880 RID: 6272
             public NativeList<ControlPoint> m_ControlPoints;
 
-            // Token: 0x04001853 RID: 6227
+            // Token: 0x04001881 RID: 6273
             public NativeValue<ObjectToolSystem.Rotation> m_Rotation;
 
-            // Token: 0x02000312 RID: 786
+            // Token: 0x02000316 RID: 790
             private struct LoweredParentIterator : INativeQuadTreeIterator<Entity, QuadTreeBoundsXZ>, IUnsafeQuadTreeIterator<Entity, QuadTreeBoundsXZ>
             {
-                // Token: 0x06000E52 RID: 3666 RVA: 0x0008DEC6 File Offset: 0x0008C0C6
+                // Token: 0x06000E81 RID: 3713 RVA: 0x00090D7A File Offset: 0x0008EF7A
                 public bool Intersect(QuadTreeBoundsXZ bounds)
                 {
                     return MathUtils.Intersect(bounds.m_Bounds.xz, this.m_Position.xz);
                 }
 
-                // Token: 0x06000E53 RID: 3667 RVA: 0x0008DEE4 File Offset: 0x0008C0E4
+                // Token: 0x06000E82 RID: 3714 RVA: 0x00090D98 File Offset: 0x0008EF98
                 public void Iterate(QuadTreeBoundsXZ bounds, Entity entity)
                 {
                     if (!MathUtils.Intersect(bounds.m_Bounds.xz, this.m_Position.xz))
@@ -2410,7 +2482,7 @@ namespace Game.Tools
                     }
                 }
 
-                // Token: 0x06000E54 RID: 3668 RVA: 0x0008DF3C File Offset: 0x0008C13C
+                // Token: 0x06000E83 RID: 3715 RVA: 0x00090DF0 File Offset: 0x0008EFF0
                 private void CheckNode(Entity entity)
                 {
                     Game.Net.Node node = this.m_NodeData[entity];
@@ -2431,7 +2503,7 @@ namespace Game.Tools
                     }
                 }
 
-                // Token: 0x06000E55 RID: 3669 RVA: 0x0008E03C File Offset: 0x0008C23C
+                // Token: 0x06000E84 RID: 3716 RVA: 0x00090EF0 File Offset: 0x0008F0F0
                 private void CheckEdge(Entity entity)
                 {
                     EdgeGeometry edgeGeometry = this.m_EdgeGeometryData[entity];
@@ -2516,7 +2588,7 @@ namespace Game.Tools
                     }
                 }
 
-                // Token: 0x06000E56 RID: 3670 RVA: 0x0008E4E8 File Offset: 0x0008C6E8
+                // Token: 0x06000E85 RID: 3717 RVA: 0x0009139C File Offset: 0x0008F59C
                 private void CheckSegment(Entity entity, Segment segment, Bezier4x3 curve, NetCompositionData prefabCompositionData)
                 {
                     float3 a = segment.m_Left.a;
@@ -2558,50 +2630,50 @@ namespace Game.Tools
                     }
                 }
 
-                // Token: 0x04001854 RID: 6228
+                // Token: 0x04001882 RID: 6274
                 public ControlPoint m_Result;
 
-                // Token: 0x04001855 RID: 6229
+                // Token: 0x04001883 RID: 6275
                 public float3 m_Position;
 
-                // Token: 0x04001856 RID: 6230
+                // Token: 0x04001884 RID: 6276
                 public ComponentLookup<Edge> m_EdgeData;
 
-                // Token: 0x04001857 RID: 6231
+                // Token: 0x04001885 RID: 6277
                 public ComponentLookup<Game.Net.Node> m_NodeData;
 
-                // Token: 0x04001858 RID: 6232
+                // Token: 0x04001886 RID: 6278
                 public ComponentLookup<Orphan> m_OrphanData;
 
-                // Token: 0x04001859 RID: 6233
+                // Token: 0x04001887 RID: 6279
                 public ComponentLookup<Curve> m_CurveData;
 
-                // Token: 0x0400185A RID: 6234
+                // Token: 0x04001888 RID: 6280
                 public ComponentLookup<Composition> m_CompositionData;
 
-                // Token: 0x0400185B RID: 6235
+                // Token: 0x04001889 RID: 6281
                 public ComponentLookup<EdgeGeometry> m_EdgeGeometryData;
 
-                // Token: 0x0400185C RID: 6236
+                // Token: 0x0400188A RID: 6282
                 public ComponentLookup<StartNodeGeometry> m_StartNodeGeometryData;
 
-                // Token: 0x0400185D RID: 6237
+                // Token: 0x0400188B RID: 6283
                 public ComponentLookup<EndNodeGeometry> m_EndNodeGeometryData;
 
-                // Token: 0x0400185E RID: 6238
+                // Token: 0x0400188C RID: 6284
                 public ComponentLookup<NetCompositionData> m_PrefabCompositionData;
             }
 
-            // Token: 0x02000313 RID: 787
+            // Token: 0x02000317 RID: 791
             private struct OriginalObjectIterator : INativeQuadTreeIterator<Entity, QuadTreeBoundsXZ>, IUnsafeQuadTreeIterator<Entity, QuadTreeBoundsXZ>
             {
-                // Token: 0x06000E57 RID: 3671 RVA: 0x0008E6B6 File Offset: 0x0008C8B6
+                // Token: 0x06000E86 RID: 3718 RVA: 0x0009156A File Offset: 0x0008F76A
                 public bool Intersect(QuadTreeBoundsXZ bounds)
                 {
                     return MathUtils.Intersect(bounds.m_Bounds, this.m_Bounds);
                 }
 
-                // Token: 0x06000E58 RID: 3672 RVA: 0x0008E6CC File Offset: 0x0008C8CC
+                // Token: 0x06000E87 RID: 3719 RVA: 0x00091580 File Offset: 0x0008F780
                 public void Iterate(QuadTreeBoundsXZ bounds, Entity item)
                 {
                     if (!MathUtils.Intersect(bounds.m_Bounds, this.m_Bounds))
@@ -2638,50 +2710,50 @@ namespace Game.Tools
                     }
                 }
 
-                // Token: 0x0400185F RID: 6239
+                // Token: 0x0400188D RID: 6285
                 public Entity m_Parent;
 
-                // Token: 0x04001860 RID: 6240
+                // Token: 0x0400188E RID: 6286
                 public Entity m_Result;
 
-                // Token: 0x04001861 RID: 6241
+                // Token: 0x0400188F RID: 6287
                 public Bounds3 m_Bounds;
 
-                // Token: 0x04001862 RID: 6242
+                // Token: 0x04001890 RID: 6288
                 public float m_BestDistance;
 
-                // Token: 0x04001863 RID: 6243
+                // Token: 0x04001891 RID: 6289
                 public bool m_EditorMode;
 
-                // Token: 0x04001864 RID: 6244
+                // Token: 0x04001892 RID: 6290
                 public TransportStopData m_TransportStopData1;
 
-                // Token: 0x04001865 RID: 6245
+                // Token: 0x04001893 RID: 6291
                 public ComponentLookup<Owner> m_OwnerData;
 
-                // Token: 0x04001866 RID: 6246
+                // Token: 0x04001894 RID: 6292
                 public ComponentLookup<Attached> m_AttachedData;
 
-                // Token: 0x04001867 RID: 6247
+                // Token: 0x04001895 RID: 6293
                 public ComponentLookup<PrefabRef> m_PrefabRefData;
 
-                // Token: 0x04001868 RID: 6248
+                // Token: 0x04001896 RID: 6294
                 public ComponentLookup<NetObjectData> m_NetObjectData;
 
-                // Token: 0x04001869 RID: 6249
+                // Token: 0x04001897 RID: 6295
                 public ComponentLookup<TransportStopData> m_TransportStopData;
             }
 
-            // Token: 0x02000314 RID: 788
+            // Token: 0x02000318 RID: 792
             private struct ParentObjectIterator : INativeQuadTreeIterator<Entity, QuadTreeBoundsXZ>, IUnsafeQuadTreeIterator<Entity, QuadTreeBoundsXZ>
             {
-                // Token: 0x06000E59 RID: 3673 RVA: 0x0008E7C6 File Offset: 0x0008C9C6
+                // Token: 0x06000E88 RID: 3720 RVA: 0x0009167A File Offset: 0x0008F87A
                 public bool Intersect(QuadTreeBoundsXZ bounds)
                 {
                     return MathUtils.Intersect(bounds.m_Bounds.xz, this.m_Bounds.xz);
                 }
 
-                // Token: 0x06000E5A RID: 3674 RVA: 0x0008E7E4 File Offset: 0x0008C9E4
+                // Token: 0x06000E89 RID: 3721 RVA: 0x00091698 File Offset: 0x0008F898
                 public void Iterate(QuadTreeBoundsXZ bounds, Entity item)
                 {
                     if (!MathUtils.Intersect(bounds.m_Bounds.xz, this.m_Bounds.xz))
@@ -2857,55 +2929,68 @@ namespace Game.Tools
                     }
                 }
 
-                // Token: 0x0400186A RID: 6250
+                // Token: 0x04001898 RID: 6296
                 public ControlPoint m_ControlPoint;
 
-                // Token: 0x0400186B RID: 6251
+                // Token: 0x04001899 RID: 6297
                 public ControlPoint m_BestSnapPosition;
 
-                // Token: 0x0400186C RID: 6252
+                // Token: 0x0400189A RID: 6298
                 public Bounds3 m_Bounds;
 
-                // Token: 0x0400186D RID: 6253
+                // Token: 0x0400189B RID: 6299
                 public float m_BestOverlap;
 
-                // Token: 0x0400186E RID: 6254
+                // Token: 0x0400189C RID: 6300
                 public bool m_IsBuilding;
 
-                // Token: 0x0400186F RID: 6255
+                // Token: 0x0400189D RID: 6301
                 public ObjectGeometryData m_PrefabObjectGeometryData1;
 
-                // Token: 0x04001870 RID: 6256
+                // Token: 0x0400189E RID: 6302
                 public ComponentLookup<Game.Objects.Transform> m_TransformData;
 
-                // Token: 0x04001871 RID: 6257
+                // Token: 0x0400189F RID: 6303
                 public ComponentLookup<PrefabRef> m_PrefabRefData;
 
-                // Token: 0x04001872 RID: 6258
+                // Token: 0x040018A0 RID: 6304
                 public ComponentLookup<BuildingData> m_BuildingData;
 
-                // Token: 0x04001873 RID: 6259
+                // Token: 0x040018A1 RID: 6305
                 public ComponentLookup<AssetStampData> m_AssetStampData;
 
-                // Token: 0x04001874 RID: 6260
+                // Token: 0x040018A2 RID: 6306
                 public ComponentLookup<ObjectGeometryData> m_PrefabObjectGeometryData;
             }
 
-            // Token: 0x02000315 RID: 789
+            // Token: 0x02000319 RID: 793
             private struct ZoneBlockIterator : INativeQuadTreeIterator<Entity, Bounds2>, IUnsafeQuadTreeIterator<Entity, Bounds2>
             {
-                // Token: 0x06000E5B RID: 3675 RVA: 0x0008F097 File Offset: 0x0008D297
+                // Token: 0x06000E8A RID: 3722 RVA: 0x00091F4B File Offset: 0x0009014B
                 public bool Intersect(Bounds2 bounds)
                 {
                     return MathUtils.Intersect(bounds, this.m_Bounds);
                 }
 
-                // Token: 0x06000E5C RID: 3676 RVA: 0x0008F0A8 File Offset: 0x0008D2A8
+                // Token: 0x06000E8B RID: 3723 RVA: 0x00091F5C File Offset: 0x0009015C
                 public void Iterate(Bounds2 bounds, Entity blockEntity)
                 {
                     if (!MathUtils.Intersect(bounds, this.m_Bounds))
                     {
                         return;
+                    }
+                    if (this.m_IgnoreOwner != Entity.Null)
+                    {
+                        Entity entity = blockEntity;
+                        Owner owner;
+                        while (this.m_OwnerData.TryGetComponent(entity, out owner))
+                        {
+                            if (owner.m_Owner == this.m_IgnoreOwner)
+                            {
+                                return;
+                            }
+                            entity = owner.m_Owner;
+                        }
                     }
                     Block block = this.m_BlockData[blockEntity];
                     Quad2 quad = ZoneUtils.CalculateCorners(block);
@@ -2943,34 +3028,40 @@ namespace Game.Tools
                     this.m_BestSnapPosition.m_OriginalEntity = blockEntity;
                 }
 
-                // Token: 0x04001875 RID: 6261
+                // Token: 0x040018A3 RID: 6307
                 public ControlPoint m_ControlPoint;
 
-                // Token: 0x04001876 RID: 6262
+                // Token: 0x040018A4 RID: 6308
                 public ControlPoint m_BestSnapPosition;
 
-                // Token: 0x04001877 RID: 6263
+                // Token: 0x040018A5 RID: 6309
                 public float m_BestDistance;
 
-                // Token: 0x04001878 RID: 6264
+                // Token: 0x040018A6 RID: 6310
                 public int2 m_LotSize;
 
-                // Token: 0x04001879 RID: 6265
+                // Token: 0x040018A7 RID: 6311
                 public Bounds2 m_Bounds;
 
-                // Token: 0x0400187A RID: 6266
+                // Token: 0x040018A8 RID: 6312
                 public float2 m_Direction;
 
-                // Token: 0x0400187B RID: 6267
+                // Token: 0x040018A9 RID: 6313
+                public Entity m_IgnoreOwner;
+
+                // Token: 0x040018AA RID: 6314
+                public ComponentLookup<Owner> m_OwnerData;
+
+                // Token: 0x040018AB RID: 6315
                 public ComponentLookup<Block> m_BlockData;
             }
         }
 
-        // Token: 0x02000316 RID: 790
+        // Token: 0x0200031A RID: 794
         [BurstCompile]
         private struct FindAttachmentBuildingJob : IJob
         {
-            // Token: 0x06000E5D RID: 3677 RVA: 0x0008F37C File Offset: 0x0008D57C
+            // Token: 0x06000E8C RID: 3724 RVA: 0x00092274 File Offset: 0x00090474
             public void Execute()
             {
                 Unity.Mathematics.Random random = this.m_RandomSeed.GetRandom(2000000);
@@ -3018,38 +3109,38 @@ namespace Game.Tools
                 this.m_AttachmentPrefab.Value = attachmentData;
             }
 
-            // Token: 0x0400187C RID: 6268
+            // Token: 0x040018AC RID: 6316
             [ReadOnly]
             public EntityTypeHandle m_EntityType;
 
-            // Token: 0x0400187D RID: 6269
+            // Token: 0x040018AD RID: 6317
             [ReadOnly]
             public ComponentTypeHandle<BuildingData> m_BuildingDataType;
 
-            // Token: 0x0400187E RID: 6270
+            // Token: 0x040018AE RID: 6318
             [ReadOnly]
             public ComponentTypeHandle<SpawnableBuildingData> m_SpawnableBuildingType;
 
-            // Token: 0x0400187F RID: 6271
+            // Token: 0x040018AF RID: 6319
             [ReadOnly]
             public BuildingData m_BuildingData;
 
-            // Token: 0x04001880 RID: 6272
+            // Token: 0x040018B0 RID: 6320
             [ReadOnly]
             public RandomSeed m_RandomSeed;
 
-            // Token: 0x04001881 RID: 6273
+            // Token: 0x040018B1 RID: 6321
             [ReadOnly]
             public NativeList<ArchetypeChunk> m_Chunks;
 
-            // Token: 0x04001882 RID: 6274
+            // Token: 0x040018B2 RID: 6322
             public NativeReference<ObjectToolBaseSystem.AttachmentData> m_AttachmentPrefab;
         }
 
-        // Token: 0x02000317 RID: 791
+        // Token: 0x0200031B RID: 795
         private struct TypeHandle
         {
-            // Token: 0x06000E5E RID: 3678 RVA: 0x0008F604 File Offset: 0x0008D804
+            // Token: 0x06000E8D RID: 3725 RVA: 0x000924FC File Offset: 0x000906FC
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void __AssignHandles(ref SystemState state)
             {
@@ -3087,131 +3178,131 @@ namespace Game.Tools
                 this.__Game_Prefabs_SpawnableBuildingData_RO_ComponentTypeHandle = state.GetComponentTypeHandle<SpawnableBuildingData>(true);
             }
 
-            // Token: 0x04001883 RID: 6275
+            // Token: 0x040018B3 RID: 6323
             [ReadOnly]
             public ComponentLookup<PlaceableObjectData> __Game_Prefabs_PlaceableObjectData_RO_ComponentLookup;
 
-            // Token: 0x04001884 RID: 6276
+            // Token: 0x040018B4 RID: 6324
             [ReadOnly]
             public ComponentLookup<Owner> __Game_Common_Owner_RO_ComponentLookup;
 
-            // Token: 0x04001885 RID: 6277
+            // Token: 0x040018B5 RID: 6325
             [ReadOnly]
             public ComponentLookup<Game.Objects.Transform> __Game_Objects_Transform_RO_ComponentLookup;
 
-            // Token: 0x04001886 RID: 6278
+            // Token: 0x040018B6 RID: 6326
             [ReadOnly]
             public ComponentLookup<Attached> __Game_Objects_Attached_RO_ComponentLookup;
 
-            // Token: 0x04001887 RID: 6279
+            // Token: 0x040018B7 RID: 6327
             [ReadOnly]
             public ComponentLookup<Game.Common.Terrain> __Game_Common_Terrain_RO_ComponentLookup;
 
-            // Token: 0x04001888 RID: 6280
+            // Token: 0x040018B8 RID: 6328
             [ReadOnly]
             public ComponentLookup<LocalTransformCache> __Game_Tools_LocalTransformCache_RO_ComponentLookup;
 
-            // Token: 0x04001889 RID: 6281
+            // Token: 0x040018B9 RID: 6329
             [ReadOnly]
             public ComponentLookup<Edge> __Game_Net_Edge_RO_ComponentLookup;
 
-            // Token: 0x0400188A RID: 6282
+            // Token: 0x040018BA RID: 6330
             [ReadOnly]
             public ComponentLookup<Game.Net.Node> __Game_Net_Node_RO_ComponentLookup;
 
-            // Token: 0x0400188B RID: 6283
+            // Token: 0x040018BB RID: 6331
             [ReadOnly]
             public ComponentLookup<Orphan> __Game_Net_Orphan_RO_ComponentLookup;
 
-            // Token: 0x0400188C RID: 6284
+            // Token: 0x040018BC RID: 6332
             [ReadOnly]
             public ComponentLookup<Curve> __Game_Net_Curve_RO_ComponentLookup;
 
-            // Token: 0x0400188D RID: 6285
+            // Token: 0x040018BD RID: 6333
             [ReadOnly]
             public ComponentLookup<Composition> __Game_Net_Composition_RO_ComponentLookup;
 
-            // Token: 0x0400188E RID: 6286
+            // Token: 0x040018BE RID: 6334
             [ReadOnly]
             public ComponentLookup<EdgeGeometry> __Game_Net_EdgeGeometry_RO_ComponentLookup;
 
-            // Token: 0x0400188F RID: 6287
+            // Token: 0x040018BF RID: 6335
             [ReadOnly]
             public ComponentLookup<StartNodeGeometry> __Game_Net_StartNodeGeometry_RO_ComponentLookup;
 
-            // Token: 0x04001890 RID: 6288
+            // Token: 0x040018C0 RID: 6336
             [ReadOnly]
             public ComponentLookup<EndNodeGeometry> __Game_Net_EndNodeGeometry_RO_ComponentLookup;
 
-            // Token: 0x04001891 RID: 6289
+            // Token: 0x040018C1 RID: 6337
             [ReadOnly]
             public ComponentLookup<PrefabRef> __Game_Prefabs_PrefabRef_RO_ComponentLookup;
 
-            // Token: 0x04001892 RID: 6290
+            // Token: 0x040018C2 RID: 6338
             [ReadOnly]
             public ComponentLookup<ObjectGeometryData> __Game_Prefabs_ObjectGeometryData_RO_ComponentLookup;
 
-            // Token: 0x04001893 RID: 6291
+            // Token: 0x040018C3 RID: 6339
             [ReadOnly]
             public ComponentLookup<BuildingData> __Game_Prefabs_BuildingData_RO_ComponentLookup;
 
-            // Token: 0x04001894 RID: 6292
+            // Token: 0x040018C4 RID: 6340
             [ReadOnly]
             public ComponentLookup<BuildingExtensionData> __Game_Prefabs_BuildingExtensionData_RO_ComponentLookup;
 
-            // Token: 0x04001895 RID: 6293
+            // Token: 0x040018C5 RID: 6341
             [ReadOnly]
             public ComponentLookup<NetCompositionData> __Game_Prefabs_NetCompositionData_RO_ComponentLookup;
 
-            // Token: 0x04001896 RID: 6294
+            // Token: 0x040018C6 RID: 6342
             [ReadOnly]
             public ComponentLookup<AssetStampData> __Game_Prefabs_AssetStampData_RO_ComponentLookup;
 
-            // Token: 0x04001897 RID: 6295
+            // Token: 0x040018C7 RID: 6343
             [ReadOnly]
             public ComponentLookup<OutsideConnectionData> __Game_Prefabs_OutsideConnectionData_RO_ComponentLookup;
 
-            // Token: 0x04001898 RID: 6296
+            // Token: 0x040018C8 RID: 6344
             [ReadOnly]
             public ComponentLookup<NetObjectData> __Game_Prefabs_NetObjectData_RO_ComponentLookup;
 
-            // Token: 0x04001899 RID: 6297
+            // Token: 0x040018C9 RID: 6345
             [ReadOnly]
             public ComponentLookup<TransportStopData> __Game_Prefabs_TransportStopData_RO_ComponentLookup;
 
-            // Token: 0x0400189A RID: 6298
+            // Token: 0x040018CA RID: 6346
             [ReadOnly]
             public ComponentLookup<StackData> __Game_Prefabs_StackData_RO_ComponentLookup;
 
-            // Token: 0x0400189B RID: 6299
+            // Token: 0x040018CB RID: 6347
             [ReadOnly]
             public ComponentLookup<ServiceUpgradeData> __Game_Prefabs_ServiceUpgradeData_RO_ComponentLookup;
 
-            // Token: 0x0400189C RID: 6300
+            // Token: 0x040018CC RID: 6348
             [ReadOnly]
             public ComponentLookup<Block> __Game_Zones_Block_RO_ComponentLookup;
 
-            // Token: 0x0400189D RID: 6301
+            // Token: 0x040018CD RID: 6349
             [ReadOnly]
             public BufferLookup<Game.Objects.SubObject> __Game_Objects_SubObject_RO_BufferLookup;
 
-            // Token: 0x0400189E RID: 6302
+            // Token: 0x040018CE RID: 6350
             [ReadOnly]
             public BufferLookup<ConnectedEdge> __Game_Net_ConnectedEdge_RO_BufferLookup;
 
-            // Token: 0x0400189F RID: 6303
+            // Token: 0x040018CF RID: 6351
             [ReadOnly]
             public BufferLookup<NetCompositionArea> __Game_Prefabs_NetCompositionArea_RO_BufferLookup;
 
-            // Token: 0x040018A0 RID: 6304
+            // Token: 0x040018D0 RID: 6352
             [ReadOnly]
             public EntityTypeHandle __Unity_Entities_Entity_TypeHandle;
 
-            // Token: 0x040018A1 RID: 6305
+            // Token: 0x040018D1 RID: 6353
             [ReadOnly]
             public ComponentTypeHandle<BuildingData> __Game_Prefabs_BuildingData_RO_ComponentTypeHandle;
 
-            // Token: 0x040018A2 RID: 6306
+            // Token: 0x040018D2 RID: 6354
             [ReadOnly]
             public ComponentTypeHandle<SpawnableBuildingData> __Game_Prefabs_SpawnableBuildingData_RO_ComponentTypeHandle;
         }
