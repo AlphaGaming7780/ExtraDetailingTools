@@ -1,7 +1,7 @@
 using System;
 using Extra.Lib;
 using Game.Common;
-using Game.Net;
+using Game.Objects;
 using Game.Prefabs;
 using Game.Tools;
 using HarmonyLib;
@@ -52,29 +52,23 @@ class ObjectToolSystemPatch {
 		}
 	}
 
-
-
-	[HarmonyPatch(typeof(ObjectToolSystem), nameof(ObjectToolSystem.GetAvailableSnapMask),
-		new Type[] { typeof(PlaceableObjectData), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(Snap), typeof(Snap) },
-		new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out })]
-	class ObjectToolSystem_GetAvailableSnapMask_Postfix
+    [HarmonyPatch(
+		typeof(ObjectToolSystem), nameof(ObjectToolSystem.GetAvailableSnapMask),
+			new Type[] { typeof(PlaceableObjectData), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(Snap), typeof(Snap) },
+			new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out}
+		)
+	]
+	class ObjectToolSystem_GetAvailableSnapMask
 	{
-		private static void Postfix(object[] __args, PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, bool brushing, bool stamping, out Snap onMask, out Snap offMask) //, 
+		private static void Postfix(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, bool brushing, bool stamping, ref Snap onMask, ref Snap offMask) //, object[] __args, 
         {
-			//EDT.Logger.Info(__args[4]);
-			//EDT.Logger.Info(__args[5]);
-			onMask = (Snap)__args[6];
-			offMask = (Snap)__args[7];
 			if (EDT.objectToolSystem.actualMode != ObjectToolSystem.Mode.Create) return;
 
-			if(!isBuilding)
+			if(!isBuilding && (prefabPlaceableData.m_Flags & (PlacementFlags.OwnerSide | PlacementFlags.RoadSide | PlacementFlags.Shoreline | PlacementFlags.Floating | PlacementFlags.Hovering | PlacementFlags.RoadNode | PlacementFlags.RoadEdge)) == PlacementFlags.None)
 			{
                 onMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea;
                 offMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea;
             }
-
-			__args[6] = onMask;
-			__args[7] = offMask;
 		}
 	}
 

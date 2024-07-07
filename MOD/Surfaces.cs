@@ -8,10 +8,10 @@ internal class Surfaces
         return i switch
         {
             -100 => "Ground",
-            -99 => "Grass", //"Grass",
-            -98 => "Sand", //"Sand",
+            -99 => "Grass",
+            -98 => "Sand",
             -97 => "Concrete",
-            -96 => "Pavement", //"Pavement",
+            -96 => "Pavement",
             -95 => "Tiles",
             _ => "Misc"
         };
