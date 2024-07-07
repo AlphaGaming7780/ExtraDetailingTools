@@ -90,7 +90,9 @@ internal static class EditEntities
 		{
 			if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
 			{
-				if (!prefab.builtin) continue;
+				if (!prefab.builtin || prefab.name == "Surface Area") continue;
+
+				EDT.Logger.Info(prefab.name);
 
 				var prefabUI = prefab.GetComponent<UIObject>();
 				if (prefabUI == null)
@@ -120,7 +122,6 @@ internal static class EditEntities
 		{
 			if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
 			{
-
 				if (!prefab.builtin) continue;
 
 				DynamicBuffer<SubMesh> subMeshes =  ExtraLib.m_EntityManager.GetBuffer<SubMesh>(entity);
