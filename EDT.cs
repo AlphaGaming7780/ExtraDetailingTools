@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
+using ExtraDetailingTools.Tools;
 
 public class EDT : IMod
 {
@@ -52,6 +53,7 @@ public class EDT : IMod
         EditEntities.SetupEditEntities();
 
         updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
+        updateSystem.UpdateAt<AreaReplacerTool>(SystemUpdatePhase.ToolUpdate);
 
         SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
         selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
