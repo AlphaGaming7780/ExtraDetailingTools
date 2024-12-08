@@ -1,8 +1,25 @@
-.TransfromSectionInput {
-    width: 20%;
-    margin-left: 2.5rem;
-    margin-right: 5rem;
+
+
+.TransfromSectionInputs {
+    width: 100%;
+
+    input {
+        width: 20%;
+        margin-left: 2.5rem;
+        margin-right: 5rem;
+    }
 }
+
+.TransfromSectionScaleInputs {
+    width:100%;
+
+    input {
+        width: 27.8%;
+        margin-left: 2.5rem;
+        margin-right: 5rem;
+    }
+}
+
 .TransfromSectionButton {
     width: 20rem;
     height: 20rem;

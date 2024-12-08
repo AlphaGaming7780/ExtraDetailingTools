@@ -17,7 +17,6 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using ExtraDetailingTools.Systems;
-using ExtraDetailingTools.BetterObjectTool;
 
 namespace ExtraDetailingTools
 {
@@ -56,7 +55,7 @@ namespace ExtraDetailingTools
             EditEntities.SetupEditEntities();
 
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
-            updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
+            //updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
             updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
             updateSystem.UpdateAfter<TransformObjectSystem>(SystemUpdatePhase.Rendering);
 

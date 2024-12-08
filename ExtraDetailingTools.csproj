@@ -43,6 +43,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Removed code\**" />
+    <EmbeddedResource Remove="Removed code\**" />
+    <None Remove="Removed code\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Lib.Harmony" Version="2.2.2" />
     <PackageReference Include="UnityEngine.Modules" Version="2022.3.7" IncludeAssets="compile" />
   </ItemGroup>

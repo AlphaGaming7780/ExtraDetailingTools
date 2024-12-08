@@ -41,28 +41,7 @@ namespace ExtraDetailingTools.Systems
         }
 
 		protected override void OnUpdate()
-		{   // V1
-			//NativeBatchGroups<CullingData, GroupData, BatchData, InstanceData> nativeBatchGroups = _batchManagerSystem.GetNativeBatchGroups(true, out JobHandle job);
-			//NativeBatchInstances<CullingData, GroupData, BatchData, InstanceData> nativeBatchInstances = _batchManagerSystem.GetNativeBatchInstances(false, out JobHandle jb);
-			//jb.Complete();
-
-			//ScalMeshJob_ParallelForDefer scalMeshJob = new()
-			//{
-			//	CullingDatas = _preCullingSystem.GetCullingData(true, out JobHandle job2),
-			//	MeshBatcheLookup = SystemAPI.GetBufferLookup<MeshBatch>(),
-			//	TransformLookup = SystemAPI.GetComponentLookup<Transform>(),
-			//	InterpolatedTransformLookup = SystemAPI.GetComponentLookup<InterpolatedTransform>(),
-			//	CullingInfoLookup = SystemAPI.GetComponentLookup<CullingInfo>(),
-			//	TransformObjectLookup = SystemAPI.GetComponentLookup<TransformObject>(),
-			//	HiddenLookup = SystemAPI.GetComponentLookup<Hidden>(isReadOnly: true),
-			//	NativeBatchInstances = nativeBatchInstances.AsParallelInstanceWriter(),
-			//	NativeBatchGroups = nativeBatchGroups,
-			//};
-			//JobHandle jobHandle = scalMeshJob.Schedule(scalMeshJob.CullingDatas, 16, JobHandle.CombineDependencies(Dependency, job2, job));
-			//_preCullingSystem.AddCullingDataReader(jobHandle);
-			//Dependency = jobHandle;
-
-			// V2
+		{
 
 			NativeBatchGroups<CullingData, GroupData, BatchData, InstanceData> nativeBatchGroups = _batchManagerSystem.GetNativeBatchGroups(true, out JobHandle job);
 			NativeBatchInstances<CullingData, GroupData, BatchData, InstanceData> nativeBatchInstances = _batchManagerSystem.GetNativeBatchInstances(false, out JobHandle jb);

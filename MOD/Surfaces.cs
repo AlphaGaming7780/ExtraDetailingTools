@@ -1,19 +1,20 @@
 ﻿
-namespace ExtraDetailingTools;
-
-internal class Surfaces
+namespace ExtraDetailingTools
 {
-    internal static string GetCatByRendererPriority(int i)
+    internal class Surfaces
     {
-        return i switch
+        internal static string GetCatByRendererPriority(int i)
         {
-            -100 => "Ground",
-            -99 => "Grass",
-            -98 => "Sand",
-            -97 => "Concrete",
-            -96 => "Pavement",
-            -95 => "Tiles",
-            _ => "Misc"
-        };
+            return i switch
+            {
+                -100 => "Ground",
+                -99 => "Grass",
+                -98 => "Sand",
+                -97 => "Concrete",
+                -96 => "Pavement",
+                -95 => "Tiles",
+                _ => "Misc"
+            };
+        }
     }
 }

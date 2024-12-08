@@ -85,8 +85,6 @@ namespace ExtraDetailingTools
 			{
 				if (!prefab.builtin || prefab.name == "Surface Area") continue;
 
-				EDT.Logger.Info(prefab.name);
-
                     var prefabUI = prefab.GetComponent<UIObject>();
                     if (prefabUI == null)
                     {
