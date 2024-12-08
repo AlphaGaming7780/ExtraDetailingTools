@@ -4,9 +4,10 @@ using Game.Prefabs;
 using Game.Tools;
 using HarmonyLib;
 
-namespace ExtraDetailingTools;
-
-class NetToolSystemPatch {
+namespace ExtraDetailingTools
+{
+	class NetToolSystemPatch
+	{
 
 	//[HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.prefab), MethodType.Setter)]
 	//class NetToolPreferences_OnStartRunning

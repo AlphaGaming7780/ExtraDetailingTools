@@ -2,18 +2,20 @@
 using Game.Tools;
 using HarmonyLib;
 
-namespace ExtraDetailingTools.Patches;
-
-internal class DefaultToolSystemPatche
+namespace ExtraDetailingTools.Patches
 {
-
-	[HarmonyPatch(typeof(DefaultToolSystem), "InitializeRaycast")]
-	public class DefaultToolSystem_InitializeRaycast
+	internal class DefaultToolSystemPatche
 	{
-		public static void Postfix(DefaultToolSystem __instance)
+
+		[HarmonyPatch(typeof(DefaultToolSystem), "InitializeRaycast")]
+		public class DefaultToolSystem_InitializeRaycast
 		{
-			ToolRaycastSystem toolRaycastSystem = Traverse.Create(__instance).Field("m_ToolRaycastSystem").GetValue<ToolRaycastSystem>();
-			toolRaycastSystem.raycastFlags |= RaycastFlags.EditorContainers;
+			public static void Postfix(DefaultToolSystem __instance)
+			{
+				ToolRaycastSystem toolRaycastSystem = Traverse.Create(__instance).Field("m_ToolRaycastSystem").GetValue<ToolRaycastSystem>();
+				toolRaycastSystem.raycastFlags |= RaycastFlags.EditorContainers;
+			}
+
 		}
 	}
 }

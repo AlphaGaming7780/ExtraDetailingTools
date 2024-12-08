@@ -4,7 +4,8 @@
 		<OutputType>Library</OutputType>
 		<TargetFramework>net472</TargetFramework>
 		<Configurations>Debug;Release</Configurations>
-    <langVersion>latest</langVersion>
+    <!--<langVersion>latest</langVersion>-->
+    <langVersion>9</langVersion>
     <!--<Version>1.0.0</Version>-->
 		
 		<!--The folder where Game.dll is located. Set it only if the game is not installed in the default location, otherwise keep it empty-->
