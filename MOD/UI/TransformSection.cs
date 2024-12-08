@@ -17,6 +17,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UIElements;
+using static Game.Input.UIInputAction;
 using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools;
@@ -78,7 +79,7 @@ internal partial class TransformSection : InfoSectionBase
 	protected override void OnUpdate()
 	{
 		base.OnUpdate();
-		visible = EntityManager.HasComponent<Game.Objects.Transform>(selectedEntity) && !EntityManager.HasComponent<Building>(selectedEntity); ;
+		visible = EntityManager.HasComponent<Game.Objects.Transform>(selectedEntity); // && !EntityManager.HasComponent<Building>(selectedEntity);
 		if (visible)
 		{
 			transform = EntityManager.GetComponentData<Transform>(selectedEntity);
@@ -235,7 +236,7 @@ internal partial class TransformSection : InfoSectionBase
 
 	private void SetRotattion(float3 rotationOffset)
 	{
-			UpdateSelectedEntity(float3.zero, rotationOffset);
+		UpdateSelectedEntity(float3.zero, rotationOffset);
 	}
 
 	private void UpdateSelectedEntity(float3 positionOffset, float3 rotationOffset)
@@ -257,13 +258,17 @@ internal partial class TransformSection : InfoSectionBase
 		EntityManager.AddComponentData(selectedEntity, new Game.Common.Updated());
 		transformSectionGetPos.Update();
 		transformSectionGetRot.Update();
+
 	}
 
 	private void UpdateInstalledUpgrade(Entity entity, float3 positionOffset, float3 rotationOffset)
 	{
 		if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Buildings.InstalledUpgrade> installedUpgrades))
 		{
-			foreach (Game.Buildings.InstalledUpgrade installedUpgrade in installedUpgrades)
+
+            Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
+
+            foreach (Game.Buildings.InstalledUpgrade installedUpgrade in installedUpgrades)
 			{
 				if (!EntityManager.TryGetComponent(installedUpgrade, out Game.Objects.Transform transform1))
 				{
@@ -274,15 +279,13 @@ internal partial class TransformSection : InfoSectionBase
 					cullingInfo1.m_Bounds = ObjectUtils.CalculateBounds(transform1.m_Position, transform1.m_Rotation, geometryData1);
 					EntityManager.SetComponentData(installedUpgrade, cullingInfo1);
 				}
-				// UnityEngine.Quaternion quaternion = transform.m_Rotation;
-				// float3 newAngle = quaternion.eulerAngles;
-				transform1.m_Position += positionOffset;
-				// float3 distance = transform1.m_Position-transform.m_Position;
-				// float lenght = (float)Math.Sqrt(Math.Pow(distance.x, 2)+Math.Pow(distance.z, 2));
-				// transform1.m_Position -= distance; // * (float)Math.Cos(newAngle.y) //  * (float)Math.Sin(newAngle.y)
-				// transform1.m_Position = transform.m_Position + new float3(lenght * (float)Math.Cos(newAngle.y), distance.y, lenght * (float)Math.Sin(newAngle.y));
-				//UnityEngine.Quaternion quaternion = transform1.m_Rotation;
-				transform1.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation());
+
+                float3 ogVector = transform1.m_Position - parentTransform.m_Position;
+                float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
+
+				transform1.m_Position = parentTransform.m_Position + positionOffset + offset;
+
+                transform1.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation(transform1));
 
 				UpdateSubElement(installedUpgrade, positionOffset, rotationOffset);
 
@@ -304,13 +307,18 @@ internal partial class TransformSection : InfoSectionBase
 	{
 		if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Areas.SubArea> subAreas))
 		{
-			foreach (Game.Areas.SubArea subArea in subAreas)
+
+            Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
+
+            foreach (Game.Areas.SubArea subArea in subAreas)
 			{
 				if (EntityManager.TryGetBuffer(subArea.m_Area, false, out DynamicBuffer<Game.Areas.Node> nodes))
 				{
 					for(int i = 0; i< nodes.Length; i++)
 					{
-						nodes.ElementAt(i).m_Position += positionOffset;
+                        float3 ogVector = nodes.ElementAt(i).m_Position - parentTransform.m_Position;
+                        float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
+                        nodes.ElementAt(i).m_Position = parentTransform.m_Position + positionOffset + offset;
 					}
 				}
 				EntityManager.AddComponentData(subArea.m_Area, new Game.Common.Updated());
@@ -322,11 +330,18 @@ internal partial class TransformSection : InfoSectionBase
     {
         if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Objects.SubObject> subObjects))
         {
+
+			Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
+
             foreach (Game.Objects.SubObject subObject in subObjects)
             {
                 if (EntityManager.TryGetComponent(subObject.m_SubObject, out Transform transform))
                 {
-                    transform.m_Position += positionOffset;
+
+                    float3 ogVector = transform.m_Position - parentTransform.m_Position;
+					float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
+
+					transform.m_Position = parentTransform.m_Position + positionOffset + offset;
                     transform.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation(transform));
                 }
                 EntityManager.AddComponentData(subObject.m_SubObject, new Game.Common.Updated());
@@ -342,8 +357,8 @@ internal partial class TransformSection : InfoSectionBase
 			{
 				if (EntityManager.TryGetComponent(subNet.m_SubNet, out Game.Net.Node node))
 				{
-				node.m_Position += positionOffset;
-				EntityManager.SetComponentData(subNet.m_SubNet, node);
+					node.m_Position += positionOffset;
+					EntityManager.SetComponentData(subNet.m_SubNet, node);
 				}
 
 				EntityManager.AddComponentData(subNet.m_SubNet, new Game.Common.Updated());
