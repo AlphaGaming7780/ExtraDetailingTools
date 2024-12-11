@@ -3,6 +3,7 @@ using Extra.Lib;
 using Game.Common;
 using Game.Objects;
 using Game.Prefabs;
+using Game.Simulation;
 using Game.Tools;
 using HarmonyLib;
 using Unity.Collections;
@@ -13,24 +14,25 @@ namespace ExtraDetailingTools;
 
 class ObjectToolSystemPatch {
 
-	[HarmonyPatch(typeof(ObjectToolSystem), "OnStartRunning")]
-	class ObjectToolSystem_OnStartRunning
-	{
-		static bool first = true;
-		public static void Postfix(ObjectToolSystem __instance)
+		[HarmonyPatch(typeof(ObjectToolSystem), "OnStartRunning")]
+		class ObjectToolSystem_OnStartRunning
 		{
-			if (first)
+			static bool first = true;
+			public static void Postfix(ObjectToolSystem __instance)
 			{
-				__instance.selectedSnap &= ~(Snap.NetArea);
-				first = false;
+				if (first)
+				{
+					__instance.selectedSnap &= ~(Snap.NetArea);
+					first = false;
+				}
 			}
 		}
-	}
 
-	[HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
-	class ObjectToolSystem_SnapControlPoint
-	{
-		static Entity oldEntity = Entity.Null;
+
+		[HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
+		class ObjectToolSystem_SnapControlPoint
+		{
+			static Entity oldEntity = Entity.Null;
 
 		public static bool Prefix(ObjectToolSystem __instance)
 		{
@@ -54,13 +56,13 @@ class ObjectToolSystemPatch {
 
     [HarmonyPatch(
 		typeof(ObjectToolSystem), nameof(ObjectToolSystem.GetAvailableSnapMask),
-			new Type[] { typeof(PlaceableObjectData), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(Snap), typeof(Snap) },
-			new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out}
+			new Type[] { typeof(PlaceableObjectData), typeof(bool), typeof(bool), typeof(bool), typeof(ObjectToolSystem.Mode), typeof(Snap), typeof(Snap) },
+			new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out}
 		)
 	]
 	class ObjectToolSystem_GetAvailableSnapMask
 	{
-		private static void Postfix(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, bool brushing, bool stamping, ref Snap onMask, ref Snap offMask) //, object[] __args, 
+		private static void Postfix(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, ObjectToolSystem.Mode mode, ref Snap onMask, ref Snap offMask) //, object[] __args, 
         {
 			if (EDT.objectToolSystem.actualMode != ObjectToolSystem.Mode.Create) return;
 
