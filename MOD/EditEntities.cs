@@ -86,11 +86,11 @@ internal static class EditEntities
 
 		ExtraAssetsMenu.AssetCat assetCat = ExtraAssetsMenu.GetOrCreateNewAssetCat("Surfaces", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Surfaces.svg");
 
-		foreach (Entity entity in entities)
-		{
-			if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
-			{
-				if (!prefab.builtin || prefab.name == "Surface Area") continue;
+		    foreach (Entity entity in entities)
+		    {
+			    if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
+			    {
+				    if (!prefab.builtin || prefab.name == "Surface Area") continue;
 
 				EDT.Logger.Info(prefab.name);
 
