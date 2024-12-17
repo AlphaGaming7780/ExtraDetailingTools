@@ -1,139 +1,113 @@
 using System;
 using System.Reflection;
+using Extra.Lib;
+using Game.Common;
 using Game.Prefabs;
 using Game.Tools;
 using HarmonyLib;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Jobs;
+using UnityEngine;
 
 namespace ExtraDetailingTools;
 
 class NetToolSystemPatch {
 
-	//[HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.prefab), MethodType.Setter)]
-	//class NetToolPreferences_OnStartRunning
-	//{
-	//	static bool first = true;
-	//	public static void Postfix(NetToolSystem __instance, NetPrefab value)
-	//	{
-	//		if (first)
-	//		{
-	//			__instance.selectedSnap &= ~(Snap.ObjectSurface & Snap.LotGrid);
-	//			first = true;
-	//		}
-	//	}
-	//}
+    //[HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.prefab), MethodType.Setter)]
+    //class NetToolSystem_prefab
+    //{
+    //    static bool first = true;
+    //    public static void Postfix(NetToolSystem __instance, NetPrefab value)
+    //    {
+    //        if (first)
+    //        {
+    //            __instance.selectedSnap &= ~(Snap.ObjectSurface & Snap.LotGrid);
+    //            first = true;
+    //        }
+    //    }
+    //}
 
-	//[HarmonyPatch(typeof(NetToolSystem), "OnStartRunning")]
-	//class NetToolPreferences_OnStartRunning
-	//{
-	//	static bool first = true;
-	//	public static void Postfix(NetToolSystem __instance)
-	//	{
-	//		if (first)
-	//		{
+    //[HarmonyPatch(typeof(NetToolSystem), "SnapControlPoints")]
+    //class NetToolSystem_SnapControlPoints
+    //{
+    //    static Entity oldEntity = Entity.Null;
 
-	//			//Type[] privateClassType = typeof(NetToolSystem).Assembly.GetTypes();
-	//			Type privateClassType = typeof(NetToolSystem).Assembly.GetType("Game.Tools.NetToolSystem+NetToolPreferences");
+    //    public static bool Prefix(NetToolSystem __instance)
+    //    {
+    //        if ((__instance.selectedSnap & Snap.ObjectSurface) == Snap.None) return true;
 
-	//			//foreach (Type privateType in privateClassType) UnityEngine.Debug.Log(privateType.ToString());
+    //        ControlPoint controlPoint = Traverse.Create(__instance).Field("m_ControlPoints").GetValue<NativeList<ControlPoint>>()[0];
 
-	//			var instance = Activator.CreateInstance(privateClassType, true);
-	//			var snapInfo = privateClassType.GetField("m_Snap", BindingFlags.Public | BindingFlags.Instance);
+    //        if (controlPoint.m_OriginalEntity == Entity.Null || controlPoint.m_OriginalEntity == oldEntity) return true;
 
-	//			Snap snap = (Snap)snapInfo.GetValue(instance);
-	//			snap &= ~(Snap.ObjectSurface & Snap.LotGrid);
-	//			snapInfo.SetValue(instance, snap);
+    //        if (ExtraLib.m_EntityManager.Exists(oldEntity) && ExtraLib.m_EntityManager.HasBuffer<SubNet>(oldEntity) && ExtraLib.m_EntityManager.GetBuffer<SubNet>(oldEntity).Length <= 0) ExtraLib.m_EntityManager.RemoveComponent<SubNet>(oldEntity);
 
-	//			Traverse netToolSystemTravers = Traverse.Create(__instance);
-	//			netToolSystemTravers.Field("m_DefaultToolPreferences").SetValue(instance);
-	//			privateClassType.GetMethod("Save", BindingFlags.Public | BindingFlags.Instance).Invoke(instance, [__instance]);
-	//			//privateClassType.GetMethod("Load", BindingFlags.Public | BindingFlags.Instance).Invoke(instance, [__instance]);
+    //        if (ExtraLib.m_EntityManager.HasBuffer<SubNet>(controlPoint.m_OriginalEntity) || ExtraLib.m_EntityManager.HasComponent<Owner>(controlPoint.m_OriginalEntity)) return true;
 
-	//			//var instance2 = netToolSystemTravers.Field("m_DefaultToolPreferences").GetValue();
+    //        oldEntity = controlPoint.m_OriginalEntity;
+
+    //        ExtraLib.m_EntityManager.AddBuffer<SubNet>(controlPoint.m_OriginalEntity);
+
+    //        return true;
+    //    }
+    //}
+
+//    [HarmonyPatch(
+//typeof(NetToolSystem), nameof(NetToolSystem.GetAvailableSnapMask),
+//    new Type[] { typeof(NetGeometryData), typeof(PlaceableNetData), typeof(NetToolSystem.Mode), typeof(bool), typeof(bool), typeof(bool), typeof(Snap), typeof(Snap) },
+//    new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out }
+//    )
+//]
+//    class NetToolSystem_GetAvailableSnapMask
+//    {
+//        private static void Postfix(NetGeometryData prefabGeometryData, PlaceableNetData placeableNetData, NetToolSystem.Mode mode, bool editorMode, bool laneContainer, bool underground, ref Snap onMask, ref Snap offMask)
+//        {
+
+//            if (mode == NetToolSystem.Mode.Replace) return;
+
+//            //onMask |= (Snap.ObjectSurface | Snap.Upright | Snap.LotGrid | Snap.NetArea);
+//            //offMask |= (Snap.ObjectSurface | Snap.Upright | Snap.LotGrid | Snap.NetArea);
+
+//            onMask |= (Snap.NetMiddle | Snap.NetSide | Snap.NetNode | Snap.NetArea);
+//            offMask |= (Snap.NetMiddle | Snap.NetSide | Snap.NetNode | Snap.NetArea);
+
+//        }
+//    }
+
+    //[HarmonyPatch(typeof(NetToolSystem), "OnStartRunning")]
+    //class NetToolSystem_OnStartRunning
+    //{
+    //    static bool first = true;
+    //    public static void Postfix(NetToolSystem __instance)
+    //    {
+    //        if (first)
+    //        {
+
+    //            //Type[] privateClassType = typeof(NetToolSystem).Assembly.GetTypes();
+    //            Type privateClassType = typeof(NetToolSystem).Assembly.GetType("Game.Tools.NetToolSystem+NetToolPreferences");
+
+    //            //foreach (Type privateType in privateClassType) UnityEngine.Debug.Log(privateType.ToString());
+
+    //            var instance = Activator.CreateInstance(privateClassType, true);
+    //            var snapInfo = privateClassType.GetField("m_Snap", BindingFlags.Public | BindingFlags.Instance);
+
+    //            Snap snap = (Snap)snapInfo.GetValue(instance);
+    //            snap &= ~(Snap.ObjectSurface | Snap.LotGrid);
+    //            snapInfo.SetValue(instance, snap);
+
+    //            Traverse netToolSystemTravers = Traverse.Create(__instance);
+    //            netToolSystemTravers.Field("m_DefaultToolPreferences").SetValue(instance);
+    //            privateClassType.GetMethod("Save", BindingFlags.Public | BindingFlags.Instance).Invoke(instance, [__instance]);
+    //            //privateClassType.GetMethod("Load", BindingFlags.Public | BindingFlags.Instance).Invoke(instance, [__instance]);
+
+    //            //var instance2 = netToolSystemTravers.Field("m_DefaultToolPreferences").GetValue();
 
 
-	//			first = true;
-	//		}
-	//	}
-	//}
+    //            first = true;
+    //        }
 
-	//[HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.GetAvailableSnapMask),
-	//	new Type[] { typeof(NetGeometryData), typeof(PlaceableNetData), typeof(NetToolSystem.Mode), typeof(bool), typeof(bool), typeof(bool), typeof(Snap), typeof(Snap) },
-	//	new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out })]
-	//class NetToolSystem_GetAvailableSnapMask
-	//{
-	//	public static bool Prefix(NetGeometryData prefabGeometryData, PlaceableNetData placeableNetData, NetToolSystem.Mode mode, bool editorMode, bool laneContainer, bool underground, out Snap onMask, out Snap offMask)
-	//	{
+    //    }
+    //}
 
-	//		if (mode == NetToolSystem.Mode.Replace)
-	//		{
-	//			onMask = Snap.ExistingGeometry;
-	//			offMask = onMask;
-	//			if ((placeableNetData.m_PlacementFlags & Game.Net.PlacementFlags.UpgradeOnly) == Game.Net.PlacementFlags.None)
-	//			{
-	//				onMask |= Snap.ContourLines;
-	//				offMask |= Snap.ContourLines;
-	//			}
-	//			if (laneContainer)
-	//			{
-	//				onMask &= ~Snap.ExistingGeometry;
-	//				offMask &= ~Snap.ExistingGeometry;
-	//				onMask |= Snap.NearbyGeometry;
-	//				return false;
-	//			}
-	//			if ((prefabGeometryData.m_Flags & Game.Net.GeometryFlags.StrictNodes) != (Game.Net.GeometryFlags)0)
-	//			{
-	//				offMask &= ~Snap.ExistingGeometry;
-	//			}
-	//			if ((prefabGeometryData.m_Flags & Game.Net.GeometryFlags.SnapCellSize) != (Game.Net.GeometryFlags)0)
-	//			{
-	//				onMask |= Snap.CellLength;
-	//				offMask |= Snap.CellLength;
-	//				return false;
-	//			}
-
-	//			return false;
-	//		}
-
-	//		onMask = (Snap.ExistingGeometry | Snap.CellLength | Snap.StraightDirection | Snap.ObjectSide | Snap.GuideLines | Snap.ZoneGrid | Snap.ContourLines);
-	//		offMask = onMask;
-	//		if (underground)
-	//		{
-	//			onMask &= ~(Snap.ObjectSide | Snap.ZoneGrid);
-	//		}
-	//		if (laneContainer)
-	//		{
-	//			onMask &= ~(Snap.CellLength | Snap.ObjectSide);
-	//			offMask &= ~(Snap.CellLength | Snap.ObjectSide);
-	//		}
-	//		else if ((prefabGeometryData.m_Flags & Game.Net.GeometryFlags.Marker) != (Game.Net.GeometryFlags)0)
-	//		{
-	//			onMask &= ~Snap.ObjectSide;
-	//			offMask &= ~Snap.ObjectSide;
-	//		}
-	//		if (laneContainer)
-	//		{
-	//			onMask &= ~Snap.ExistingGeometry;
-	//			offMask &= ~Snap.ExistingGeometry;
-	//			onMask |= Snap.NearbyGeometry;
-	//			offMask |= Snap.NearbyGeometry;
-	//		}
-	//		else if ((prefabGeometryData.m_Flags & Game.Net.GeometryFlags.StrictNodes) != (Game.Net.GeometryFlags)0)
-	//		{
-	//			offMask &= ~Snap.ExistingGeometry;
-	//			onMask |= Snap.NearbyGeometry;
-	//			offMask |= Snap.NearbyGeometry;
-	//		}
-
-	//		onMask |= Snap.ObjectSurface | Snap.LotGrid;
-	//		offMask |= Snap.ObjectSurface | Snap.LotGrid;
-
-	//		if (editorMode)
-	//		{
-	//			onMask |= Snap.AutoParent;
-	//			offMask |= Snap.AutoParent;
-	//		}
-
-	//		return false;
-	//	}
-	//}
 }
