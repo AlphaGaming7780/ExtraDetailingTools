@@ -239,22 +239,6 @@ export const TransformSection = (componentList: any): any => {
 								</button>
 							</Tooltip>
 						</div>
-						{/*<div className={classNames(InfoRowSCSS.right, TransfromSectionSCSS.TransfromSectionInputs)}>*/}
-						{/*	<div className= "inputs">*/}
-						{/*		↕<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.POSI")}>*/}
-						{/*			<input id="pI" type="number" value={PositionIncrement} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*		</Tooltip>*/}
-						{/*		X<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.POSX")}>*/}
-						{/*			<input id="pX" type="number" value={pos.x.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*		</Tooltip>*/}
-						{/*		Y<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.POSY")}>*/}
-						{/*			<input id="pY" type="number" value={pos.y.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*		</Tooltip>*/}
-						{/*		Z<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.POSZ")}>*/}
-						{/*			<input id="pZ" type="number" value={pos.z.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*		</Tooltip>*/}
-						{/*	</div>*/}
-						{/*</div>*/}
 
 						{Inputs("POS", pos, true, PositionIncrement)}
 
@@ -275,47 +259,9 @@ export const TransformSection = (componentList: any): any => {
 
 						{Inputs("ROT", rot, true, RotationIncrement) }
 
-						{/*<div className={classNames(InfoRowSCSS.right, TransfromSectionSCSS.TransfromSectionInputs)}>*/}
-						{/*	↕<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.ROTI")}>*/}
-						{/*		<input id="rI" type="number" value={RotationIncrement} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*	</Tooltip>*/}
-						{/*	X<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.ROTX")}>*/}
-						{/*		<input id="rX" type="number" value={rot.x.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*	</Tooltip>*/}
-						{/*	Y<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.ROTY")}>*/}
-						{/*		<input id="rY" type="number" value={rot.y.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*	</Tooltip>*/}
-						{/*	Z<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.ROTZ")}>*/}
-						{/*		<input id="rZ" type="number" value={rot.z.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*	</Tooltip>*/}
-						{/*</div>*/}
-
-
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
 							{translate("SelectedInfoPanel.TRANSFORMTOOL.SCALE") + " "}
-							{/*<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPYROT")}>*/}
-							{/*	<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_copyrot") }}>*/}
-							{/*		<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>*/}
-							{/*	</button>*/}
-							{/*</Tooltip>*/}
-							{/*<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PASTROT")}>*/}
-							{/*	<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_pastrot") }}>*/}
-							{/*		<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>*/}
-							{/*	</button>*/}
-							{/*</Tooltip>*/}
 						</div>
-						{/*<div className={classNames(InfoRowSCSS.right, TransfromSectionSCSS.TransfromSectionScaleInputs)}>*/}
-						{/*	X<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.SCALEX")}>*/}
-						{/*		<input id="sX" type="number" value={scale.x.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*	</Tooltip>*/}
-						{/*	Y<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.SCALEY")}>*/}
-						{/*		<input id="sY" type="number" value={scale.y.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*	</Tooltip>*/}
-						{/*	Z<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.SCALEZ")}>*/}
-						{/*		<input id="sZ" type="number" value={scale.z.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onInput={OnChange} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />*/}
-						{/*	</Tooltip>*/}
-						{/*</div>*/}
-
 						{Inputs("SCALE", scale, false) }
 
 					</div>
