@@ -13,7 +13,10 @@ internal class DefaultToolSystemPatche
 		public static void Postfix(DefaultToolSystem __instance)
 		{
 			ToolRaycastSystem toolRaycastSystem = Traverse.Create(__instance).Field("m_ToolRaycastSystem").GetValue<ToolRaycastSystem>();
-			toolRaycastSystem.raycastFlags |= RaycastFlags.EditorContainers;
+			toolRaycastSystem.raycastFlags |= RaycastFlags.EditorContainers; // | RaycastFlags.Markers;
+			//toolRaycastSystem.typeMask |= TypeMask.Lanes;
+			//toolRaycastSystem.netLayerMask |= Game.Net.Layer.Fence;
+			//toolRaycastSystem.utilityTypeMask |= Game.Net.UtilityTypes.Fence;
 		}
 	}
 }
