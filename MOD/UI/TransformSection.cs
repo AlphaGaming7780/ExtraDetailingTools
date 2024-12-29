@@ -24,11 +24,14 @@ namespace ExtraDetailingTools
 {
 	internal partial class TransformSection : InfoSectionBase
 	{
-		private string Clipboard
-		{
-			get { return GUIUtility.systemCopyBuffer; }
-			set { GUIUtility.systemCopyBuffer = value; }
-		}
+		//private string Clipboard
+		//{
+		//	get { return GUIUtility.systemCopyBuffer; }
+		//	set { GUIUtility.systemCopyBuffer = value; }
+		//}
+
+		private float3 _copiedPos;
+		private float3 _copiedRot;
 
 		private OverlayRenderSystem _overlayRenderSystem;
 
@@ -65,13 +68,19 @@ namespace ExtraDetailingTools
 			AddBinding(transformSectionGetIncRot = new GetterValueBinding<double>("edt", "transformsection_incrot", () => { return increment.y; }));
 			AddBinding(new TriggerBinding<double>("edt", "transformsection_incrot", (double inc) => { increment.y = inc; transformSectionGetIncRot.Update(); }));
 
-			AddBinding(new TriggerBinding("edt", "transformsection_copypos", new Action(CopyPosition)));
-			AddBinding(new TriggerBinding("edt", "transformsection_pastpos", new Action(PastPosition)));
+			AddBinding(new TriggerBinding("edt", "transformsection_copypos",	new Action(CopyPosition)));
+			AddBinding(new TriggerBinding("edt", "transformsection_pastpos",	new Action(PastPosition)));
+			AddBinding(new TriggerBinding("edt", "transformsection_pastpos_x",	new Action(PastPositionX)));
+			AddBinding(new TriggerBinding("edt", "transformsection_pastpos_y",	new Action(PastPositionY)));
+			AddBinding(new TriggerBinding("edt", "transformsection_pastpos_z",	new Action(PastPositionZ)));
 
-			AddBinding(new TriggerBinding("edt", "transformsection_copyrot", new Action(CopyRotation)));
-			AddBinding(new TriggerBinding("edt", "transformsection_pastrot", new Action(PastRotation)));
+            AddBinding(new TriggerBinding("edt", "transformsection_copyrot",	new Action(CopyRotation)));
+			AddBinding(new TriggerBinding("edt", "transformsection_pastrot",	new Action(PastRotation)));
+			AddBinding(new TriggerBinding("edt", "transformsection_pastrot_x",	new Action(PastRotationX)));
+            AddBinding(new TriggerBinding("edt", "transformsection_pastrot_y",	new Action(PastRotationY)));
+			AddBinding(new TriggerBinding("edt", "transformsection_pastrot_z",	new Action(PastRotationZ)));
 
-			AddBinding(transformSectionGetLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localaxis", () => useLocalAxis));
+            AddBinding(transformSectionGetLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localaxis", () => useLocalAxis));
 			AddBinding(new TriggerBinding("edt", "transformsection_localaxis", new Action(UseLocalAxis)));
 
 			AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
@@ -216,27 +225,67 @@ namespace ExtraDetailingTools
 
 		private void CopyPosition()
 		{
-			float3 vector3 = transform.m_Position;
-			Clipboard = $"{vector3.x} {vector3.y} {vector3.z}";
+			_copiedPos = transform.m_Position;
+			//float3 vector3 = transform.m_Position;
+			//Clipboard = $"{vector3.x} {vector3.y} {vector3.z}";
 		}
 
 		private void PastPosition()
 		{
-			UpdateSelectedEntity(StringToFloat3(Clipboard, transform.m_Position) - transform.m_Position, float3.zero);
+			//UpdateSelectedEntity(StringToFloat3(Clipboard, transform.m_Position) - transform.m_Position, float3.zero);
+			UpdateSelectedEntity(_copiedPos - transform.m_Position, float3.zero);
 		}
 
-		private void CopyRotation()
+        private void PastPositionX()
+        {
+			float3 newPos = new(_copiedPos.x - transform.m_Position.x, 0, 0);
+            UpdateSelectedEntity(newPos, float3.zero);
+        }
+
+        private void PastPositionY()
+        {
+            float3 newPos = new(0, _copiedPos.y - transform.m_Position.y, 0);
+            UpdateSelectedEntity(newPos, float3.zero);
+        }
+
+        private void PastPositionZ()
+        {
+            float3 newPos = new(0, 0, _copiedPos.z - transform.m_Position.z);
+            UpdateSelectedEntity(newPos, float3.zero);
+        }
+
+        private void CopyRotation()
 		{
-			float3 vector3 = GetRotation();
-			Clipboard = $"{vector3.x} {vector3.y} {vector3.z}";
+			_copiedRot = GetRotation();
+			//float3 vector3 = GetRotation();
+			//Clipboard = $"{vector3.x} {vector3.y} {vector3.z}";
 		}
 
 		private void PastRotation()
 		{
-			UpdateSelectedEntity(float3.zero, StringToFloat3(Clipboard, GetRotation()) - GetRotation());
+			//UpdateSelectedEntity(float3.zero, StringToFloat3(Clipboard, GetRotation()) - GetRotation());
+			UpdateSelectedEntity(float3.zero, _copiedRot - GetRotation());
 		}
 
-		private float3 GetPosition()
+        private void PastRotationX()
+        {
+            float3 newRot = new(_copiedRot.x - GetRotation().x, 0, 0);
+            UpdateSelectedEntity(float3.zero, newRot);
+        }
+
+        private void PastRotationY()
+        {
+            float3 newRot = new(0, _copiedRot.y - GetRotation().y, 0);
+            UpdateSelectedEntity(float3.zero, newRot);
+        }
+
+        private void PastRotationZ()
+        {
+            float3 newRot = new(0, 0, _copiedRot.z - GetRotation().z);
+            UpdateSelectedEntity(float3.zero, newRot);
+        }
+
+        private float3 GetPosition()
 		{
 			if (useLocalAxis)
 			{
@@ -339,7 +388,7 @@ namespace ExtraDetailingTools
 			UpdateInstalledUpgrade(entity, positionOffset, rotationOffset);
 			UpdateSubArea(entity, positionOffset, rotationOffset);
 			UpdateSubObject(entity, positionOffset, rotationOffset);
-			//UpdateSubNet(entity, positionOffset, rotationOffset);
+			UpdateSubNet(entity, positionOffset, rotationOffset);
 		}
 
 		private void UpdateSubArea(Entity entity, float3 positionOffset, float3 rotationOffset)

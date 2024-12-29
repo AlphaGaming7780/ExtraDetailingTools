@@ -1,23 +1,69 @@
 
 
 .TransfromSectionInputs {
+    display: flex;
+    flex-direction: column;
     width: 100%;
 
-    input {
-        width: 20%;
-        margin-left: 2.5rem;
-        margin-right: 5rem;
+    div {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+
+
+        > input {
+            width: 85%;
+            margin-left: 2.5rem;
+            //margin-right: 5rem;
+        }
+
+        > div {
+            width: 25%
+        }
     }
+    //div > input {
+    //    width: 20%;
+    //    margin-left: 2.5rem;
+    //    margin-right: 5rem;
+    //}
+    //div > div {
+    //    width: 20%;
+    //}
 }
 
-.TransfromSectionScaleInputs {
-    width:100%;
+.TransfromSectionInputsWithoutIncrement {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 
-    input {
-        width: 27.8%;
-        margin-left: 2.5rem;
-        margin-right: 5rem;
+    div {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+
+
+        > input {
+            width: 85%;
+            margin-left: 2.5rem;
+            //margin-right: 5rem;
+        }
+
+        > div {
+            width: 33%
+        }
     }
+    //div > input {
+    //    width: 27.8%;
+    //    margin-left: 2.5rem;
+    //    margin-right: 5rem;
+    //}
+    //div > div {
+    //    width: 27.8%;
+    //}
 }
 
 .TransfromSectionButton {

@@ -14,9 +14,8 @@ namespace ExtraDetailingTools
         {
             private static void Postfix(AreaGeometryData prefabAreaData, bool editorMode, ref Snap onMask, ref Snap offMask)
             {
-
-                onMask |= Snap.ExistingGeometry | Snap.StraightDirection | Snap.ContourLines;
-                offMask |= Snap.ExistingGeometry | Snap.StraightDirection | Snap.ContourLines;
+                onMask |= Snap.ContourLines;
+                offMask |= Snap.ContourLines;
             }
         }
     }
