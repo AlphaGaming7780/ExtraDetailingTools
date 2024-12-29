@@ -7,6 +7,7 @@ using Game.Tools;
 using HarmonyLib;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using SubObject = Game.Objects.SubObject;
 
 namespace ExtraDetailingTools

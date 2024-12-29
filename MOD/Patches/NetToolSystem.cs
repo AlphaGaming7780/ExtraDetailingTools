@@ -1,8 +1,14 @@
 using System;
 using System.Reflection;
+using Extra.Lib;
+using Game.Common;
 using Game.Prefabs;
 using Game.Tools;
 using HarmonyLib;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Jobs;
+using UnityEngine;
 
 namespace ExtraDetailingTools
 {
@@ -51,6 +57,7 @@ namespace ExtraDetailingTools
 
 		//			//var instance2 = netToolSystemTravers.Field("m_DefaultToolPreferences").GetValue();
 
+    //        ExtraLib.m_EntityManager.AddBuffer<SubNet>(controlPoint.m_OriginalEntity);
 
 		//			first = true;
 		//		}
