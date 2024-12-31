@@ -1,9 +1,7 @@
 ﻿using Colossal.Entities;
 using Colossal.Mathematics;
 using Colossal.UI.Binding;
-using Extra.Lib;
 using ExtraDetailingTools.ComponentsData;
-using Game.Buildings;
 using Game.Common;
 using Game.Objects;
 using Game.Prefabs;
@@ -16,8 +14,6 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.UIElements;
-using static Game.Input.UIInputAction;
 using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools
@@ -32,25 +28,42 @@ namespace ExtraDetailingTools
 
 		private float3 _copiedPos;
 		private float3 _copiedRot;
+		private float3 _copiedScale;
+
+		private bool canPastPos = false;
+		private bool canPastRot = false;
+		private bool canPastScale = false;
 
 		private OverlayRenderSystem _overlayRenderSystem;
 
 
 		private GetterValueBinding<float3> transformSectionGetPos;
 		private GetterValueBinding<float3> transformSectionGetRot;
-		private GetterValueBinding<double> transformSectionGetIncPos;
-		private GetterValueBinding<double> transformSectionGetIncRot;
-		private GetterValueBinding<bool> transformSectionGetLocalPos;
-		private GetterValueBinding<float3> transformSectionGetScale;
+        private GetterValueBinding<float3> transformSectionGetScale;
 
-		private double2 increment = new(1, 45);
+        private GetterValueBinding<double> transformSectionGetIncPos;
+		private GetterValueBinding<double> transformSectionGetIncRot;
+        private GetterValueBinding<double> transformSectionGetIncScale;
+
+        private GetterValueBinding<bool> transformSectionGetLocalPos;
+
+		private GetterValueBinding<bool> transformSectionCanPastPos;
+        private GetterValueBinding<bool> transformSectionCanPastRot;
+        private GetterValueBinding<bool> transformSectionCanPastScale;
+
+
+        private double3 increment = new(1, 45, 1);
 		private Transform transform;
 		private bool useLocalAxis = false;
 		private bool showAxis = false;
 
 		protected override string group => "Transform Tool";
+		protected override bool displayForUpgrades => true;
+        protected override bool displayForDestroyedObjects => true;
+        protected override bool displayForOutsideConnections => true;
+        protected override bool displayForUnderConstruction => true;
 
-		protected override void OnCreate()
+        protected override void OnCreate()
 		{
 			base.OnCreate();
 
@@ -62,31 +75,30 @@ namespace ExtraDetailingTools
 			AddBinding(transformSectionGetRot = new GetterValueBinding<float3>("edt", "transformsection_rot", GetRotation));
 			AddBinding(new TriggerBinding<float3>("edt", "transformsection_rot", new Action<float3>(SetRotattion)));
 
-			AddBinding(transformSectionGetIncPos = new GetterValueBinding<double>("edt", "transformsection_incpos", () => { return increment.x; }));
-			AddBinding(new TriggerBinding<double>("edt", "transformsection_incpos", (double inc) => { increment.x = inc; transformSectionGetIncPos.Update(); }));
+			AddBinding(transformSectionGetScale = new GetterValueBinding<float3>("edt", "transformsection_scale", GetScale));
+			AddBinding(new TriggerBinding<float3>("edt", "transformsection_scale", new Action<float3>(SetScale)));
 
-			AddBinding(transformSectionGetIncRot = new GetterValueBinding<double>("edt", "transformsection_incrot", () => { return increment.y; }));
-			AddBinding(new TriggerBinding<double>("edt", "transformsection_incrot", (double inc) => { increment.y = inc; transformSectionGetIncRot.Update(); }));
+            AddBinding(transformSectionGetIncPos = new GetterValueBinding<double>("edt", "transformsection_incpos", () => { return increment.x; }));
+            AddBinding(new TriggerBinding<double>("edt", "transformsection_incpos", (double inc) => { increment.x = inc; transformSectionGetIncPos.Update(); }));
 
-			AddBinding(new TriggerBinding("edt", "transformsection_copypos",	new Action(CopyPosition)));
-			AddBinding(new TriggerBinding("edt", "transformsection_pastpos",	new Action(PastPosition)));
-			AddBinding(new TriggerBinding("edt", "transformsection_pastpos_x",	new Action(PastPositionX)));
-			AddBinding(new TriggerBinding("edt", "transformsection_pastpos_y",	new Action(PastPositionY)));
-			AddBinding(new TriggerBinding("edt", "transformsection_pastpos_z",	new Action(PastPositionZ)));
+            AddBinding(transformSectionGetIncRot = new GetterValueBinding<double>("edt", "transformsection_incrot", () => { return increment.y; }));
+            AddBinding(new TriggerBinding<double>("edt", "transformsection_incrot", (double inc) => { increment.y = inc; transformSectionGetIncRot.Update(); }));
 
-            AddBinding(new TriggerBinding("edt", "transformsection_copyrot",	new Action(CopyRotation)));
-			AddBinding(new TriggerBinding("edt", "transformsection_pastrot",	new Action(PastRotation)));
-			AddBinding(new TriggerBinding("edt", "transformsection_pastrot_x",	new Action(PastRotationX)));
-            AddBinding(new TriggerBinding("edt", "transformsection_pastrot_y",	new Action(PastRotationY)));
-			AddBinding(new TriggerBinding("edt", "transformsection_pastrot_z",	new Action(PastRotationZ)));
+            AddBinding(transformSectionGetIncScale = new GetterValueBinding<double>("edt", "transformsection_incscale", () => { return increment.z; }));
+            AddBinding(new TriggerBinding<double>("edt", "transformsection_incscale", (double inc) => { increment.z = inc; transformSectionGetIncScale.Update(); }));
+
+            AddBinding(new TriggerBinding<string>("edt", "transformsection_copy", new Action<string>(Copy)));
+			AddBinding(new TriggerBinding<string, string>("edt", "transformsection_past", new Action<string, string>(Past)));
+
+            AddBinding(transformSectionCanPastPos = new GetterValueBinding<bool>("edt", "transformsection_canpastpos", () => canPastPos ));
+            AddBinding(transformSectionCanPastRot = new GetterValueBinding<bool>("edt", "transformsection_canpastrot", () => canPastRot ));
+            AddBinding(transformSectionCanPastScale = new GetterValueBinding<bool>("edt", "transformsection_canpastscale", () => canPastScale ));
 
             AddBinding(transformSectionGetLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localaxis", () => useLocalAxis));
-			AddBinding(new TriggerBinding("edt", "transformsection_localaxis", new Action(UseLocalAxis)));
+            AddBinding(new TriggerBinding("edt", "transformsection_localaxis", new Action(UseLocalAxis)));
 
-			AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
+            AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
 
-			AddBinding(transformSectionGetScale = new GetterValueBinding<float3>("edt", "transformsection_scale", GetScale));
-            AddBinding(new TriggerBinding<float3>("edt", "transformsection_scale", new Action<float3>(SetScale)));
         }
 
 		protected override void OnUpdate()
@@ -101,67 +113,67 @@ namespace ExtraDetailingTools
 				transformSectionGetScale.Update();
 
 				RequestUpdate();
-                if (showAxis)
-                {
-                    Bounds3 bounds3 = new(new(0, 0, 0), new(10, 10, 10));
+				if (showAxis)
+				{
+					Bounds3 bounds3 = new(new(0, 0, 0), new(10, 10, 10));
 
-                    if (EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
-                    {
-                        bounds3 = useLocalAxis ? geometryData.m_Bounds : ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
-                    }
+					if (EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
+					{
+						bounds3 = useLocalAxis ? geometryData.m_Bounds : ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
+					}
 
-                    float3 linesLenght = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
-                    //linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
+					float3 linesLenght = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
+					//linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
 
-                    RenderAxisJob renderAxisJob = new()
-                    {
-                        m_OverlayBuffer = _overlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
-                        pos = transform.m_Position,
-                        linesLenght = linesLenght,
-                        rot = GetRotation(),
-                        useLocalAxis = useLocalAxis,
-                    };
-                    JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
-                    _overlayRenderSystem.AddBufferWriter(jobHandle);
-                    Dependency = jobHandle;
-                }
-            }
+					RenderAxisJob renderAxisJob = new()
+					{
+						m_OverlayBuffer = _overlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
+						pos = transform.m_Position,
+						linesLenght = linesLenght,
+						rot = GetRotation(),
+						useLocalAxis = useLocalAxis,
+					};
+					JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
+					_overlayRenderSystem.AddBufferWriter(jobHandle);
+					Dependency = jobHandle;
+				}
+			}
 		}
 
 #if RELEASE
 	[BurstCompile]
 #endif
-        private struct RenderAxisJob : IJob
-        {
-            public OverlayRenderSystem.Buffer m_OverlayBuffer;
-            public float3 pos;
-            public float3 rot;
-            public float3 linesLenght;
-            public bool useLocalAxis;
+		private struct RenderAxisJob : IJob
+		{
+			public OverlayRenderSystem.Buffer m_OverlayBuffer;
+			public float3 pos;
+			public float3 rot;
+			public float3 linesLenght;
+			public bool useLocalAxis;
 
-            public void Execute()
-            {
-                float3 xAxis = new(linesLenght.x, 0f, 0f);
-                float3 yAxis = new(0f, linesLenght.y, 0f);
-                float3 zAxis = new(0f, 0f, linesLenght.z);
-                if (useLocalAxis)
-                {
-                    float sinX = linesLenght.z * Mathf.Sin(rot.y * Mathf.PI / 180);
-                    float cosX = linesLenght.z * Mathf.Cos(rot.y * Mathf.PI / 180);
+			public void Execute()
+			{
+				float3 xAxis = new(linesLenght.x, 0f, 0f);
+				float3 yAxis = new(0f, linesLenght.y, 0f);
+				float3 zAxis = new(0f, 0f, linesLenght.z);
+				if (useLocalAxis)
+				{
+					float sinX = linesLenght.z * Mathf.Sin(rot.y * Mathf.PI / 180);
+					float cosX = linesLenght.z * Mathf.Cos(rot.y * Mathf.PI / 180);
 
-                    float sinZ = linesLenght.x * Mathf.Sin((rot.y + 90) * Mathf.PI / 180);
-                    float cosZ = linesLenght.x * Mathf.Cos((rot.y + 90) * Mathf.PI / 180);
+					float sinZ = linesLenght.x * Mathf.Sin((rot.y + 90) * Mathf.PI / 180);
+					float cosZ = linesLenght.x * Mathf.Cos((rot.y + 90) * Mathf.PI / 180);
 
-                    xAxis = new(sinX, 0, cosX);
-                    zAxis = new(sinZ, 0, cosZ);
-                }
-                m_OverlayBuffer.DrawLine(UnityEngine.Color.red, UnityEngine.Color.red, 0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + xAxis), 0.1f, 0.5f);
-                m_OverlayBuffer.DrawLine(UnityEngine.Color.green, UnityEngine.Color.green, 0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + yAxis), 0.1f, 0.5f);
-                m_OverlayBuffer.DrawLine(UnityEngine.Color.blue, UnityEngine.Color.blue, 0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + zAxis), 0.1f, 0.5f);
-            }
-        }
+					xAxis = new(sinX, 0, cosX);
+					zAxis = new(sinZ, 0, cosZ);
+				}
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.red, UnityEngine.Color.red, 0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + xAxis), 0.1f, 0.5f);
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.green, UnityEngine.Color.green, 0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + yAxis), 0.1f, 0.5f);
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.blue, UnityEngine.Color.blue, 0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + zAxis), 0.1f, 0.5f);
+			}
+		}
 
-        public override void OnWriteProperties(IJsonWriter writer) { }
+		public override void OnWriteProperties(IJsonWriter writer) { }
 
 		protected override void OnProcess() { }
 
@@ -206,86 +218,117 @@ namespace ExtraDetailingTools
 			{
 				if (scale.x == 1 && scale.y == 1 && scale.z == 1)
 				{
-                    EntityManager.RemoveComponent<TransformObject>(selectedEntity);
-                    transformSectionGetScale.TriggerUpdate();
-                    RequestUpdate();
-                    return;
-                }
+					EntityManager.RemoveComponent<TransformObject>(selectedEntity);
+					transformSectionGetScale.TriggerUpdate();
+					RequestUpdate();
+					return;
+				}
 			} else
 			{
-                EntityManager.AddComponent<TransformObject>(selectedEntity);
-            }
+				EntityManager.AddComponent<TransformObject>(selectedEntity);
+			}
 			TransformObject transformObject = EntityManager.GetComponentData<TransformObject>(selectedEntity);
-            transformObject.m_Scale = scale;
-            EntityManager.SetComponentData(selectedEntity, transformObject);
-            EntityManager.AddComponentData(selectedEntity, new Game.Common.Updated());
-            transformSectionGetScale.TriggerUpdate();
-            RequestUpdate();
-        }
-
-		private void CopyPosition()
-		{
-			_copiedPos = transform.m_Position;
-			//float3 vector3 = transform.m_Position;
-			//Clipboard = $"{vector3.x} {vector3.y} {vector3.z}";
+			transformObject.m_Scale = scale;
+			EntityManager.SetComponentData(selectedEntity, transformObject);
+			EntityManager.AddComponentData(selectedEntity, new Game.Common.Updated());
+			transformSectionGetScale.TriggerUpdate();
+			RequestUpdate();
 		}
 
-		private void PastPosition()
+		private void Copy(string id)
 		{
-			//UpdateSelectedEntity(StringToFloat3(Clipboard, transform.m_Position) - transform.m_Position, float3.zero);
-			UpdateSelectedEntity(_copiedPos - transform.m_Position, float3.zero);
+			switch (id)
+			{
+				case "POS":
+					_copiedPos = transform.m_Position;
+					canPastPos = true;
+					transformSectionCanPastPos.Update();
+                    RequestUpdate();
+                    break;
+				case "ROT":
+					_copiedRot = GetRotation();
+                    canPastRot = true;
+                    transformSectionCanPastRot.Update();
+                    RequestUpdate();
+                    break;
+				case "SCALE":
+					_copiedScale = GetScale();
+                    canPastScale = true;
+                    transformSectionCanPastScale.Update();
+                    RequestUpdate();
+                    break;
+			}
+        }
+
+		private void Past(string id, string axis = null)
+		{
+			switch (id)
+			{
+				case "POS":
+					float3 newPos = new(0, 0, 0);
+					switch (axis)
+					{
+						case "X":
+							newPos.x = _copiedPos.x - transform.m_Position.x;
+							break;
+						case "Y":
+							newPos.y = _copiedPos.y - transform.m_Position.y;
+							break;
+						case "Z":
+							newPos.z = _copiedPos.z - transform.m_Position.z;
+							break;
+						default:
+							newPos = _copiedPos - transform.m_Position;
+							break;
+					}
+
+					UpdateSelectedEntity(newPos, float3.zero);
+
+					break;
+				case "ROT":
+					float3 newRot = new(0, 0, 0);
+					switch (axis)
+					{
+						case "X":
+							newRot.x = _copiedRot.x - GetRotation().x;
+							break;
+						case "Y":
+							newRot.y = _copiedRot.y - GetRotation().y;
+							break;
+						case "Z":
+							newRot.z = _copiedRot.z - GetRotation().z;
+							break;
+						default:
+							newRot = _copiedRot - GetRotation();
+							break;
+					}
+
+					UpdateSelectedEntity(float3.zero, newRot);
+					break;
+				case "SCALE":
+					float3 newScale = GetScale();
+					switch (axis)
+					{
+						case "X":
+							newScale.x = _copiedScale.x;
+							break;
+						case "Y":
+							newScale.y = _copiedScale.y;
+							break;
+						case "Z":
+							newScale.z = _copiedScale.z;
+							break;
+						default:
+							newScale = _copiedScale;
+							break;
+					}
+
+					SetScale(newScale);
+					break;
+			}
 		}
 
-        private void PastPositionX()
-        {
-			float3 newPos = new(_copiedPos.x - transform.m_Position.x, 0, 0);
-            UpdateSelectedEntity(newPos, float3.zero);
-        }
-
-        private void PastPositionY()
-        {
-            float3 newPos = new(0, _copiedPos.y - transform.m_Position.y, 0);
-            UpdateSelectedEntity(newPos, float3.zero);
-        }
-
-        private void PastPositionZ()
-        {
-            float3 newPos = new(0, 0, _copiedPos.z - transform.m_Position.z);
-            UpdateSelectedEntity(newPos, float3.zero);
-        }
-
-        private void CopyRotation()
-		{
-			_copiedRot = GetRotation();
-			//float3 vector3 = GetRotation();
-			//Clipboard = $"{vector3.x} {vector3.y} {vector3.z}";
-		}
-
-		private void PastRotation()
-		{
-			//UpdateSelectedEntity(float3.zero, StringToFloat3(Clipboard, GetRotation()) - GetRotation());
-			UpdateSelectedEntity(float3.zero, _copiedRot - GetRotation());
-		}
-
-        private void PastRotationX()
-        {
-            float3 newRot = new(_copiedRot.x - GetRotation().x, 0, 0);
-            UpdateSelectedEntity(float3.zero, newRot);
-        }
-
-        private void PastRotationY()
-        {
-            float3 newRot = new(0, _copiedRot.y - GetRotation().y, 0);
-            UpdateSelectedEntity(float3.zero, newRot);
-        }
-
-        private void PastRotationZ()
-        {
-            float3 newRot = new(0, 0, _copiedRot.z - GetRotation().z);
-            UpdateSelectedEntity(float3.zero, newRot);
-        }
-
-        private float3 GetPosition()
+		private float3 GetPosition()
 		{
 			if (useLocalAxis)
 			{

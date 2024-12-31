@@ -22,7 +22,12 @@ export const rot$ = bindValue<Float3>("edt", 'transformsection_rot');
 export const scale$ = bindValue<Float3>("edt", 'transformsection_scale');
 export const incPos$ = bindValue<number>("edt", 'transformsection_incpos');
 export const incRot$ = bindValue<number>("edt", 'transformsection_incrot');
+export const incScale$ = bindValue<number>("edt", 'transformsection_incscale');
 export const localAxis$ = bindValue<boolean>("edt", 'transformsection_localaxis');
+
+export const canPastPos$ = bindValue<boolean>("edt", "transformsection_canpastpos");
+export const canPastRot$ = bindValue<boolean>("edt", "transformsection_canpastrot");
+export const canPastScale$ = bindValue<boolean>("edt", "transformsection_canpastscale");
 
 export const TransformSection = (componentList: any): any => {
 
@@ -38,7 +43,13 @@ export const TransformSection = (componentList: any): any => {
 		const scale: Float3 = useValue(scale$);
 		var PositionIncrement: number = useValue(incPos$);
 		var RotationIncrement: number = useValue(incRot$);
+		var ScaleIncrement: number = useValue(incScale$);
 		var localAxis: boolean = useValue(localAxis$);
+
+		var canPastPos: boolean = useValue(canPastPos$);
+		var canPastRot: boolean = useValue(canPastRot$);
+		var canPastScale: boolean = useValue(canPastScale$);
+
 		const { translate } = useLocalization();
 
 		function OnChange(event: FormEvent<HTMLInputElement>) {
@@ -55,9 +66,10 @@ export const TransformSection = (componentList: any): any => {
 					//case "rX": rot.x = number; triggerRot(); break;
 					//case "rY": rot.x = number; triggerRot(); break;
 					//case "rZ": rot.x = number; triggerRot(); break;
+					case "SCALEI": ScaleIncrement = number; triggerIncScale(); break;
 					case "SCALEX": scale.x = number; triggerScale(); break;
 					case "SCALEY": scale.y = number; triggerScale(); break;
-					case "SCALEZ": scale.z = number, triggerScale(); break;
+					case "SCALEZ": scale.z = number; triggerScale(); break;
 				}
 				trigger("audio", "playSound", "hover-item", 1)
 			}
@@ -68,6 +80,7 @@ export const TransformSection = (componentList: any): any => {
 			if (event.target instanceof HTMLInputElement) {
 				let posValue: number = - Math.sign(event.deltaY) * PositionIncrement;
 				let rotValue: number = - Math.sign(event.deltaY) * RotationIncrement;
+				let scaleVelue: number = - Math.sign(event.deltaY) * ScaleIncrement;
 				switch (event.target.id) {
 					case "POSI":
 						if (event.deltaY < 0) {
@@ -89,6 +102,7 @@ export const TransformSection = (componentList: any): any => {
 					case "POSZ":
 						triggerPos(0, 0, posValue);
 						break;
+
 					case "ROTI":
 						if (event.deltaY < 0) {
 							if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
@@ -108,6 +122,30 @@ export const TransformSection = (componentList: any): any => {
 						break;
 					case "ROTZ":
 						triggerRot(0, 0, rotValue)
+						break;
+
+					case "SCALEI":
+						if (event.deltaY < 0) {
+							if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
+							else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
+						} else {
+							if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
+							else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
+						}
+						ScaleIncrement = parseFloat(event.target.value)
+						triggerIncScale();
+						break;
+					case "SCALEX":
+						scale.x += scaleVelue;
+						triggerScale()
+						break;
+					case "SCALEY":
+						scale.y += scaleVelue;
+						triggerScale()
+						break;
+					case "SCALEZ":
+						scale.z += scaleVelue;
+						triggerScale()
 						break;
 				}
 				if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
@@ -136,37 +174,49 @@ export const TransformSection = (componentList: any): any => {
 			trigger("edt", "transformsection_scale", scale)
 		}
 
-		function CopyButton(id: string, id2: string): JSX.Element {
+		function triggerIncScale() {
+			trigger("edt", "transformsection_incscale", ScaleIncrement)
+		}
+
+		function triggerCopy(id: string) {
+			trigger("edt", "transformsection_copy", id)
+		}
+
+		function triggerPast(id: string, axis: string = "all") {
+			trigger("edt", "transformsection_past", id, axis)
+		}
+
+		function CopyButton(id: string): JSX.Element {
 			return <>
-				<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.COPY${id}${id2}`)}>
-					<button className={classNames(ActionButtonSCSS.button)} onClick={() => { trigger("edt", `transformsection_copy${id.toLowerCase()}${id2}`) }}>
+				<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.COPY_${id}`)}>
+					<button className={classNames(ActionButtonSCSS.button)} onClick={() => { triggerCopy(id) }}>
 						<img className={classNames(ActionButtonSCSS.icon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
 					</button>
 				</Tooltip>
 			</>
 		}
 
-		function PastButton(id: string, id2: string): JSX.Element {
-			return <>
-				<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.PAST${id}${id2}`)}>
-					<button className={classNames(ActionButtonSCSS.button)} onClick={() => { trigger("edt", `transformsection_past${id.toLowerCase()}${id2}`) }}>
+		function PastButton(id: string, axis: string = "all", canPast: boolean = true): JSX.Element {
+			return canPast ? <>
+				<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.PAST_${id}_${axis}`)}>
+					<button className={classNames(ActionButtonSCSS.button)} onClick={() => { triggerPast(id, axis)}}>
 						<img className={classNames(ActionButtonSCSS.icon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
 					</button>
 				</Tooltip>
-			</>
+			</> : <></>
 		}
 
 
-		function CopyAndPastButton(id: string, id2: string) : JSX.Element {
+		function CopyAndPastButton(id: string, axis: string = "all", canPast: boolean = true) : JSX.Element {
 			return <>
 				<div>
-					{CopyButton(id, id2)}
-					{PastButton(id, id2)}
+					{CopyButton(id)}
+					{PastButton(id, axis, canPast)}
 				</div>
 			</>
 		}
 
-		function Inputs(id: string, inputValue: Float3, useIncrement: Boolean, increment : number = 0): JSX.Element {
+		function Inputs(id: string, inputValue: Float3, useIncrement: Boolean, increment : number = 0, canPast: boolean = true): JSX.Element {
 			return <>
 
 				<div className={classNames(InfoRowSCSS.right, useIncrement ? TransfromSectionSCSS.TransfromSectionInputs : TransfromSectionSCSS.TransfromSectionInputsWithoutIncrement)}>
@@ -174,26 +224,26 @@ export const TransformSection = (componentList: any): any => {
 						{useIncrement ?
 							<div>
 								<span>↕</span>
-								<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}I`)}>
+								<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_I`)}>
 									<input id={`${id}I`} value={increment} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
 								</Tooltip>
 							</div> : <></>
 						}
 						<div>
 							<span>X</span>
-							<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}X`)}>
+							<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_X`)}>
 								<input id={`${id}X`} value={inputValue.x.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
 							</Tooltip>
 						</div> 
 						<div>
 							<span>Y</span>
-							<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}Y`)}>
+							<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_Y`)}>
 								<input id={`${id}Y`} value={inputValue.y.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
 							</Tooltip>
 						</div>
 						<div>
 							<span>Z</span>
-							<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}Z`)}>
+							<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_Z`)}>
 								<input id={`${id}Z`} value={inputValue.z.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
 							</Tooltip>
 						</div>
@@ -201,9 +251,9 @@ export const TransformSection = (componentList: any): any => {
 					{ useIncrement ?
 						<div>
 							{useIncrement ? <div></div> : <></>}
-							<div>{PastButton(id, "_x")}</div>
-							<div>{PastButton(id, "_y")}</div>
-							<div>{PastButton(id, "_z")}</div>
+							<div>{PastButton(id, "X", canPast)}</div>
+							<div>{PastButton(id, "Y", canPast)}</div>
+							<div>{PastButton(id, "Z", canPast)}</div>
 						</div>
 						: <></>
 					}
@@ -223,16 +273,20 @@ export const TransformSection = (componentList: any): any => {
 
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{width:"100%"} }>
 							{translate("Editor.POSITION") + " "}
-							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPYPOS")}>
-								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_copypos") }}>
+							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_POS")}>
+								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("POS") }}>
 									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
 								</button>
 							</Tooltip>
-							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PASTPOS")}>
-								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_pastpos") }}>
-									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
-								</button>
-							</Tooltip>
+							{
+								canPastPos ?
+									<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_POS")}>
+										<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("POS") }}>
+											<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
+										</button>
+									</Tooltip>
+								: <></>
+							}
 							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS")}>
 								<button className={classNames({ [TransfromSectionSCSS.TransfromSectionButtonSelected]: localAxis }, ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_localaxis") }}>
 									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="Media/Tools/Snap Options/All.svg"></img>
@@ -240,29 +294,48 @@ export const TransformSection = (componentList: any): any => {
 							</Tooltip>
 						</div>
 
-						{Inputs("POS", pos, true, PositionIncrement)}
+						{Inputs("POS", pos, true, PositionIncrement, canPastPos)}
 
 
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{width:"100%"} }>
 							{translate("PhotoMode.PROPERTY_TITLE[Rotation]") + " "}
-							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPYROT")}>
-								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_copyrot") }}>
+							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_ROT")}>
+								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("ROT") }}>
 									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
 								</button>
 							</Tooltip>
-							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PASTROT")}>
-								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_pastrot") }}>
-									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
-								</button>
-							</Tooltip>
+							{
+								canPastRot ?
+									<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_ROT")}>
+										<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("ROT") }}>
+											<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
+										</button>
+									</Tooltip>
+								: <></>
+							}
+
 						</div>
 
-						{Inputs("ROT", rot, true, RotationIncrement) }
+						{Inputs("ROT", rot, true, RotationIncrement, canPastRot) }
 
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
 							{translate("SelectedInfoPanel.TRANSFORMTOOL.SCALE") + " "}
+							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_SCALE")}>
+								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("SCALE") }}>
+									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
+								</button>
+							</Tooltip>
+							{
+								canPastScale ?
+									<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_SCALE")}>
+										<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("SCALE") }}>
+											<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
+										</button>
+									</Tooltip>
+								: <></>
+							}
 						</div>
-						{Inputs("SCALE", scale, false) }
+						{Inputs("SCALE", scale, true, ScaleIncrement, canPastScale) }
 
 					</div>
 				</div>
