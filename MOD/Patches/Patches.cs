@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Game.Tools;
 using Game.Prefabs;
 using Colossal.Annotations;
+using Game.UI.InGame;
 
 namespace ExtraDetailingTools
 {

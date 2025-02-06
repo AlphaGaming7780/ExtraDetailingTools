@@ -1,31 +1,150 @@
 using System;
-using System.Reflection;
+using System.Collections.Generic;
 using Extra.Lib;
-using Game.Common;
+using Game.Input;
+using Game.Net;
 using Game.Prefabs;
 using Game.Tools;
 using HarmonyLib;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Jobs;
-using UnityEngine;
+using Game.Common;
 
 namespace ExtraDetailingTools
 {
 	class NetToolSystemPatch
 	{
 
-		//[HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.prefab), MethodType.Setter)]
-		//class NetToolPreferences_OnStartRunning
+		//[HarmonyPatch(typeof(NetToolSystem), nameof(NetToolSystem.lane), MethodType.Setter)]
+		//class NetToolPreferences_set_lane
 		//{
-		//	static bool first = true;
 		//	public static void Postfix(NetToolSystem __instance, NetPrefab value)
 		//	{
-		//		if (first)
+		//		if (value == null) return;
+
+		//		Traverse traverse = Traverse.Create(__instance);
+		//		traverse.Property("allowReplace").SetValue(true);
+		//		EDT.Logger.Info("AllowReplace for NetLane ok");
+		//	}
+		//}
+
+		//[HarmonyPatch(typeof(NetToolSystem), "UpdateActions")]
+		//class NetToolSystem_UpdateActions
+		//{
+		//	public static bool Prefix(NetToolSystem __instance)
+		//	{
+		//		PrefabBase prefabBase = __instance.GetPrefab();
+
+		//		if (prefabBase is not NetLanePrefab lanePrefab || __instance.actualMode != NetToolSystem.Mode.Replace) return true;
+
+		//		Traverse traverse = Traverse.Create(__instance);
+
+		//		Traverse<IProxyAction> applyAction = traverse.Property<IProxyAction>("applyAction");
+		//		Traverse<IProxyAction> applyActionOverride = traverse.Property<IProxyAction>("applyActionOverride");
+		//		Traverse<IProxyAction> secondaryApplyAction = traverse.Property<IProxyAction>("secondaryApplyAction");
+		//		Traverse<IProxyAction> secondaryApplyActionOverride = traverse.Property<IProxyAction>("secondaryApplyActionOverride");
+		//		Traverse<IProxyAction> cancelAction = traverse.Property<IProxyAction>("cancelAction");
+		//		Traverse<IProxyAction> cancelActionOverride = traverse.Property<IProxyAction>("cancelActionOverride");
+
+		//		IProxyAction m_UpgradeNetEdge = traverse.Property<IProxyAction>("m_UpgradeNetEdge").Value;
+		//		IProxyAction m_DowngradeNetEdge = traverse.Property<IProxyAction>("m_DowngradeNetEdge").Value;
+		//		IProxyAction m_DiscardUpgrade = traverse.Property<IProxyAction>("m_DiscardUpgrade").Value;
+		//		IProxyAction m_DiscardDowngrade = traverse.Property<IProxyAction>("m_DiscardDowngrade").Value;
+		//		IProxyAction m_ReplaceNetEdge = traverse.Property<IProxyAction>("m_ReplaceNetEdge").Value;
+		//		IProxyAction m_DiscardReplace = traverse.Property<IProxyAction>("m_DiscardReplace").Value;
+
+		//		bool actionsEnabled = traverse.Property<bool>("actionsEnabled").Value;
+		//		NativeList<ControlPoint> m_ControlPoints = traverse.Field<NativeList<ControlPoint>>("m_ControlPoints").Value;
+
+		//		int m_State = traverse.Property<int>("m_State").Value;
+
+		//		bool flag = m_ControlPoints.Length > 4;
+		//		if (lanePrefab.Has<NetUpgrade>())
 		//		{
-		//			__instance.selectedSnap &= ~(Snap.ObjectSurface & Snap.LotGrid);
-		//			first = true;
+		//			if (!flag)
+		//			{
+		//				applyAction.Value.enabled = actionsEnabled;
+		//				applyActionOverride.Value = m_UpgradeNetEdge;
+		//				secondaryApplyAction.Value.enabled = actionsEnabled;
+		//				secondaryApplyActionOverride.Value = m_DowngradeNetEdge;
+		//				cancelAction.Value.enabled = false;
+		//				cancelActionOverride.Value = null;
+		//			}
+		//			else if (m_State == 1) //NetToolSystem.State.Applying
+		//			{
+		//				applyAction.Value.enabled = actionsEnabled;
+		//				applyActionOverride.Value = m_UpgradeNetEdge;
+		//				secondaryApplyAction.Value.enabled = false;
+		//				secondaryApplyActionOverride.Value = null;
+		//				cancelAction.Value.enabled = actionsEnabled;
+		//				cancelActionOverride.Value = m_DiscardUpgrade;
+		//			}
+		//			else if (m_State == 2) //NetToolSystem.State.Cancelling
+		//			{
+		//				applyAction.Value.enabled = false;
+		//				applyActionOverride.Value = null;
+		//				secondaryApplyAction.Value.enabled = actionsEnabled;
+		//				secondaryApplyActionOverride.Value = m_DowngradeNetEdge;
+		//				cancelAction.Value.enabled = actionsEnabled;
+		//				cancelActionOverride.Value = m_DiscardDowngrade;
+		//			}
 		//		}
+		//		else
+		//		{
+		//			applyAction.Value.enabled = actionsEnabled;
+		//			applyActionOverride.Value = m_ReplaceNetEdge;
+		//			secondaryApplyAction.Value.enabled = false;
+		//			secondaryApplyActionOverride.Value = null;
+		//			if (flag)
+		//			{
+		//				cancelAction.Value.enabled = actionsEnabled;
+		//				cancelActionOverride.Value = m_DiscardReplace;
+		//			}
+		//			else
+		//			{
+		//				cancelAction.Value.enabled = false;
+		//				cancelActionOverride.Value = null;
+		//			}
+		//		}
+
+		//		return false;
+
+		//	}
+		//}
+
+		//[ HarmonyPatch(
+		//	typeof(NetToolSystem), "GetRaycastResult", 
+		//	new Type[] { typeof(ControlPoint), typeof(bool) },
+		//	new ArgumentType[] { ArgumentType.Out, ArgumentType.Out } 
+		//)]
+		//class NetToolSystem_GetRaycastResult
+		//{
+		//	public static bool Prefix(NetToolSystem __instance, out ControlPoint controlPoint, out bool forceUpdate)
+		//	{
+		//		Traverse traverse = Traverse.Create(__instance);
+
+		//		Entity hitEntity = default;
+		//		RaycastHit raycastHit = default;
+		//		forceUpdate = default;
+
+		//		//Traverse GetRaycastResult = traverse.Method("GetRaycastResult", typeof(Entity), typeof(RaycastHit), typeof(bool) );
+
+		//		bool test = (bool)MethodInvoker.GetHandler(AccessTools.Method(typeof(ToolBaseSystem), "GetRaycastResult", new Type[] { typeof(Entity), typeof(RaycastHit), typeof(bool) })).Invoke(__instance, hitEntity, raycastHit, forceUpdate) ;
+
+		//		//if (GetRaycastResult.GetValue<bool>(new object[] { hitEntity, raycastHit, forceUpdate })) 
+		//		if (test) 
+		//		{
+		//			PlaceableNetData placeableNetData;
+		//			if (__instance.actualMode == NetToolSystem.Mode.Replace && ExtraLib.m_EntityManager.HasComponent<Node>(hitEntity) && ExtraLib.m_EntityManager.HasComponent<Edge>(raycastHit.m_HitEntity) && ExtraLib.m_PrefabSystem.TryGetComponentData<PlaceableNetData>(__instance.GetPrefab(), out placeableNetData) && (placeableNetData.m_PlacementFlags & PlacementFlags.NodeUpgrade) == PlacementFlags.None)
+		//			{
+		//				hitEntity = raycastHit.m_HitEntity;
+		//			}
+		//			controlPoint = new ControlPoint(hitEntity, raycastHit);
+		//			return true;
+		//		}
+		//		controlPoint = default(ControlPoint);
+		//		return false;
+
 		//	}
 		//}
 
@@ -57,7 +176,7 @@ namespace ExtraDetailingTools
 
 		//			//var instance2 = netToolSystemTravers.Field("m_DefaultToolPreferences").GetValue();
 
-    //        ExtraLib.m_EntityManager.AddBuffer<SubNet>(controlPoint.m_OriginalEntity);
+		//        ExtraLib.m_EntityManager.AddBuffer<SubNet>(controlPoint.m_OriginalEntity);
 
 		//			first = true;
 		//		}
