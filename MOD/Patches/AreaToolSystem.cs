@@ -3,7 +3,7 @@ using Game.Prefabs;
 using Game.Tools;
 using HarmonyLib;
 
-namespace ExtraDetailingTools
+namespace ExtraDetailingTools.Patches
 {
     class AreaToolSystemPatch
     {

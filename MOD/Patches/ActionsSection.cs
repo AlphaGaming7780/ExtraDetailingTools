@@ -2,7 +2,7 @@
 using Game.UI.InGame;
 using HarmonyLib;
 
-namespace ExtraDetailingTools
+namespace ExtraDetailingTools.Patches
 {
 	internal class ActionsSectionPatch
 	{

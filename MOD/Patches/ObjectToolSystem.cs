@@ -1,5 +1,5 @@
 using System;
-using Extra.Lib;
+using ExtraLib;
 using Game.Common;
 using Game.Objects;
 using Game.Prefabs;
@@ -10,7 +10,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using SubObject = Game.Objects.SubObject;
 
-namespace ExtraDetailingTools
+namespace ExtraDetailingTools.Patches
 {
     class ObjectToolSystemPatch
     {
@@ -43,13 +43,13 @@ namespace ExtraDetailingTools
 
                 if (controlPoint.m_OriginalEntity == Entity.Null || controlPoint.m_OriginalEntity == oldEntity) return true;
 
-                if (ExtraLib.m_EntityManager.HasBuffer<SubObject>(controlPoint.m_OriginalEntity) || ExtraLib.m_EntityManager.HasComponent<Owner>(controlPoint.m_OriginalEntity)) return true;
+                if (EL.m_EntityManager.HasBuffer<SubObject>(controlPoint.m_OriginalEntity) || EL.m_EntityManager.HasComponent<Owner>(controlPoint.m_OriginalEntity)) return true;
 
-                if (ExtraLib.m_EntityManager.Exists(oldEntity) && ExtraLib.m_EntityManager.HasBuffer<SubObject>(oldEntity) && ExtraLib.m_EntityManager.GetBuffer<SubObject>(oldEntity).Length <= 0) ExtraLib.m_EntityManager.RemoveComponent<SubObject>(oldEntity);
+                if (EL.m_EntityManager.Exists(oldEntity) && EL.m_EntityManager.HasBuffer<SubObject>(oldEntity) && EL.m_EntityManager.GetBuffer<SubObject>(oldEntity).Length <= 0) EL.m_EntityManager.RemoveComponent<SubObject>(oldEntity);
 
                 oldEntity = controlPoint.m_OriginalEntity;
 
-                ExtraLib.m_EntityManager.AddBuffer<SubObject>(controlPoint.m_OriginalEntity);
+                EL.m_EntityManager.AddBuffer<SubObject>(controlPoint.m_OriginalEntity);
 
                 return true;
             }

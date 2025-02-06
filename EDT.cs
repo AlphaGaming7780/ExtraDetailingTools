@@ -5,8 +5,8 @@
 
 
 using Colossal.Logging;
-using Extra.Lib.Debugger;
-using Extra.Lib.Localization;
+using ExtraLib.Debugger;
+using ExtraLib.Helpers;
 using Game;
 using Game.Modding;
 using Game.SceneFlow;
@@ -17,6 +17,7 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using ExtraDetailingTools.Systems;
+using ExtraDetailingTools.MOD.Systems.UI;
 
 namespace ExtraDetailingTools
 {

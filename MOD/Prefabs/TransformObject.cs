@@ -3,7 +3,7 @@ using Colossal.Serialization.Entities;
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace ExtraDetailingTools.ComponentsData
+namespace ExtraDetailingTools.Prefabs
 {
     internal struct TransformObject : IComponentData, IQueryTypeParameter, IEquatable<TransformObject>, ISerializable
     {
@@ -17,7 +17,7 @@ namespace ExtraDetailingTools.ComponentsData
         public readonly bool Equals(TransformObject other)
         {
             return other.m_Scale.Equals(m_Scale);
-            
+
             //return false;
         }
 

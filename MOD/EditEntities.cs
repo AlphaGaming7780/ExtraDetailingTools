@@ -1,11 +1,12 @@
-﻿using Extra.Lib;
-using Game.Prefabs;
+﻿using Game.Prefabs;
 using Unity.Collections;
 using Unity.Entities;
 using Colossal.Entities;
-using Extra.Lib.UI;
 using Game.SceneFlow;
 using System.Linq;
+using ExtraLib;
+using ExtraLib.Systems.UI;
+using ExtraLib.ClassExtension;
 
 namespace ExtraDetailingTools
 {
@@ -52,9 +53,9 @@ namespace ExtraDetailingTools
 		//	]
 		//};
 
-		ExtraLib.AddOnEditEnities(new (OnEditSurfacesEntities, surfaceEntityQueryDesc));
-		ExtraLib.AddOnEditEnities(new (OnEditDecalsEntities, decalsEntityQueryDesc));
-		ExtraLib.AddOnEditEnities(new (OnEditNetLaneEntities, netLaneEntityQueryDesc));
+		EL.AddOnEditEnities(new (OnEditSurfacesEntities, surfaceEntityQueryDesc));
+		EL.AddOnEditEnities(new (OnEditDecalsEntities, decalsEntityQueryDesc));
+		EL.AddOnEditEnities(new (OnEditNetLaneEntities, netLaneEntityQueryDesc));
 
 		//ExtraLib.AddOnEditEnities(new(OnEditBrandEntity, brandEntityQueryDesc));
 	}
@@ -81,7 +82,7 @@ namespace ExtraDetailingTools
 
 		    foreach (Entity entity in entities)
 		    {
-			    if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
+			    if (EL.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
 			    {
 				    if (!prefab.builtin || prefab.name == "Surface Area") continue;
 
@@ -99,7 +100,7 @@ namespace ExtraDetailingTools
                     prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab(Surfaces.GetCatByRendererPriority(prefab.GetComponent<RenderedArea>() is null ? 0 : prefab.GetComponent<RenderedArea>().m_RendererPriority), Icons.GetIcon, assetCat);
                     prefabUI.m_Group.AddElement(entity);
 
-                    ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
+                    EL.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
                 }
             }
         }
@@ -111,12 +112,12 @@ namespace ExtraDetailingTools
 
 		foreach (Entity entity in entities)
 		{
-			if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
+			if (EL.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
 			{
 				if (!prefab.builtin) continue;
 
-                    DynamicBuffer<SubMesh> subMeshes = ExtraLib.m_EntityManager.GetBuffer<SubMesh>(entity);
-                    if (!ExtraLib.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
+                    DynamicBuffer<SubMesh> subMeshes = EL.m_EntityManager.GetBuffer<SubMesh>(entity);
+                    if (!EL.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
                     else if (component.m_State != MeshFlags.Decal) continue;
 
                     var prefabUI = prefab.GetComponent<UIObject>();
@@ -133,7 +134,7 @@ namespace ExtraDetailingTools
                     prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab(Decals.GetCatByDecalName(prefab.name), Icons.GetIcon, assetCat);
                     prefabUI.m_Group.AddElement(entity);
 
-                    ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
+                    EL.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
                 }
             }
         }
@@ -145,10 +146,10 @@ namespace ExtraDetailingTools
 
             foreach (Entity entity in entities)
             {
-                if (ExtraLib.m_EntityManager.HasComponent<UtilityLaneData>(entity) && ExtraLib.m_EntityManager.GetComponentData<UtilityLaneData>(entity).m_UtilityTypes != Game.Net.UtilityTypes.Fence) continue;
-                if (!ExtraLib.m_EntityManager.HasComponent<NetLaneGeometryData>(entity)) continue;
+                if (EL.m_EntityManager.HasComponent<UtilityLaneData>(entity) && EL.m_EntityManager.GetComponentData<UtilityLaneData>(entity).m_UtilityTypes != Game.Net.UtilityTypes.Fence) continue;
+                if (!EL.m_EntityManager.HasComponent<NetLaneGeometryData>(entity)) continue;
 
-                if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out NetLanePrefab prefab))
+                if (EL.m_PrefabSystem.TryGetPrefab(entity, out NetLanePrefab prefab))
                 {
 
                     var prefabUI = prefab.GetComponent<UIObject>();
@@ -168,7 +169,7 @@ namespace ExtraDetailingTools
                     if (!IsAssetIconLibraryEnabled) prefabUI.m_Icon = $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/{prefabUI.m_Group.name}.svg";
                     prefabUI.m_Group.AddElement(entity);
 
-                    ExtraLib.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
+                    EL.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
                 }
             }
         }

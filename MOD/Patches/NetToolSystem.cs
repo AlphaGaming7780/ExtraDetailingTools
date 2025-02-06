@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Extra.Lib;
 using Game.Input;
 using Game.Net;
 using Game.Prefabs;
@@ -10,7 +9,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Game.Common;
 
-namespace ExtraDetailingTools
+namespace ExtraDetailingTools.Patches
 {
 	class NetToolSystemPatch
 	{

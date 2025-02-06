@@ -1,4 +1,4 @@
-﻿using ExtraDetailingTools.ComponentsData;
+﻿using ExtraDetailingTools.Prefabs;
 using Game;
 using Game.Common;
 using Game.Objects;

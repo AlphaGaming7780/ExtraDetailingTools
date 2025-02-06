@@ -12,13 +12,13 @@ namespace ExtraDetailingTools
 
         internal static void LoadIcons(string path)
         {
-            Extra.Lib.UI.Icons.LoadIconsFolder(IconsResourceKey, path);
+            ExtraLib.Helpers.Icons.LoadIconsFolder(IconsResourceKey, path);
         }
 
         public static string GetIcon(PrefabBase prefab)
         {
 
-            if (prefab is null) return Extra.Lib.UI.Icons.Placeholder;
+            if (prefab is null) return ExtraLib.Helpers.Icons.Placeholder;
 
             if (File.Exists($"{EDT.ResourcesIcons}/{prefab.GetType().Name}/{prefab.name}.svg")) return $"{COUIBaseLocation}/Icons/{prefab.GetType().Name}/{prefab.name}.svg";
 
@@ -29,19 +29,19 @@ namespace ExtraDetailingTools
             else if (prefab is UIAssetCategoryPrefab)
             {
 
-                return Extra.Lib.UI.Icons.Placeholder;
+                return ExtraLib.Helpers.Icons.Placeholder;
             }
             else if (prefab is UIAssetMenuPrefab)
             {
 
-                return Extra.Lib.UI.Icons.Placeholder;
+                return ExtraLib.Helpers.Icons.Placeholder;
             }
             else if (prefab.name.ToLower().Contains("decal") || prefab.name.ToLower().Contains("roadarrow") || prefab.name.ToLower().Contains("lanemarkings"))
             {
                 return DecalPlaceholder;
             }
 
-            return Extra.Lib.UI.Icons.Placeholder;
+            return ExtraLib.Helpers.Icons.Placeholder;
         }
 
     }

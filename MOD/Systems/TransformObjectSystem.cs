@@ -1,5 +1,5 @@
 ﻿using Colossal.Rendering;
-using ExtraDetailingTools.ComponentsData;
+using ExtraDetailingTools.Prefabs;
 using Game;
 using Game.Common;
 using Game.Objects;
@@ -15,7 +15,7 @@ using Unity.Mathematics;
 
 namespace ExtraDetailingTools.Systems
 {
-	internal partial class TransformObjectSystem : GameSystemBase
+    internal partial class TransformObjectSystem : GameSystemBase
 	{
 		private BatchManagerSystem _batchManagerSystem;
 		private PreCullingSystem _preCullingSystem;

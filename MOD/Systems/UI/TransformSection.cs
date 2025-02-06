@@ -1,7 +1,7 @@
 ﻿using Colossal.Entities;
 using Colossal.Mathematics;
 using Colossal.UI.Binding;
-using ExtraDetailingTools.ComponentsData;
+using ExtraDetailingTools.Prefabs;
 using Game.Common;
 using Game.Objects;
 using Game.Prefabs;
@@ -18,7 +18,7 @@ using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools
 {
-	internal partial class TransformSection : InfoSectionBase
+    internal partial class TransformSection : InfoSectionBase
 	{
 		//private string Clipboard
 		//{

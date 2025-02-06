@@ -1,6 +1,4 @@
-﻿using cohtml.Net;
-using Colossal.UI.Binding;
-using Extra;
+﻿using Colossal.UI.Binding;
 using Game.Rendering;
 using Game.Tools;
 using Game.UI;
@@ -8,16 +6,16 @@ using Game.UI.InGame;
 using HarmonyLib;
 using System;
 
-namespace ExtraDetailingTools
+namespace ExtraDetailingTools.MOD.Systems.UI
 {
-	internal partial class UI : UISystemBase
-	{
+    internal partial class UI : UISystemBase
+    {
         private static GetterValueBinding<bool> showMarker;
         static RenderingSystem renderingSystem;
 
         protected override void OnCreate()
-		{
-			base.OnCreate();
+        {
+            base.OnCreate();
 
             renderingSystem = World.GetOrCreateSystemManaged<RenderingSystem>();
 
@@ -48,10 +46,11 @@ namespace ExtraDetailingTools
             private static bool Prefix(ToolBaseSystem tool)
             {
 
-                if(tool is AreaToolSystem || tool is ObjectToolSystem || tool is NetToolSystem)
+                if (tool is AreaToolSystem || tool is ObjectToolSystem || tool is NetToolSystem)
                 {
                     showMarker = true;
-                } else if(showMarker)
+                }
+                else if (showMarker)
                 {
                     showMarker = false;
                     ShowMarker(false);
