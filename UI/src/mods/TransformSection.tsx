@@ -9,6 +9,7 @@ import { ActionButtonSCSS } from "../../game-ui/game/components/selected-info-pa
 import { useLocalization } from "cs2/l10n";
 import { Tooltip } from "cs2/ui";
 import classNames from "classnames";
+import { CollapsiblePanel } from "../../game-ui/common/panel/collapsible-panel";
 
 export interface Float3 {
 	x: number,
@@ -270,72 +271,75 @@ export const TransformSection = (componentList: any): any => {
 					</div>
 					<div className={classNames(InfoRowSCSS.infoRow, InfoRowSCSS.subRow, InfoRowSCSS.link)} >
 
-						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{width:"100%"} }>
-							{translate("Editor.POSITION") + " "}
-							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_POS")}>
-								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("POS") }}>
-									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
-								</button>
-							</Tooltip>
-							{
-								canPastPos ?
-									<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_POS")}>
-										<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("POS") }}>
-											<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
-										</button>
-									</Tooltip>
-								: <></>
-							}
-							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS")}>
-								<button className={classNames({ [TransfromSectionSCSS.TransfromSectionButtonSelected]: localAxis }, ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_localaxis") }}>
-									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="Media/Tools/Snap Options/All.svg"></img>
-								</button>
-							</Tooltip>
-						</div>
+						<CollapsiblePanel expanded={false} className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel } headerText={translate("Editor.POSITION")} style={{ width: "100%" }} >
+							<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)}>
+								<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_POS")}>
+									<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("POS") }}>
+										<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
+									</button>
+								</Tooltip>
+								{
+									canPastPos ?
+										<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_POS")}>
+											<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("POS") }}>
+												<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
+											</button>
+										</Tooltip>
+										: <></>
+								}
+								<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS")}>
+									<button className={classNames({ [TransfromSectionSCSS.TransfromSectionButtonSelected]: localAxis }, ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { trigger("edt", "transformsection_localaxis") }}>
+										<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="Media/Tools/Snap Options/All.svg"></img>
+									</button>
+								</Tooltip>
+							</div>
 
-						{Inputs("POS", pos, true, PositionIncrement, canPastPos)}
+							{Inputs("POS", pos, true, PositionIncrement, canPastPos)}
+						</CollapsiblePanel>
 
+						<CollapsiblePanel className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel} headerText={translate("PhotoMode.PROPERTY_TITLE[Rotation]")} style={{ width: "100%" }} >
+							<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
+								<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_ROT")}>
+									<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("ROT") }}>
+										<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
+									</button>
+								</Tooltip>
+								{
+									canPastRot ?
+										<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_ROT")}>
+											<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("ROT") }}>
+												<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
+											</button>
+										</Tooltip>
+										: <></>
+								}
 
-						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{width:"100%"} }>
-							{translate("PhotoMode.PROPERTY_TITLE[Rotation]") + " "}
-							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_ROT")}>
-								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("ROT") }}>
-									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
-								</button>
-							</Tooltip>
-							{
-								canPastRot ?
-									<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_ROT")}>
-										<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("ROT") }}>
-											<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
-										</button>
-									</Tooltip>
-								: <></>
-							}
+							</div>
 
-						</div>
+							{Inputs("ROT", rot, true, RotationIncrement, canPastRot)}
+						</CollapsiblePanel>
 
-						{Inputs("ROT", rot, true, RotationIncrement, canPastRot) }
+						<CollapsiblePanel className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel} headerText={translate("SelectedInfoPanel.TRANSFORMTOOL.SCALE")} style={{ width: "100%" }} >
 
-						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
-							{translate("SelectedInfoPanel.TRANSFORMTOOL.SCALE") + " "}
-							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_SCALE")}>
-								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("SCALE") }}>
-									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
-								</button>
-							</Tooltip>
-							{
-								canPastScale ?
-									<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_SCALE")}>
-										<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("SCALE") }}>
-											<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
-										</button>
-									</Tooltip>
-								: <></>
-							}
-						</div>
-						{Inputs("SCALE", scale, true, ScaleIncrement, canPastScale) }
+							<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
+								<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_SCALE")}>
+									<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("SCALE") }}>
+										<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
+									</button>
+								</Tooltip>
+								{
+									canPastScale ?
+										<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_SCALE")}>
+											<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("SCALE") }}>
+												<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
+											</button>
+										</Tooltip>
+										: <></>
+								}
+							</div>
+							{Inputs("SCALE", scale, true, ScaleIncrement, canPastScale)}
 
+						</CollapsiblePanel>
 					</div>
 				</div>
 			</div>

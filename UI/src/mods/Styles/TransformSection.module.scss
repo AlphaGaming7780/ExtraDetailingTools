@@ -79,3 +79,14 @@
     width: 18rem;
     height: 18rem;
 }
+
+.TransfromSectionCollapsiblePanel {
+    padding-bottom: 5rem;
+    --panelRadius: 10rem;
+
+    > div:last-child  {
+        > div:last-child {
+            padding-bottom: 5rem;
+        }
+    }
+}
