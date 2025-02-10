@@ -270,7 +270,6 @@ export const TransformSection = (componentList: any): any => {
 					</div>
 					<div className={classNames(InfoRowSCSS.infoRow, InfoRowSCSS.subRow, InfoRowSCSS.link)} >
 
-
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{width:"100%"} }>
 							{translate("Editor.POSITION") + " "}
 							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_POS")}>
