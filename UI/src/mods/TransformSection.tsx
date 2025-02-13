@@ -10,6 +10,7 @@ import { useLocalization } from "cs2/l10n";
 import { Tooltip } from "cs2/ui";
 import classNames from "classnames";
 import { CollapsiblePanel } from "../../game-ui/common/panel/collapsible-panel";
+import { SelectedInfoSectionBase, TypeFromMap } from "cs2/bindings";
 
 export interface Float3 {
 	x: number,
@@ -30,15 +31,9 @@ export const canPastPos$ = bindValue<boolean>("edt", "transformsection_canpastpo
 export const canPastRot$ = bindValue<boolean>("edt", "transformsection_canpastrot");
 export const canPastScale$ = bindValue<boolean>("edt", "transformsection_canpastscale");
 
-export const TransformSection = (componentList: any): any => {
+export const TransformSection = (componentList: {[x: string]: any; }): any => {
 
-	interface InfoSection {
-		group: string;
-		tooltipKeys: Array<string>;
-		tooltipTags: Array<string>;
-	}
-
-	componentList["ExtraDetailingTools.TransformSection"] = (e: InfoSection) => {
+	componentList["ExtraDetailingTools.Systems.UI.TransformSection"] = (e: SelectedInfoSectionBase) => {
 		const pos: Float3 = useValue(pos$);
 		const rot: Float3 = useValue(rot$);
 		const scale: Float3 = useValue(scale$);
@@ -271,7 +266,7 @@ export const TransformSection = (componentList: any): any => {
 					</div>
 					<div className={classNames(InfoRowSCSS.infoRow, InfoRowSCSS.subRow, InfoRowSCSS.link)} >
 
-						<CollapsiblePanel expanded={false} className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel } headerText={translate("Editor.POSITION")} style={{ width: "100%" }} >
+						<CollapsiblePanel expanded={false} className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel } headerText={translate("Editor.POSITION")} >
 							<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)}>
 								<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_POS")}>
 									<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("POS") }}>
@@ -297,7 +292,7 @@ export const TransformSection = (componentList: any): any => {
 							{Inputs("POS", pos, true, PositionIncrement, canPastPos)}
 						</CollapsiblePanel>
 
-						<CollapsiblePanel className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel} headerText={translate("PhotoMode.PROPERTY_TITLE[Rotation]")} style={{ width: "100%" }} >
+						<CollapsiblePanel expanded={false} className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel} headerText={translate("PhotoMode.PROPERTY_TITLE[Rotation]")} >
 							<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
 								<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_ROT")}>
 									<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("ROT") }}>
@@ -319,7 +314,7 @@ export const TransformSection = (componentList: any): any => {
 							{Inputs("ROT", rot, true, RotationIncrement, canPastRot)}
 						</CollapsiblePanel>
 
-						<CollapsiblePanel className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel} headerText={translate("SelectedInfoPanel.TRANSFORMTOOL.SCALE")} style={{ width: "100%" }} >
+						<CollapsiblePanel expanded={false} className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel} headerText={translate("SelectedInfoPanel.TRANSFORMTOOL.SCALE")} >
 
 							<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
 								<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_SCALE")}>

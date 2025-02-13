@@ -1,4 +1,3 @@
-import { Theme } from "cs2/bindings";
 import { getModule } from "cs2/modding"
 
 const path$ = "game-ui/common/panel/collapsible-panel.tsx"

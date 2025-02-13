@@ -5,6 +5,8 @@
 
 
 using Colossal.Logging;
+using ExtraDetailingTools.Systems;
+using ExtraDetailingTools.Systems.UI;
 using ExtraLib.Debugger;
 using ExtraLib.Helpers;
 using Game;
@@ -12,12 +14,10 @@ using Game.Modding;
 using Game.SceneFlow;
 using Game.Tools;
 using Game.UI.InGame;
+using HarmonyLib;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using HarmonyLib;
-using ExtraDetailingTools.Systems;
-using ExtraDetailingTools.MOD.Systems.UI;
 
 namespace ExtraDetailingTools
 {

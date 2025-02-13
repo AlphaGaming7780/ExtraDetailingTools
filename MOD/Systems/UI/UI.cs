@@ -6,7 +6,7 @@ using Game.UI.InGame;
 using HarmonyLib;
 using System;
 
-namespace ExtraDetailingTools.MOD.Systems.UI
+namespace ExtraDetailingTools.Systems.UI
 {
     internal partial class UI : UISystemBase
     {

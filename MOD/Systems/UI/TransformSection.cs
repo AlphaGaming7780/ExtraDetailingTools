@@ -16,7 +16,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Transform = Game.Objects.Transform;
 
-namespace ExtraDetailingTools
+namespace ExtraDetailingTools.Systems.UI
 {
     internal partial class TransformSection : InfoSectionBase
 	{
@@ -101,49 +101,70 @@ namespace ExtraDetailingTools
 
         }
 
-		protected override void OnUpdate()
+        protected override void OnPreUpdate()
+        {
+            base.OnPreUpdate();
+			if(EntityManager.HasComponent<InterpolatedTransform>(selectedEntity))
+			{
+				RequestUpdate();
+			} else
+			{
+				UpdateAxis();
+            }
+        }
+
+        protected override void OnUpdate()
 		{
 			base.OnUpdate();
-			visible = EntityManager.HasComponent<Game.Objects.Transform>(selectedEntity); // && !EntityManager.HasComponent<Building>(selectedEntity);
-			if (visible)
-			{
-				transform = EntityManager.GetComponentData<Transform>(selectedEntity);
-				transformSectionGetPos.Update();
-				transformSectionGetRot.Update();
-				transformSectionGetScale.Update();
-
-				RequestUpdate();
-				if (showAxis)
-				{
-					Bounds3 bounds3 = new(new(0, 0, 0), new(10, 10, 10));
-
-					if (EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
-					{
-						bounds3 = useLocalAxis ? geometryData.m_Bounds : ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
-					}
-
-					float3 linesLenght = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
-					//linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
-
-					RenderAxisJob renderAxisJob = new()
-					{
-						m_OverlayBuffer = _overlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
-						pos = transform.m_Position,
-						linesLenght = linesLenght,
-						rot = GetRotation(),
-						useLocalAxis = useLocalAxis,
-					};
-					JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
-					_overlayRenderSystem.AddBufferWriter(jobHandle);
-					Dependency = jobHandle;
-				}
-			}
+			visible = EntityManager.HasComponent<Transform>(selectedEntity);
 		}
+
+		protected override void OnProcess()
+		{
+			transform = EntityManager.HasComponent<InterpolatedTransform>(selectedEntity) ?
+						EntityManager.GetComponentData<InterpolatedTransform>(selectedEntity).ToTransform() :
+						EntityManager.GetComponentData<Transform>(selectedEntity);
+
+			transformSectionGetPos.Update();
+			transformSectionGetRot.Update();
+			transformSectionGetScale.Update();
+			UpdateAxis();
+
+        }
+
+		private void UpdateAxis()
+		{
+            if (showAxis)
+            {
+                Bounds3 bounds3 = new(new(0, 0, 0), new(10, 10, 10));
+
+                if (EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
+                {
+                    bounds3 = useLocalAxis ? geometryData.m_Bounds : ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
+                }
+
+                float3 linesLenght = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
+                //linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
+
+                RenderAxisJob renderAxisJob = new()
+                {
+                    m_OverlayBuffer = _overlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
+                    pos = transform.m_Position,
+                    linesLenght = linesLenght,
+                    rot = GetRotation(),
+                    useLocalAxis = useLocalAxis,
+                };
+                JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
+                _overlayRenderSystem.AddBufferWriter(jobHandle);
+                Dependency = jobHandle;
+            }
+        }
+
 
 #if RELEASE
 	[BurstCompile]
 #endif
-		private struct RenderAxisJob : IJob
+        private struct RenderAxisJob : IJob
 		{
 			public OverlayRenderSystem.Buffer m_OverlayBuffer;
 			public float3 pos;
@@ -174,8 +195,6 @@ namespace ExtraDetailingTools
 		}
 
 		public override void OnWriteProperties(IJsonWriter writer) { }
-
-		protected override void OnProcess() { }
 
 		protected override void Reset() { }
 
@@ -219,8 +238,8 @@ namespace ExtraDetailingTools
 				if (scale.x == 1 && scale.y == 1 && scale.z == 1)
 				{
 					EntityManager.RemoveComponent<TransformObject>(selectedEntity);
-					transformSectionGetScale.TriggerUpdate();
-					RequestUpdate();
+                    EntityManager.AddComponentData<Updated>(selectedEntity, default);
+                    transformSectionGetScale.Update();
 					return;
 				}
 			} else
@@ -230,9 +249,8 @@ namespace ExtraDetailingTools
 			TransformObject transformObject = EntityManager.GetComponentData<TransformObject>(selectedEntity);
 			transformObject.m_Scale = scale;
 			EntityManager.SetComponentData(selectedEntity, transformObject);
-			EntityManager.AddComponentData(selectedEntity, new Game.Common.Updated());
-			transformSectionGetScale.TriggerUpdate();
-			RequestUpdate();
+            EntityManager.AddComponentData<Updated>(selectedEntity, default);
+            transformSectionGetScale.Update();
 		}
 
 		private void Copy(string id)
@@ -243,19 +261,16 @@ namespace ExtraDetailingTools
 					_copiedPos = transform.m_Position;
 					canPastPos = true;
 					transformSectionCanPastPos.Update();
-                    RequestUpdate();
                     break;
 				case "ROT":
 					_copiedRot = GetRotation();
                     canPastRot = true;
                     transformSectionCanPastRot.Update();
-                    RequestUpdate();
                     break;
 				case "SCALE":
 					_copiedScale = GetScale();
                     canPastScale = true;
                     transformSectionCanPastScale.Update();
-                    RequestUpdate();
                     break;
 			}
         }
