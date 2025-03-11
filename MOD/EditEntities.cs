@@ -7,6 +7,8 @@ using System.Linq;
 using ExtraLib;
 using ExtraLib.Systems.UI;
 using ExtraLib.ClassExtension;
+using ExtraLib.Helpers;
+using ExtraLib.Prefabs;
 
 namespace ExtraDetailingTools
 {
@@ -78,7 +80,7 @@ namespace ExtraDetailingTools
         {
             if (entities.Length == 0) return;
 
-            ExtraAssetsMenu.AssetCat assetCat = ExtraAssetsMenu.GetOrCreateNewAssetCat("Surfaces", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Surfaces.svg");
+            UIAssetParentCategoryPrefab assetCat = PrefabsHelper.GetOrCreateUIAssetParentCategoryPrefab("Surfaces");
 
 		    foreach (Entity entity in entities)
 		    {
@@ -96,8 +98,9 @@ namespace ExtraDetailingTools
                         prefabUI.m_Priority = 1;
                     }
 
+                    string catName = Surfaces.GetCatByRendererPriority(prefab.GetComponent<RenderedArea>() is null ? 0 : prefab.GetComponent<RenderedArea>().m_RendererPriority);
                     prefabUI.m_Group?.RemoveElement(entity);
-                    prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab(Surfaces.GetCatByRendererPriority(prefab.GetComponent<RenderedArea>() is null ? 0 : prefab.GetComponent<RenderedArea>().m_RendererPriority), Icons.GetIcon, assetCat);
+                    prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetChildCategoryPrefab(assetCat, $"{catName} {assetCat.name}");
                     prefabUI.m_Group.AddElement(entity);
 
                     EL.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
@@ -108,13 +111,13 @@ namespace ExtraDetailingTools
         private static void OnEditDecalsEntities(NativeArray<Entity> entities)
         {
             if (entities.Length == 0) return;
-            ExtraAssetsMenu.AssetCat assetCat = ExtraAssetsMenu.GetOrCreateNewAssetCat("Decals", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Decals.svg");
+            UIAssetParentCategoryPrefab assetCat = PrefabsHelper.GetOrCreateUIAssetParentCategoryPrefab("Decals");
 
-		foreach (Entity entity in entities)
-		{
-			if (EL.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
-			{
-				if (!prefab.builtin) continue;
+		    foreach (Entity entity in entities)
+		    {
+			    if (EL.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
+			    {
+				    if (!prefab.builtin) continue;
 
                     DynamicBuffer<SubMesh> subMeshes = EL.m_EntityManager.GetBuffer<SubMesh>(entity);
                     if (!EL.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
@@ -130,8 +133,9 @@ namespace ExtraDetailingTools
                         prefabUI.m_Priority = 1;
                     }
 
+                    string catName = Decals.GetCatByDecalName(prefab.name);
                     prefabUI.m_Group?.RemoveElement(entity);
-                    prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab(Decals.GetCatByDecalName(prefab.name), Icons.GetIcon, assetCat);
+                    prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetChildCategoryPrefab(assetCat, $"{catName} {assetCat.name}");
                     prefabUI.m_Group.AddElement(entity);
 
                     EL.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
@@ -142,7 +146,7 @@ namespace ExtraDetailingTools
         private static void OnEditNetLaneEntities(NativeArray<Entity> entities)
         {
             if (entities.Length == 0) return;
-            ExtraAssetsMenu.AssetCat assetCat = ExtraAssetsMenu.GetOrCreateNewAssetCat("NetLanes", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/NetLanes.svg");
+            UIAssetParentCategoryPrefab assetCat = PrefabsHelper.GetOrCreateUIAssetParentCategoryPrefab("NetLanes");
 
             foreach (Entity entity in entities)
             {
@@ -163,9 +167,9 @@ namespace ExtraDetailingTools
                     }
 
                     prefabUI.m_Group?.RemoveElement(entity);
-                    if (prefab.GetComponent<UtilityLane>()?.m_UtilityType == Game.Net.UtilityTypes.Fence) prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab("Fence", Icons.GetIcon, assetCat);
-                    else if (prefab.GetComponent<SecondaryLane>() != null && prefab.GetComponent<ThemeObject>() != null) prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab("RoadMarking", Icons.GetIcon, assetCat);
-                    else prefabUI.m_Group = ExtraAssetsMenu.GetOrCreateNewUIAssetCategoryPrefab("Misc", Icons.GetIcon, assetCat);
+                    if (prefab.GetComponent<UtilityLane>()?.m_UtilityType == Game.Net.UtilityTypes.Fence) prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetChildCategoryPrefab(assetCat, $"Fence {assetCat.name}");
+                    else if (prefab.GetComponent<SecondaryLane>() != null && prefab.GetComponent<ThemeObject>() != null) prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetChildCategoryPrefab(assetCat, $"RoadMarking {assetCat.name}");
+                    else prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetChildCategoryPrefab(assetCat, $"Misc {assetCat.name}");
                     if (!IsAssetIconLibraryEnabled) prefabUI.m_Icon = $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/{prefabUI.m_Group.name}.svg";
                     prefabUI.m_Group.AddElement(entity);
 

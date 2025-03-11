@@ -6,11 +6,13 @@
 
 using Colossal.Logging;
 using ExtraDetailingTools.Systems;
+using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI;
 using ExtraLib.Debugger;
 using ExtraLib.Helpers;
 using Game;
 using Game.Modding;
+using Game.Rendering;
 using Game.SceneFlow;
 using Game.Tools;
 using Game.UI.InGame;
@@ -59,12 +61,15 @@ namespace ExtraDetailingTools
             //updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
             updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
             updateSystem.UpdateAfter<TransformObjectSystem>(SystemUpdatePhase.Rendering);
+            updateSystem.UpdateAt<GrassToolSystem>(SystemUpdatePhase.ToolUpdate);
+            updateSystem.UpdateAt<GrassSystem>(SystemUpdatePhase.ModificationEnd);
+            updateSystem.UpdateAt<GrassRenderSystem>(SystemUpdatePhase.PreCulling);
 
             SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
             selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
 
             // toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
-            objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
+             objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
 
             harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
             harmony.PatchAll(typeof(EDT).Assembly);

@@ -14,6 +14,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using EditorContainer = Game.Tools.EditorContainer;
 using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Systems.UI
@@ -223,7 +224,7 @@ namespace ExtraDetailingTools.Systems.UI
 
 		private float3 GetScale()
 		{
-			if (!EntityManager.HasComponent<TransformObject>(selectedEntity)) return new float3(1,1,1);
+			if (!EntityManager.HasComponent<TransformObject>(selectedEntity)) return new float3(1, 1, 1);
 
 			TransformObject transformObject = EntityManager.GetComponentData<TransformObject>(selectedEntity);
 
@@ -238,19 +239,18 @@ namespace ExtraDetailingTools.Systems.UI
 				if (scale.x == 1 && scale.y == 1 && scale.z == 1)
 				{
 					EntityManager.RemoveComponent<TransformObject>(selectedEntity);
-                    EntityManager.AddComponentData<Updated>(selectedEntity, default);
-                    transformSectionGetScale.Update();
+					EntityManager.AddComponentData<Updated>(selectedEntity, default);
+					transformSectionGetScale.Update();
 					return;
 				}
-			} else
+			}
+			else
 			{
 				EntityManager.AddComponent<TransformObject>(selectedEntity);
 			}
 			TransformObject transformObject = EntityManager.GetComponentData<TransformObject>(selectedEntity);
 			transformObject.m_Scale = scale;
 			EntityManager.SetComponentData(selectedEntity, transformObject);
-            EntityManager.AddComponentData<Updated>(selectedEntity, default);
-            transformSectionGetScale.Update();
 		}
 
 		private void Copy(string id)

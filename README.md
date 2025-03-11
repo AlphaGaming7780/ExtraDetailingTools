@@ -52,14 +52,14 @@ You’ll find this alongside the other snapping options in the games UI.
 
 # Thanking
 I must particularly thank all the people who helped me in this major project which lasted several months :
-* CityRat : Thanks for all you did, testing the mod since the start, without you, I wouldn't have started ELT project.
-* Sully: planning, testing since ELT 3.0, promotions and your incredible build that you made with this mod, you gave me confidence in this project.
+* CityRat : Thanks for all you did, testing the mod since the start, without you, I wouldn't have started EDT project.
+* Sully: planning, testing since EDT 3.0, promotions and your incredible build that you made with this mod, you gave me confidence in this project.
 * Yenyang : Without you, this mod wouldn't exist, thank you for all.
 * T.D.W. : Your help was precious, on various aspects of this mod.
-* Konsi (Mimonsi/kosch104) : Testing since ELT 3.0, feedback and good idea. I'm glad to see that your mods are appreciated.
-* Tigon Ologdring : Testing since ELT 3.0, feedback, and is good build idea that help to have faith in this project
-* Dome : Testing since ELT 3.0, feedback, you did a great job finding how to create custom station and other stuff to link to the pathfinding.
-* CanadianMoosePlays : Thanks for playing with ELT 3.0, even it never see the light at least somebody use it.
+* Konsi (Mimonsi/kosch104) : Testing since EDT 3.0, feedback and good idea. I'm glad to see that your mods are appreciated.
+* Tigon Ologdring : Testing since EDT 3.0, feedback, and is good build idea that help to have faith in this project
+* Dome : Testing since EDT 3.0, feedback, you did a great job finding how to create custom station and other stuff to link to the pathfinding.
+* CanadianMoosePlays : Thanks for playing with EDT 3.0, even it never see the light at least somebody use it.
 * CodiakTheKodiak : Thanks for your streams that I watched while I was coding, you are a great streamer.
 * Jay : You destroyed my mod, I've never seen anyone use a mod so much, I'm glad I had you as a tester.
 
