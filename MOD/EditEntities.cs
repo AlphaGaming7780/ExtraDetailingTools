@@ -125,6 +125,7 @@ internal static class EditEntities
 				if (!prefab.builtin) continue;
 
 				DynamicBuffer<SubMesh> subMeshes =  ExtraLib.m_EntityManager.GetBuffer<SubMesh>(entity);
+				if (subMeshes.Length < 1) continue;
 				if (!ExtraLib.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
 				else if (component.m_State != MeshFlags.Decal) continue;
 
