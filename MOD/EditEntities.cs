@@ -117,9 +117,14 @@ namespace ExtraDetailingTools
 		    {
 			    if (EL.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
 			    {
-				    if (!prefab.builtin) continue;
+                    if (!prefab.builtin) continue;
+
+                    if (!EL.m_EntityManager.HasBuffer<SubMesh>(entity)) continue;
 
                     DynamicBuffer<SubMesh> subMeshes = EL.m_EntityManager.GetBuffer<SubMesh>(entity);
+
+                    if (subMeshes.Length < 1) continue;
+
                     if (!EL.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
                     else if (component.m_State != MeshFlags.Decal) continue;
 
