@@ -11,10 +11,10 @@ namespace ExtraDetailingTools;
 
 internal static class EditEntities
 {
-    private static bool? isAssetIconLibraryEnabled;
-    public static bool IsAssetIconLibraryEnabled => isAssetIconLibraryEnabled ??= GameManager.instance.modManager.ListModsEnabled().Any(x => x.StartsWith("AssetIconLibrary,"));
+	private static bool? isAssetIconLibraryEnabled;
+	public static bool IsAssetIconLibraryEnabled => isAssetIconLibraryEnabled ??= GameManager.instance.modManager.ListModsEnabled().Any(x => x.StartsWith("AssetIconLibrary,"));
 
-    internal static void SetupEditEntities()
+	internal static void SetupEditEntities()
 	{
 		EntityQueryDesc surfaceEntityQueryDesc = new()
 		{
@@ -86,11 +86,11 @@ internal static class EditEntities
 
 		ExtraAssetsMenu.AssetCat assetCat = ExtraAssetsMenu.GetOrCreateNewAssetCat("Surfaces", $"{Icons.COUIBaseLocation}/Icons/UIAssetCategoryPrefab/Surfaces.svg");
 
-		    foreach (Entity entity in entities)
-		    {
-			    if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
-			    {
-				    if (!prefab.builtin || prefab.name == "Surface Area") continue;
+			foreach (Entity entity in entities)
+			{
+				if (ExtraLib.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
+				{
+					if (!prefab.builtin || prefab.name == "Surface Area") continue;
 
 				EDT.Logger.Info(prefab.name);
 
@@ -124,8 +124,12 @@ internal static class EditEntities
 			{
 				if (!prefab.builtin) continue;
 
+				if (!ExtraLib.m_EntityManager.HasBuffer<SubMesh>(entity)) continue;
+
 				DynamicBuffer<SubMesh> subMeshes =  ExtraLib.m_EntityManager.GetBuffer<SubMesh>(entity);
+
 				if (subMeshes.Length < 1) continue;
+
 				if (!ExtraLib.m_EntityManager.TryGetComponent(subMeshes.ElementAt(0).m_SubMesh, out MeshData component)) continue;
 				else if (component.m_State != MeshFlags.Decal) continue;
 
@@ -168,7 +172,7 @@ internal static class EditEntities
 					prefabUI.active = true;
 					prefabUI.m_IsDebugObject = false;
 					prefabUI.m_Icon = IsAssetIconLibraryEnabled ? "" : Icons.GetIcon(prefab);
-                    prefabUI.m_Priority = 1;
+					prefabUI.m_Priority = 1;
 				}
 
 				prefabUI.m_Group?.RemoveElement(entity);
