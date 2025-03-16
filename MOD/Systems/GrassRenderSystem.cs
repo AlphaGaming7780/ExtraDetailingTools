@@ -1,47 +1,26 @@
-﻿using Colossal.Entities;
+﻿using Colossal;
+using Colossal.IO.AssetDatabase;
+using Colossal.Serialization.Entities;
+using ExtraDetailingTools.Prefabs;
+using ExtraDetailingTools.Structs;
+using ExtraLib.Helpers;
+using Game;
+using Game.Common;
+using Game.Prefabs;
 using Game.Rendering;
 using Game.Simulation;
-using Game;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Jobs;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.VFX;
-using UnityEngine;
-using Colossal.IO.AssetDatabase;
-using Game.Areas;
-using Game.Common;
-using Game.Net;
-using Game.Objects;
-using Game.Tools;
-using Unity.Entities;
-using Unity.Collections;
-
-using Unity.Mathematics;
-using Game.Prefabs;
-using Colossal.Mathematics;
-using Unity.Jobs;
-using System.Diagnostics.SymbolStore;
-using Colossal.UI.Binding;
-using Color = UnityEngine.Color;
-using ExtraLib.Helpers;
-using Colossal.PSI.Environment;
-using System.IO;
-using Unity.Burst;
-using ExtraDetailingTools.Prefabs;
-using Game.Rendering.Utilities;
-using ExtraDetailingTools.Structs;
-using Colossal.Serialization.Entities;
-using Colossal.IO.AssetDatabase.Internal;
-using Colossal;
 
 namespace ExtraDetailingTools.Systems
 {
     public partial class GrassRenderSystem : GameSystemBase
     {
-
         private TerrainSystem m_TerrainSystem;
         private TerrainMaterialSystem m_TerrainMaterialSystem;
         private CameraUpdateSystem m_CameraUpdateSystem;
@@ -78,6 +57,12 @@ namespace ExtraDetailingTools.Systems
         {
             base.OnStopRunning();
             DestroyEverything();
+        }
+
+        protected override void OnStartRunning()
+        {
+            base.OnStartRunning();
+            EDT.Logger.Info("OnStartRunning");
         }
 
         protected override void OnGamePreload(Purpose purpose, GameMode mode)
@@ -157,9 +142,15 @@ namespace ExtraDetailingTools.Systems
                     Dependency = jobHandle;
                 }
 
-                foreach (Entity entity in m_GrassTextureMap.Keys)
+                Entity[] entities = new Entity[m_GrassTextureMap.Count];
+                m_GrassTextureMap.Keys.CopyTo(entities, 0);
+                foreach (Entity entity in entities)
                 {
-
+                    if(!EntityManager.Exists(entity))
+                    {
+                        DestroyEntity(entity);
+                        continue;
+                    }
                     Texture2D grassMaptexture = m_GrassTextureMap[entity];
 
                     VisualEffect visualEffect;
@@ -171,7 +162,6 @@ namespace ExtraDetailingTools.Systems
                         if (visualEffect == null) continue;
 
                         m_GrassVisualEffectMap.Add(entity, visualEffect);
-
                     }
                     else
                     {
@@ -202,12 +192,12 @@ namespace ExtraDetailingTools.Systems
             //visualEffect.SetFloat("FoliageCoverage", grassPrefab.FoliageCoverage > 0 ? grassPrefab.FoliageCoverage : 1);
             //visualEffect.SetAnimationCurve("Scale Over Distance", grassPrefab.ScaleOverDistance);
 
-            EDT.Logger.Info( $"Texture format : {m_TerrainMaterialSystem.splatmap.graphicsFormat}");
+            //EDT.Logger.Info( $"Texture format : {m_TerrainMaterialSystem.splatmap.graphicsFormat}");
             //EDT.Logger.Info( $"Center : {terrainBounds.center}, Size : {terrainBounds.size}");
             //EDT.Logger.Info($"Terrain Offset Scale : {new Vector4(globalVector.x, globalVector.z, globalVector2.x, globalVector2.z)}");
-            Texture2D texture2D = TextureHelper.GetTexture2DFromTexture(m_TerrainMaterialSystem.splatmap);
-            TextureHelper.SaveTextureAsPNG(texture2D, $"{EDT.ResourcesIcons}/Heightmap.png");
-            CoreUtils.Destroy(texture2D);
+            //Texture2D texture2D = TextureHelper.GetTexture2DFromTexture(m_TerrainMaterialSystem.splatmap);
+            //TextureHelper.SaveTextureAsPNG(texture2D, $"{EDT.ResourcesIcons}/Heightmap.png");
+            //CoreUtils.Destroy(texture2D);
 
         }
 
@@ -215,8 +205,16 @@ namespace ExtraDetailingTools.Systems
         {
             if (s_FoliageVFXAsset != null)
             {
+
+                foreach (VisualEffect vE in m_GrassVisualEffectMap.Values)
+                {
+                    if (vE.name != name) continue;
+                    return vE;
+                }
+
                 GameObject gameObject = GameObject.Find(name) ?? new GameObject(name);
                 VisualEffect visualEffect = gameObject.GetComponent<VisualEffect>() ?? gameObject.AddComponent<VisualEffect>();
+                visualEffect.name = name;
 
                 //VisualEffect visualEffect = new GameObject(name).AddComponent<VisualEffect>();
                 visualEffect.visualEffectAsset = s_FoliageVFXAsset;
@@ -253,7 +251,22 @@ namespace ExtraDetailingTools.Systems
             m_GrassVisualEffectMap.Clear();
         }
 
+        private void DestroyEntity(Entity entity)
+        {
+            EDT.Logger.Info("Destorying everything");
 
+            Texture2D texture = m_GrassTextureMap[entity];
+            m_GrassTextureMap.Remove(entity);
+            CoreUtils.Destroy(texture);
+
+            VisualEffect visualEffect = m_GrassVisualEffectMap[entity];
+            m_GrassVisualEffectMap.Remove(entity);
+            visualEffect.Stop();
+            GameObject gameObject = visualEffect.gameObject;
+            CoreUtils.Destroy(visualEffect);
+            CoreUtils.Destroy(gameObject);
+
+        }
 
 #if RELEASE
 	[BurstCompile]

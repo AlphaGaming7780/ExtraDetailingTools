@@ -1,0 +1,75 @@
+{
+    "$id": 0,
+    "$type": "0|ExtraDetailingTools.Prefabs.GameGrassPrefab, ExtraDetailingTools",
+    "name": "GameGrassPrefab",
+    "active": true,
+    "components": {
+        "$id": 1,
+        "$type": "1|System.Collections.Generic.List`1[[Game.Prefabs.ComponentBase, Game]], mscorlib",
+        "$rlength": 1,
+        "$rcontent": [
+            {
+                "$id": 2,
+                "$type": "2|Game.Prefabs.UIObject, Game",
+                "name": "UIObject",
+                "active": true,
+                "m_Group": $fstrref:"UnityGUID:2d466ee2db827dd46a0dcd82d11ae077",
+                "m_Priority": 0,
+                "m_Icon": null,
+                "m_IsDebugObject": false
+            }
+        ]
+    },
+    "CropSize": {
+        "$type": "3|UnityEngine.Vector2, UnityEngine.CoreModule",
+        100,
+        100
+    },
+    "FoliageCoverage": 750,
+    "ScaleOverDistance": {
+        "$id": 3,
+        "$type": "4|UnityEngine.AnimationCurve, UnityEngine.CoreModule",
+        {
+            "$id": 4,
+            "$type": "5|UnityEngine.Keyframe[], UnityEngine.CoreModule",
+            "$rlength": 3,
+            "$rcontent": [
+                {
+                    "$type": "6|UnityEngine.Keyframe, UnityEngine.CoreModule",
+                    "ver": 1,
+                    "m_Time": 0.387319058,
+                    "m_Value": 1,
+                    "m_InTangent": 0,
+                    "m_OutTangent": 0,
+                    "m_WeightedMode": 3,
+                    "m_InWeight": 0,
+                    "m_OutWeight": 0
+                },
+                {
+                    "$type": 6,
+                    "ver": 1,
+                    "m_Time": 566.2241,
+                    "m_Value": 0.6515317,
+                    "m_InTangent": -0.0018226481,
+                    "m_OutTangent": -0.00294985157,
+                    "m_WeightedMode": 3,
+                    "m_InWeight": 0,
+                    "m_OutWeight": 0
+                },
+                {
+                    "$type": 6,
+                    "ver": 1,
+                    "m_Time": 650.7942,
+                    "m_Value": 0,
+                    "m_InTangent": -0.007311484,
+                    "m_OutTangent": -0.007311484,
+                    "m_WeightedMode": 3,
+                    "m_InWeight": 0,
+                    "m_OutWeight": 0
+                }
+            ]
+        },
+        8,
+        8
+    }
+}

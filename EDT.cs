@@ -5,13 +5,16 @@
 
 
 using Colossal.Logging;
+using ExtraDetailingTools.Prefabs;
 using ExtraDetailingTools.Systems;
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI;
+using ExtraLib;
 using ExtraLib.Debugger;
 using ExtraLib.Helpers;
 using Game;
 using Game.Modding;
+using Game.Prefabs;
 using Game.Rendering;
 using Game.SceneFlow;
 using Game.Tools;
@@ -70,6 +73,14 @@ namespace ExtraDetailingTools
 
             // toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
              objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
+
+            //PrefabsHelper.LoadPrefabsInDirectory(Path.Combine(fileInfo.Directory.FullName, "Prefabs"));
+
+            GameGrassPrefab gameGrassPrefab = UnityEngine.ScriptableObject.CreateInstance<GameGrassPrefab>();
+            gameGrassPrefab.name = "GameGrassPrefab";
+            UIObject uIObject = gameGrassPrefab.AddComponent<UIObject>();
+            uIObject.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
+            EL.m_PrefabSystem.AddPrefab(gameGrassPrefab);
 
             harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
             harmony.PatchAll(typeof(EDT).Assembly);
