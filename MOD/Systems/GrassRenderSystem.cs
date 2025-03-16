@@ -35,6 +35,7 @@ namespace ExtraDetailingTools.Systems
 
         protected override void OnCreate()
         {
+            base.OnCreate();
             m_CameraUpdateSystem = World.GetOrCreateSystemManaged<CameraUpdateSystem>();
             m_TerrainSystem = World.GetOrCreateSystemManaged<TerrainSystem>();
             m_TerrainMaterialSystem = World.GetOrCreateSystemManaged<TerrainMaterialSystem>();
