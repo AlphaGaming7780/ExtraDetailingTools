@@ -10,6 +10,7 @@ using Game.Prefabs;
 using Game.Simulation;
 using Game.Tools;
 using System;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -183,7 +184,6 @@ namespace ExtraDetailingTools.Systems
 #if RELEASE
 	[BurstCompile]
 #endif
-        //[BurstCompile]
         private struct UpdateGrassMapTextures : IJob
         {
             [ReadOnly]
@@ -204,7 +204,7 @@ namespace ExtraDetailingTools.Systems
             //[ReadOnly]
             public NativeHashMap<Entity, Entity> m_GrassPrefabToSavingEntity;
 
-            [ReadOnly]
+            //[ReadOnly] //Disabled because: brush.m_Angle = 0;
             public Brush brush;
 
             [ReadOnly]

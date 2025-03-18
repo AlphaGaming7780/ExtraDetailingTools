@@ -396,7 +396,6 @@ namespace ExtraDetailingTools.Systems.Tools
 #if RELEASE
 	[BurstCompile]
 #endif
-        [BurstCompile]
         private struct CreateDefinitionsJob : IJob
         {
             public void Execute()

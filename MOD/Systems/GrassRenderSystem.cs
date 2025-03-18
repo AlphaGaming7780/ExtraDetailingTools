@@ -10,6 +10,7 @@ using Game.Prefabs;
 using Game.Rendering;
 using Game.Simulation;
 using System.Collections.Generic;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -60,29 +61,29 @@ namespace ExtraDetailingTools.Systems
             DestroyEverything();
         }
 
-        protected override void OnStartRunning()
-        {
-            base.OnStartRunning();
-            EDT.Logger.Info("OnStartRunning");
-        }
+        //protected override void OnStartRunning()
+        //{
+        //    base.OnStartRunning();
+        //    EDT.Logger.Info("OnStartRunning");
+        //}
 
-        protected override void OnGamePreload(Purpose purpose, GameMode mode)
-        {
-            base.OnGamePreload(purpose, mode);
-            EDT.Logger.Info($"OnGamePreload : {purpose}, {mode} ");
-        }
+        //protected override void OnGamePreload(Purpose purpose, GameMode mode)
+        //{
+        //    base.OnGamePreload(purpose, mode);
+        //    EDT.Logger.Info($"OnGamePreload : {purpose}, {mode} ");
+        //}
 
-        protected override void OnGameLoadingComplete(Purpose purpose, GameMode mode)
-        {
-            base.OnGameLoadingComplete(purpose, mode);
-            DestroyEverything();
-            EDT.Logger.Info($"OnGameLoadingComplete : {purpose}, {mode} ");
-        }
+        //protected override void OnGameLoadingComplete(Purpose purpose, GameMode mode)
+        //{
+        //    base.OnGameLoadingComplete(purpose, mode);
+        //    DestroyEverything();
+        //    EDT.Logger.Info($"OnGameLoadingComplete : {purpose}, {mode} ");
+        //}
 
         protected override void OnGameLoaded(Context serializationContext)
         {
             base.OnGameLoaded(serializationContext);
-            EDT.Logger.Info("OnGameLoaded");
+            DestroyEverything();
         }
 
         protected override void OnUpdate()
