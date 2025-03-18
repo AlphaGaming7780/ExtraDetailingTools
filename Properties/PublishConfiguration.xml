@@ -54,8 +54,8 @@ You’ll find this alongside the other snapping options in the games UI.
 ⚠️ This mod uses crowdin so there maybe inconsistencies with translations due to translations from different translators ⚠️
 - ✔️French 100% : aricoseco
 - ✔️Chinese Simplified 100% : RilkeXS(无手文) (RilkeXS), 一叶杳舟 (Yao_Zhou)
-- ⚠️Chinese Traditional 2% : Tiger Zhang (tiger42231), boan51204
-- ⚠️German 100% : Konsi, Kai Stammen (stammenkai)
+- ✔️Chinese Traditional 100% : Tiger Zhang (tiger42231), boan51204, Source Design (source_design)
+- ✔️German 100% : Konsi, Kai Stammen (stammenkai)
 - ❌Italian 0%
 - ❌Japanese 0%
 - ✔️Korean 100% : Twotoolus-FLY-LShst, Hinanchovo
@@ -98,7 +98,7 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/extradetailingtools.1675592/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.1.4" />
+	<ModVersion Value="1.1.5" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.2.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -108,9 +108,14 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
   <ChangeLog>
-# 1.1.4
-- Fixe for the 1.2.0f1 patch.
-- Portuguese translation by Tiago Correia (ti4go)
+# Version 1.1.5
+
+## Fixes
+- I hope I fixed a bug in the OnEdtitEntity function.
+
+## Translations update
+- ✔️Chinese Traditional 100% : Source Design (source_design)
+- ✔️Polish 100% : karmel68
   </ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
   <ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
