@@ -80,6 +80,7 @@ namespace ExtraDetailingTools
             gameGrassPrefab.name = "GameGrassPrefab";
             UIObject uIObject = gameGrassPrefab.AddComponent<UIObject>();
             uIObject.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
+            uIObject.m_Icon = Icons.GetIcon(gameGrassPrefab);
             EL.m_PrefabSystem.AddPrefab(gameGrassPrefab);
 
             harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
