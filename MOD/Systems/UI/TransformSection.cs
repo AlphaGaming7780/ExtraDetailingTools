@@ -1,4 +1,5 @@
 ﻿using Colossal.Entities;
+using Colossal.Json;
 using Colossal.Mathematics;
 using Colossal.UI.Binding;
 using ExtraDetailingTools.Prefabs;
@@ -189,9 +190,9 @@ namespace ExtraDetailingTools.Systems.UI
 					xAxis = new(sinX, 0, cosX);
 					zAxis = new(sinZ, 0, cosZ);
 				}
-				m_OverlayBuffer.DrawLine(UnityEngine.Color.red, UnityEngine.Color.red, 0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + xAxis), 0.1f, 0.5f);
-				m_OverlayBuffer.DrawLine(UnityEngine.Color.green, UnityEngine.Color.green, 0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + yAxis), 0.1f, 0.5f);
-				m_OverlayBuffer.DrawLine(UnityEngine.Color.blue, UnityEngine.Color.blue, 0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + zAxis), 0.1f, 0.5f);
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.red,		UnityEngine.Color.red,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + xAxis), 0.1f, 0.5f);
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.green,	UnityEngine.Color.green,	0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + yAxis), 0.1f, 0.5f);
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.blue,	UnityEngine.Color.blue,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + zAxis), 0.1f, 0.5f);
 			}
 		}
 
@@ -499,7 +500,10 @@ namespace ExtraDetailingTools.Systems.UI
 		{
 			if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Net.SubNet> subNets))
 			{
-				foreach (Game.Net.SubNet subNet in subNets)
+
+                Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
+
+                foreach (Game.Net.SubNet subNet in subNets)
 				{
 					if (EntityManager.TryGetComponent(subNet.m_SubNet, out Game.Net.Node node))
 					{
