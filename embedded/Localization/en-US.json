@@ -32,14 +32,5 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_I": "The increment of the scroll up/down for the scale, scroll up/down or edit the input to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_X": "The scale X local axis, scroll up/down or type to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Y": "The scale Y local axis, scroll up/down or type to change the value.",
-	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Z": "The scale Z local axis, scroll up/down or type to change the value.",
-
-	"SubServices.NAME[NetLanes]": "NetLanes",
-	"Assets.SUB_SERVICE_DESCRIPTION[NetLanes]": "This category contains all the NetLanes.",
-	"SubServices.NAME[Fence NetLanes]": "Fence NetLanes",
-	"Assets.SUB_SERVICE_DESCRIPTION[Fence NetLanes]": "This category contains all the Fence NetLanes.",
-	"SubServices.NAME[Misc NetLanes]": "Misc NetLanes",
-	"Assets.SUB_SERVICE_DESCRIPTION[Misc NetLanes]": "This category contains all the Misc NetLanes.",
-	"SubServices.NAME[RoadMarking NetLanes]": "RoadMarking NetLanes",
-	"Assets.SUB_SERVICE_DESCRIPTION[RoadMarking NetLanes]": "This category contains all the RoadMarking NetLanes."
+	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Z": "The scale Z local axis, scroll up/down or type to change the value."
 }
