@@ -3,6 +3,7 @@ using Colossal.Json;
 using Colossal.Mathematics;
 using Colossal.UI.Binding;
 using ExtraDetailingTools.Prefabs;
+using Game.Buildings;
 using Game.Common;
 using Game.Objects;
 using Game.Prefabs;
@@ -399,7 +400,12 @@ namespace ExtraDetailingTools.Systems.UI
 				EntityManager.SetComponentData(selectedEntity, cullingInfo);
 			}
 
-			UpdateSubElement(selectedEntity, positionOffset, rotationOffset);
+            if (EntityManager.TryGetComponent<Building>(selectedEntity, out Building building))
+            {
+                EntityManager.AddComponentData(building.m_RoadEdge, new Game.Common.Updated());
+            }
+
+            UpdateSubElement(selectedEntity, positionOffset, rotationOffset);
 
 			EntityManager.SetComponentData(selectedEntity, transform);
 			EntityManager.AddComponentData(selectedEntity, new Game.Common.Updated());
@@ -505,13 +511,29 @@ namespace ExtraDetailingTools.Systems.UI
 
                 foreach (Game.Net.SubNet subNet in subNets)
 				{
-					if (EntityManager.TryGetComponent(subNet.m_SubNet, out Game.Net.Node node))
-					{
-						node.m_Position += positionOffset;
-						EntityManager.SetComponentData(subNet.m_SubNet, node);
-					}
+                    if (EntityManager.TryGetComponent(subNet.m_SubNet, out Game.Net.Curve curve))
+                    {
 
-					EntityManager.AddComponentData(subNet.m_SubNet, new Game.Common.Updated());
+                        float3 ogVectorA = curve.m_Bezier.a - parentTransform.m_Position;
+                        float3 offsetA = Quaternion.Euler(rotationOffset) * ogVectorA;
+                        curve.m_Bezier.a = parentTransform.m_Position + positionOffset + offsetA;
+
+                        float3 ogVectorB = curve.m_Bezier.b - parentTransform.m_Position;
+                        float3 offsetB = Quaternion.Euler(rotationOffset) * ogVectorB;
+                        curve.m_Bezier.b = parentTransform.m_Position + positionOffset + offsetB;
+
+                        float3 ogVectorC = curve.m_Bezier.c - parentTransform.m_Position;
+                        float3 offsetC = Quaternion.Euler(rotationOffset) * ogVectorC;
+                        curve.m_Bezier.c = parentTransform.m_Position + positionOffset + offsetC;
+
+                        float3 ogVectorD = curve.m_Bezier.d - parentTransform.m_Position;
+                        float3 offsetD = Quaternion.Euler(rotationOffset) * ogVectorD;
+                        curve.m_Bezier.d = parentTransform.m_Position + positionOffset + offsetD;
+
+                        EntityManager.SetComponentData(subNet.m_SubNet, curve);
+                    }
+
+                    EntityManager.AddComponentData(subNet.m_SubNet, new Game.Common.Updated());
 				}
 			}
 		}

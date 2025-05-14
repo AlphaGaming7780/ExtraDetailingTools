@@ -15,8 +15,10 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using UnityEngine;
+using UnityEngine.PlayerLoop;
 using UnityEngine.Rendering;
 using UnityEngine.VFX;
+using static Game.UI.NameSystem;
 
 namespace ExtraDetailingTools.Systems
 {
@@ -28,6 +30,10 @@ namespace ExtraDetailingTools.Systems
         private PrefabSystem m_PrefabSystem;
 
         private static VisualEffectAsset s_FoliageVFXAsset;
+        private static VisualEffectAsset s_FoliageVFXNewAsset;
+
+        private VisualEffect m_FoliageVFX;
+        private Texture2D splatMapForNewVFX;
 
         private EntityQuery m_GrassDataQuery;
 
@@ -41,7 +47,24 @@ namespace ExtraDetailingTools.Systems
             m_TerrainSystem = World.GetOrCreateSystemManaged<TerrainSystem>();
             m_TerrainMaterialSystem = World.GetOrCreateSystemManaged<TerrainMaterialSystem>();
             m_PrefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
-            GrassRenderSystem.s_FoliageVFXAsset = Resources.Load<VisualEffectAsset>("Vegetation/FoliageVFX");
+            s_FoliageVFXAsset = Resources.Load<VisualEffectAsset>("Vegetation/FoliageVFX");
+            s_FoliageVFXNewAsset = Resources.Load<VisualEffectAsset>("vegetation/FoliageVFXNew");
+
+            GameObject gameObject = new GameObject();
+            m_FoliageVFX = gameObject.AddComponent<VisualEffect>();
+            m_FoliageVFX.visualEffectAsset = s_FoliageVFXNewAsset;
+
+            splatMapForNewVFX = new Texture2D(TerrainSystem.kDefaultHeightmapWidth, TerrainSystem.kDefaultHeightmapHeight, TextureFormat.ARGB32, false, true);
+
+            for(int x = 0; x < splatMapForNewVFX.width; x++)
+            {
+                for (int y = 0; y < splatMapForNewVFX.width; y++)
+                {
+                    splatMapForNewVFX.SetPixel(x, y, new(1, 1, 1, 1));
+                }
+            }
+
+            splatMapForNewVFX.Apply(false);
 
             m_GrassTextureMap = new();
             m_GrassVisualEffectMap = new();
@@ -172,6 +195,8 @@ namespace ExtraDetailingTools.Systems
 
                     UpdateEffect(visualEffect, grassMaptexture);
                 }
+
+                UpdateEffectNew();
             }
         }
 
@@ -298,11 +323,72 @@ namespace ExtraDetailingTools.Systems
 
             }
         }
+
+
+
+        private void UpdateEffectNew()
+        {
+            if (!m_PrefabSystem.TryGetPrefab(new PrefabID(nameof(GrassPrefabNew), "GrassPrefabNew"), out PrefabBase prefabBase) || prefabBase is not GrassPrefabNew grassPrefab) return;
+
+            Bounds terrainBounds = this.m_TerrainSystem.GetTerrainBounds();
+
+            this.m_FoliageVFX.SetVector3("CameraPosition", this.m_CameraUpdateSystem.position);
+            this.m_FoliageVFX.SetVector3("CameraDirection", this.m_CameraUpdateSystem.direction);
+            this.m_FoliageVFX.SetBool("DebugDistantGrass", grassPrefab.DebugDistantGrass);
+            this.m_FoliageVFX.SetBool("DebugGrassLOD", grassPrefab.DebugGrassLOD);
+            //this.m_FoliageVFX.SetTexture("Grass_BaseColorMap", m_GrassBaseColorMap);
+            //this.m_FoliageVFX.SetVector4("Grass_ColorRandom1", grassPrefab.Grass_ColorRandom1);
+            //this.m_FoliageVFX.SetVector4("Grass_ColorRandom2", grassPrefab.Grass_ColorRandom2);
+            //this.m_FoliageVFX.SetFloat("Grass_Coverage", grassPrefab.Grass_Coverage);
+            this.m_FoliageVFX.SetBool("Grass_Enabled", grassPrefab.Grass_Enabled);
+            //this.m_FoliageVFX.SetVector2("Grass_FlipBookSize", grassPrefab.Grass_FlipBookSize);
+            //this.m_FoliageVFX.SetFloat("Grass_LOD0CullDistance", grassPrefab.Grass_LOD0CullDistance);
+            //this.m_FoliageVFX.SetFloat("Grass_LOD0ParticleCount", grassPrefab.Grass_LOD0ParticleCount);
+            //this.m_FoliageVFX.SetFloat("Grass_LOD1CullDistance", grassPrefab.Grass_LOD1CullDistance);
+            //this.m_FoliageVFX.SetFloat("Grass_LOD1ParticleCount", grassPrefab.Grass_LOD1ParticleCount);
+            //this.m_FoliageVFX.SetFloat("Grass_LOD2CullDistance", grassPrefab.Grass_LOD2CullDistance);
+            //this.m_FoliageVFX.SetFloat("Grass_LOD2ParticleCount", grassPrefab.Grass_LOD2ParticleCount);
+            //this.m_FoliageVFX.SetFloat("Grass_NoiseScale", grassPrefab.Grass_NoiseScale);
+            //this.m_FoliageVFX.SetTexture("Grass_NormalMap", grassPrefab.Grass_NormalMap);
+            //this.m_FoliageVFX.SetFloat("Grass_NormalScale", grassPrefab.Grass_NormalScale);
+            //this.m_FoliageVFX.SetVector2("Grass_QuadSize", grassPrefab.Grass_QuadSize);
+            //this.m_FoliageVFX.SetFloat("Grass_ScaleMultiplier", grassPrefab.Grass_ScaleMultiplier);
+            //this.m_FoliageVFX.SetFloat("Grass_ScaleRandom", grassPrefab.Grass_ScaleRandom);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex1", grassPrefab.Grass_SplatIndex1);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex2", grassPrefab.Grass_SplatIndex2);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex3", grassPrefab.Grass_SplatIndex3);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex4", grassPrefab.Grass_SplatIndex4);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex5", grassPrefab.Grass_SplatIndex5);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex6", grassPrefab.Grass_SplatIndex6);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex7", grassPrefab.Grass_SplatIndex7);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex8", grassPrefab.Grass_SplatIndex8);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex9", grassPrefab.Grass_SplatIndex9);
+            //this.m_FoliageVFX.SetInt("Grass_SplatIndex10", grassPrefab.Grass_SplatIndex10);
+            //this.m_FoliageVFX.SetVector2("Grass_YAngleRange", grassPrefab.Grass_YAngleRange);
+            this.m_FoliageVFX.SetTexture("Heightmap", this.m_TerrainSystem.heightmap);
+            //this.m_FoliageVFX.SetFloat("Heightmap_SamplingScale", grassPrefab.Heightmap_SamplingScale);
+            //this.m_FoliageVFX.SetFloat("HeightmapYScale", grassPrefab.HeightmapYScale);
+            //this.m_FoliageVFX.SetBool("IndexOverride", grassPrefab.IndexOverride);
+
+            //this.m_FoliageVFX.SetBool("Scatter1_Enabled", grassPrefab.Scatter_Enabled);
+
+            //this.m_FoliageVFX.SetTexture("Splatmap", m_UserPaintedGrassTexture);
+            //this.m_FoliageVFX.SetTexture("Splatmap", this.m_TerrainMaterialSystem.splatmap);
+            this.m_FoliageVFX.SetTexture("Splatmap", this.splatMapForNewVFX);
+            //this.m_FoliageVFX.SetFloat("Splatmap_SamplingScale", grassPrefab.Splatmap_SamplingScale);
+            //this.m_FoliageVFX.SetFloat("Splatmap_WeightBlendStrength", grassPrefab.Splatmap_WeightBlendStrength);
+            this.m_FoliageVFX.SetVector3("TerrainBounds_center", terrainBounds.center);
+            this.m_FoliageVFX.SetVector3("TerrainBounds_size", terrainBounds.size);
+            //this.m_FoliageVFX.SetVector3("VolumeScale", grassPrefab.VolumeScale);
+
+        }
+
+
     }
 }
 
 
-//private void UpdateEffect()
+//        private void UpdateEffect()
 //{
 //    Bounds terrainBounds = this.m_TerrainSystem.GetTerrainBounds();
 //    this.m_FoliageVFX.SetVector3("TerrainBounds_center", terrainBounds.center);
@@ -320,69 +406,6 @@ namespace ExtraDetailingTools.Systems
 //    //this.m_FoliageVFX.SetVector2("Crop Size", grassPrefab.CropSize);
 //    //this.m_FoliageVFX.SetFloat("FoliageCoverage", grassPrefab.FoliageCoverage > 0 ? grassPrefab.FoliageCoverage : 1);
 //    //this.m_FoliageVFX.SetAnimationCurve("Scale Over Distance", grassPrefab.ScaleOverDistance);
-//}
-
-//private void UpdateEffectNew()
-//{
-//    if (!m_PrefabSystem.TryGetPrefab(new PrefabID(nameof(GrassPrefabNew), "GrassPrefabNew"), out PrefabBase prefabBase) || prefabBase is not GrassPrefabNew grassPrefab) return;
-
-//    if(grassPrefab.Grass_Enabled != updated)
-//    {
-//        EDT.Logger.Info("GrassPrefab has been updated");
-//        updated = grassPrefab.Grass_Enabled;
-//    }
-
-
-//    Bounds terrainBounds = this.m_TerrainSystem.GetTerrainBounds();
-
-//    this.m_FoliageVFX.SetVector3    ("CameraPosition", this.m_CameraUpdateSystem.position);
-//    this.m_FoliageVFX.SetVector3    ("CameraDirection", this.m_CameraUpdateSystem.direction);
-//    this.m_FoliageVFX.SetBool       ("DebugDistantGrass", grassPrefab.DebugDistantGrass);
-//    this.m_FoliageVFX.SetBool       ("DebugGrassLOD", grassPrefab.DebugGrassLOD);
-//    this.m_FoliageVFX.SetTexture    ("Grass_BaseColorMap", m_GrassBaseColorMap);
-//    this.m_FoliageVFX.SetVector4    ("Grass_ColorRandom1", grassPrefab.Grass_ColorRandom1);
-//    this.m_FoliageVFX.SetVector4    ("Grass_ColorRandom2", grassPrefab.Grass_ColorRandom2);
-//    this.m_FoliageVFX.SetFloat      ("Grass_Coverage", grassPrefab.Grass_Coverage);
-//    this.m_FoliageVFX.SetBool       ("Grass_Enabled", grassPrefab.Grass_Enabled);
-//    this.m_FoliageVFX.SetVector2    ("Grass_FlipBookSize", grassPrefab.Grass_FlipBookSize);
-//    this.m_FoliageVFX.SetFloat      ("Grass_LOD0CullDistance", grassPrefab.Grass_LOD0CullDistance);
-//    this.m_FoliageVFX.SetFloat      ("Grass_LOD0ParticleCount", grassPrefab.Grass_LOD0ParticleCount);
-//    this.m_FoliageVFX.SetFloat      ("Grass_LOD1CullDistance", grassPrefab.Grass_LOD1CullDistance);
-//    this.m_FoliageVFX.SetFloat      ("Grass_LOD1ParticleCount", grassPrefab.Grass_LOD1ParticleCount);
-//    this.m_FoliageVFX.SetFloat      ("Grass_LOD2CullDistance", grassPrefab.Grass_LOD2CullDistance);
-//    this.m_FoliageVFX.SetFloat      ("Grass_LOD2ParticleCount", grassPrefab.Grass_LOD2ParticleCount);
-//    this.m_FoliageVFX.SetFloat      ("Grass_NoiseScale", grassPrefab.Grass_NoiseScale);
-//    //this.m_FoliageVFX.SetTexture    ("Grass_NormalMap", grassPrefab.Grass_NormalMap);
-//    this.m_FoliageVFX.SetFloat      ("Grass_NormalScale", grassPrefab.Grass_NormalScale);
-//    this.m_FoliageVFX.SetVector2    ("Grass_QuadSize", grassPrefab.Grass_QuadSize);
-//    this.m_FoliageVFX.SetFloat      ("Grass_ScaleMultiplier", grassPrefab.Grass_ScaleMultiplier);
-//    this.m_FoliageVFX.SetFloat      ("Grass_ScaleRandom", grassPrefab.Grass_ScaleRandom);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex1", grassPrefab.Grass_SplatIndex1);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex2", grassPrefab.Grass_SplatIndex2);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex3", grassPrefab.Grass_SplatIndex3);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex4", grassPrefab.Grass_SplatIndex4);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex5", grassPrefab.Grass_SplatIndex5);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex6", grassPrefab.Grass_SplatIndex6);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex7", grassPrefab.Grass_SplatIndex7);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex8", grassPrefab.Grass_SplatIndex8);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex9", grassPrefab.Grass_SplatIndex9);
-//    this.m_FoliageVFX.SetInt        ("Grass_SplatIndex10", grassPrefab.Grass_SplatIndex10);
-//    this.m_FoliageVFX.SetVector2    ("Grass_YAngleRange", grassPrefab.Grass_YAngleRange);
-//    this.m_FoliageVFX.SetTexture    ("Heightmap", this.m_TerrainSystem.heightmap);
-//    this.m_FoliageVFX.SetFloat      ("Heightmap_SamplingScale", grassPrefab.Heightmap_SamplingScale);
-//    this.m_FoliageVFX.SetFloat      ("HeightmapYScale", grassPrefab.HeightmapYScale);
-//    this.m_FoliageVFX.SetBool       ("IndexOverride", grassPrefab.IndexOverride);
-
-//    this.m_FoliageVFX.SetBool       ("Scatter1_Enabled", grassPrefab.Scatter_Enabled);
-
-//    //this.m_FoliageVFX.SetTexture("Splatmap", m_UserPaintedGrassTexture);
-//    this.m_FoliageVFX.SetTexture    ("Splatmap", this.m_TerrainMaterialSystem.splatmap);
-//    this.m_FoliageVFX.SetFloat      ("Splatmap_SamplingScale", grassPrefab.Splatmap_SamplingScale);
-//    this.m_FoliageVFX.SetFloat      ("Splatmap_WeightBlendStrength", grassPrefab.Splatmap_WeightBlendStrength);
-//    this.m_FoliageVFX.SetVector3    ("TerrainBounds_center", terrainBounds.center);
-//    this.m_FoliageVFX.SetVector3    ("TerrainBounds_size", terrainBounds.size);
-//    this.m_FoliageVFX.SetVector3    ("VolumeScale", grassPrefab.VolumeScale);
-
 //}
 
 //private void CreateDynamicVFXIfNeeded()

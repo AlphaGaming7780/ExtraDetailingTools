@@ -264,7 +264,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 					<div className={InfoRowSCSS.infoRow}>
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.uppercase)}>{e.group}</div>
 					</div>
-					<div className={classNames(InfoRowSCSS.infoRow, InfoRowSCSS.subRow, InfoRowSCSS.link)} >
+					<div className={classNames(InfoRowSCSS.infoRow, InfoRowSCSS.subRow, InfoRowSCSS.link, TransfromSectionSCSS.TransfromSection)} >
 
 						<CollapsiblePanel expanded={false} className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel } headerText={translate("Editor.POSITION")} >
 							<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)}>

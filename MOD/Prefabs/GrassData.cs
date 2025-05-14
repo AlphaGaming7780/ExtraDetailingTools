@@ -1,13 +1,5 @@
 ﻿using Colossal.Serialization.Entities;
 using ExtraDetailingTools.Structs;
-using ExtraDetailingTools.Systems.Tools;
-using Game.Prefabs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Unity.Collections;
 using Unity.Entities;
 
 namespace ExtraDetailingTools.Prefabs

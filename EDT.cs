@@ -83,6 +83,13 @@ namespace ExtraDetailingTools
             uIObject.m_Icon = Icons.GetIcon(gameGrassPrefab);
             EL.m_PrefabSystem.AddPrefab(gameGrassPrefab);
 
+            GrassPrefabNew grassPrefabNew = UnityEngine.ScriptableObject.CreateInstance<GrassPrefabNew>();
+            grassPrefabNew.name = "GrassPrefabNew";
+            UIObject uIObject1 = grassPrefabNew.AddComponent<UIObject>();
+            uIObject1.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
+            uIObject1.m_Icon = Icons.GetIcon(grassPrefabNew);
+            EL.m_PrefabSystem.AddPrefab(grassPrefabNew);
+
             harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
             harmony.PatchAll(typeof(EDT).Assembly);
             var patchedMethods = harmony.GetPatchedMethods().ToArray();
