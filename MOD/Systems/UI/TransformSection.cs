@@ -132,7 +132,6 @@ namespace ExtraDetailingTools.Systems.UI
 			transformSectionGetRot.Update();
 			transformSectionGetScale.Update();
 			UpdateAxis();
-
         }
 
 		private void UpdateAxis()
@@ -414,7 +413,6 @@ namespace ExtraDetailingTools.Systems.UI
 			EntityManager.AddComponentData(selectedEntity, new Game.Common.Updated());
 			transformSectionGetPos.Update();
 			transformSectionGetRot.Update();
-
 		}
 
 		private void UpdateInstalledUpgrade(Entity entity, float3 positionOffset, float3 rotationOffset)

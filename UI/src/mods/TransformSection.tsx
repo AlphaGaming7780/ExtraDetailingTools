@@ -1,16 +1,15 @@
-﻿import { InfoSectionSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
-import { InfoRowSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
-import { EditorItemSCSS } from "../../game-ui/editor/widgets/item/editor-item.module.scss";
-import TransfromSectionSCSS from "./Styles/TransformSection.module.scss";
-import { trigger, useValue } from "cs2/api";
-import { bindValue } from "cs2/api";
-import { FormEvent, MouseEvent, ReactElement, WheelEvent } from "react";
-import { ActionButtonSCSS } from "../../game-ui/game/components/selected-info-panel/selected-info-sections/shared-sections/actions-section/action-button.module.scss";
+﻿import classNames from "classnames";
+import { bindValue, trigger, useValue } from "cs2/api";
+import { SelectedInfoSectionBase } from "cs2/bindings";
 import { useLocalization } from "cs2/l10n";
 import { Tooltip } from "cs2/ui";
-import classNames from "classnames";
+import { ChangeEvent, MouseEvent, WheelEvent, useEffect, useState } from "react";
 import { CollapsiblePanel } from "../../game-ui/common/panel/collapsible-panel";
-import { SelectedInfoSectionBase, TypeFromMap } from "cs2/bindings";
+import { EditorItemSCSS } from "../../game-ui/editor/widgets/item/editor-item.module.scss";
+import { ActionButtonSCSS } from "../../game-ui/game/components/selected-info-panel/selected-info-sections/shared-sections/actions-section/action-button.module.scss";
+import { InfoRowSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
+import { InfoSectionSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
+import TransfromSectionSCSS from "./Styles/TransformSection.module.scss";
 
 export interface Float3 {
 	x: number,
@@ -48,27 +47,27 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 
 		const { translate } = useLocalization();
 
-		function OnChange(event: FormEvent<HTMLInputElement>) {
-			if (event.target instanceof HTMLInputElement) {
-				let number = parseFloat(event.target.value);
-				if (Number.isNaN(number)) return;
-				event.target.value = number.toString();
-				switch (event.target.id) {
-					case "POSI": PositionIncrement = number; triggerIncPos(); break;
-					//case "pX": pos.x = number; triggerPos(); break;
-					//case "pY": pos.y = number; triggerPos(); break;
-					//case "pZ": pos.z = number; triggerPos(); break;
-					case "ROTI": RotationIncrement = number; triggerIncRot(); break;
-					//case "rX": rot.x = number; triggerRot(); break;
-					//case "rY": rot.x = number; triggerRot(); break;
-					//case "rZ": rot.x = number; triggerRot(); break;
-					case "SCALEI": ScaleIncrement = number; triggerIncScale(); break;
-					case "SCALEX": scale.x = number; triggerScale(); break;
-					case "SCALEY": scale.y = number; triggerScale(); break;
-					case "SCALEZ": scale.z = number; triggerScale(); break;
-				}
-				trigger("audio", "playSound", "hover-item", 1)
+		function OnChange(event: ChangeEvent<HTMLInputElement>) {
+
+			let number = parseFloat(event.target.value);
+			if (Number.isNaN(number)) return;
+			//event.target.value = number.toString();
+			switch (event.target.id) {
+				case "POSI": PositionIncrement = number; triggerIncPos(); break;
+				case "POSX": triggerPos(number - pos.x, 0, 0); break;
+				case "POSY": triggerPos(0, number - pos.y, 0); break;
+				case "POSZ": triggerPos(0, 0, number - pos.z); break;
+				case "ROTI": RotationIncrement = number; triggerIncRot(); break;
+				case "ROTX": triggerRot(number - rot.x, 0, 0); break;
+				case "ROTY": triggerRot(0, number - rot.y, 0); break;
+				case "ROTZ": triggerRot(0, 0, number - rot.z); break;
+				case "SCALEI": ScaleIncrement = number; triggerIncScale(); break;
+				case "SCALEX": scale.x = number; triggerScale(); break;
+				case "SCALEY": scale.y = number; triggerScale(); break;
+				case "SCALEZ": scale.z = number; triggerScale(); break;
 			}
+			trigger("audio", "playSound", "hover-item", 1)
+
 		}
 
 		function OnScroll(event: WheelEvent) {
@@ -110,7 +109,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 						RotationIncrement = parseFloat(event.target.value)
 						triggerIncRot();
 						break;
-					case "ROTX":
+					case "cX":
 						triggerRot(rotValue , 0 ,0)
 						break;
 					case "ROTY":
@@ -212,7 +211,31 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 			</>
 		}
 
-		function Inputs(id: string, inputValue: Float3, useIncrement: Boolean, increment : number = 0, canPast: boolean = true): JSX.Element {
+		function Inputs(id: string, inputValue: Float3, useIncrement: Boolean, increment: number = 0, canPast: boolean = true): JSX.Element {
+
+			const [X, setX] = useState(inputValue.x.toString())
+			const [Y, setY] = useState(inputValue.y.toString())
+			const [Z, setZ] = useState(inputValue.z.toString())
+			const [incrementValue, setIncrementValue] = useState(increment)
+
+			function UpdateValue(event: ChangeEvent<HTMLInputElement>, fucntion : any)
+			{
+				let number = parseFloat(event.target.value);
+                let newValue: string = ""
+				if (!Number.isNaN(number)) newValue = number.toString();
+				fucntion(newValue)
+			}
+
+			useEffect(() => {
+
+				setX(inputValue.x.toString())
+				setY(inputValue.y.toString())
+				setZ(inputValue.z.toString())
+                setIncrementValue(increment)
+
+			}, [inputValue, increment])
+
+
 			return <>
 
 				<div className={classNames(InfoRowSCSS.right, useIncrement ? TransfromSectionSCSS.TransfromSectionInputs : TransfromSectionSCSS.TransfromSectionInputsWithoutIncrement)}>
@@ -221,26 +244,26 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 							<div>
 								<span>↕</span>
 								<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_I`)}>
-									<input id={`${id}I`} value={increment} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+									<input id={`${id}I`} value={incrementValue} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => { UpdateValue(event, setIncrementValue); OnChange(event); } } onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
 								</Tooltip>
 							</div> : <></>
 						}
 						<div>
 							<span>X</span>
 							<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_X`)}>
-								<input id={`${id}X`} value={inputValue.x.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+								<input id={`${id}X`} value={X} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => { UpdateValue(event, setX); OnChange(event); }} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
 							</Tooltip>
 						</div> 
 						<div>
 							<span>Y</span>
 							<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_Y`)}>
-								<input id={`${id}Y`} value={inputValue.y.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+								<input id={`${id}Y`} value={Y} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => { UpdateValue(event, setY); OnChange(event); }} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
 							</Tooltip>
 						</div>
 						<div>
 							<span>Z</span>
 							<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_Z`)}>
-								<input id={`${id}Z`} value={inputValue.z.toString()} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={OnChange} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+								<input id={`${id}Z`} value={Z} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => { UpdateValue(event, setZ); OnChange(event); }} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
 							</Tooltip>
 						</div>
 					</div>
