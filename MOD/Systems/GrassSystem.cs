@@ -1,4 +1,5 @@
-﻿using Colossal.Entities;
+﻿#if Extra4
+using Colossal.Entities;
 using Colossal.Mathematics;
 using Colossal.Serialization.Entities;
 using ExtraDetailingTools.Prefabs;
@@ -10,7 +11,9 @@ using Game.Prefabs;
 using Game.Simulation;
 using Game.Tools;
 using System;
+#if RELEASE
 using Unity.Burst;
+#endif
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -361,3 +364,4 @@ namespace ExtraDetailingTools.Systems
         }
     }
 }
+#endif

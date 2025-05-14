@@ -335,6 +335,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 							{Inputs("SCALE", scale, true, ScaleIncrement, canPastScale)}
 
 						</CollapsiblePanel>
+
 					</div>
 				</div>
 			</div>

@@ -63,10 +63,12 @@ namespace ExtraDetailingTools
             updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
             //updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
             updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
+#if Extra4
             updateSystem.UpdateAfter<TransformObjectSystem>(SystemUpdatePhase.Rendering);
             updateSystem.UpdateAt<GrassToolSystem>(SystemUpdatePhase.ToolUpdate);
             updateSystem.UpdateAt<GrassSystem>(SystemUpdatePhase.ModificationEnd);
             updateSystem.UpdateAt<GrassRenderSystem>(SystemUpdatePhase.PreCulling);
+#endif
 
             SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
             selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
@@ -75,6 +77,8 @@ namespace ExtraDetailingTools
              objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
 
             //PrefabsHelper.LoadPrefabsInDirectory(Path.Combine(fileInfo.Directory.FullName, "Prefabs"));
+
+#if Extra4
 
             GameGrassPrefab gameGrassPrefab = UnityEngine.ScriptableObject.CreateInstance<GameGrassPrefab>();
             gameGrassPrefab.name = "GameGrassPrefab";
@@ -89,6 +93,8 @@ namespace ExtraDetailingTools
             uIObject1.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
             uIObject1.m_Icon = Icons.GetIcon(grassPrefabNew);
             EL.m_PrefabSystem.AddPrefab(grassPrefabNew);
+
+#endif
 
             harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
             harmony.PatchAll(typeof(EDT).Assembly);

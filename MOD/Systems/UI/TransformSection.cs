@@ -1,5 +1,5 @@
-﻿using Colossal.Entities;
-using Colossal.Json;
+﻿using System;
+using Colossal.Entities;
 using Colossal.Mathematics;
 using Colossal.UI.Binding;
 using ExtraDetailingTools.Prefabs;
@@ -10,13 +10,13 @@ using Game.Prefabs;
 using Game.Rendering;
 using Game.Tools;
 using Game.UI.InGame;
-using System;
+#if RELEASE
 using Unity.Burst;
+#endif
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using EditorContainer = Game.Tools.EditorContainer;
 using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Systems.UI
@@ -179,7 +179,7 @@ namespace ExtraDetailingTools.Systems.UI
 			{
 				float3 xAxis = new(linesLenght.x, 0f, 0f);
 				float3 yAxis = new(0f, linesLenght.y, 0f);
-				float3 zAxis = new(0f, 0f, linesLenght.z);
+                float3 zAxis = new(0f, 0f, linesLenght.z);
 				if (useLocalAxis)
 				{
 					float sinX = linesLenght.z * Mathf.Sin(rot.y * Mathf.PI / 180);
@@ -191,9 +191,10 @@ namespace ExtraDetailingTools.Systems.UI
 					xAxis = new(sinX, 0, cosX);
 					zAxis = new(sinZ, 0, cosZ);
 				}
-				m_OverlayBuffer.DrawLine(UnityEngine.Color.red,		UnityEngine.Color.red,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + xAxis), 0.1f, 0.5f);
-				m_OverlayBuffer.DrawLine(UnityEngine.Color.green,	UnityEngine.Color.green,	0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + yAxis), 0.1f, 0.5f);
-				m_OverlayBuffer.DrawLine(UnityEngine.Color.blue,	UnityEngine.Color.blue,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos, pos + zAxis), 0.1f, 0.5f);
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.red,		UnityEngine.Color.red,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos,							pos + xAxis),							0.1f, 0.5f);
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.green,	UnityEngine.Color.green,	0, OverlayRenderSystem.StyleFlags.Grid, new(pos + new float3(-0.001f, 0, 0),	pos + yAxis + new float3(0.001f, 0, 0)),	0.1f, 0.5f);
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.green,	UnityEngine.Color.green,	0, OverlayRenderSystem.StyleFlags.Grid, new(pos + new float3(0, 0, -0.001f),	pos + yAxis + new float3(0, 0, 0.001f)),	0.1f, 0.5f);
+                m_OverlayBuffer.DrawLine(UnityEngine.Color.blue,	UnityEngine.Color.blue,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos,							pos + zAxis),							0.1f, 0.5f);
 			}
 		}
 
@@ -253,7 +254,9 @@ namespace ExtraDetailingTools.Systems.UI
 			TransformObject transformObject = EntityManager.GetComponentData<TransformObject>(selectedEntity);
 			transformObject.m_Scale = scale;
 			EntityManager.SetComponentData(selectedEntity, transformObject);
-		}
+            EntityManager.AddComponentData<Updated>(selectedEntity, default);
+            transformSectionGetScale.Update();
+        }
 
 		private void Copy(string id)
 		{

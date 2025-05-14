@@ -1,4 +1,5 @@
-﻿using Colossal.Rendering;
+﻿#if Extra4
+using Colossal.Rendering;
 using ExtraDetailingTools.Prefabs;
 using Game;
 using Game.Common;
@@ -6,7 +7,9 @@ using Game.Objects;
 using Game.Rendering;
 using Game.Simulation;
 using Game.Tools;
+#if RELEASE
 using Unity.Burst;
+#endif
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
@@ -185,3 +188,4 @@ namespace ExtraDetailingTools.Systems
 		}
 	}
 }
+#endif
