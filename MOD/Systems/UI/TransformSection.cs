@@ -153,17 +153,17 @@ namespace ExtraDetailingTools.Systems.UI
                 //linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
                 _moveHandle.Setup(transform.m_Position, transform.m_Rotation, linesLenght);
 
-                RenderAxisJob renderAxisJob = new()
-                {
-                    m_OverlayBuffer = _overlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
-                    pos = transform.m_Position,
-                    linesLenght = linesLenght,
-                    rot = GetRotation(),
-                    useLocalAxis = useLocalAxis,
-                };
-                JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
-                _overlayRenderSystem.AddBufferWriter(jobHandle);
-                Dependency = jobHandle;
+                //RenderAxisJob renderAxisJob = new()
+                //{
+                //    m_OverlayBuffer = _overlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
+                //    pos = transform.m_Position,
+                //    linesLenght = linesLenght,
+                //    rot = GetRotation(),
+                //    useLocalAxis = useLocalAxis,
+                //};
+                //JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
+                //_overlayRenderSystem.AddBufferWriter(jobHandle);
+                //Dependency = jobHandle;
             }
 			else
 			{

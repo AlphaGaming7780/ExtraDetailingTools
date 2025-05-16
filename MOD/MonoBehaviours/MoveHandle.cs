@@ -1,4 +1,8 @@
-﻿using Unity.Mathematics;
+﻿using ExtraLib;
+using Game.Prefabs;
+using Game.Rendering;
+using Unity.Entities;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace ExtraDetailingTools.MonoBehaviours
@@ -16,12 +20,23 @@ namespace ExtraDetailingTools.MonoBehaviours
 
         float3 linesLenght;
 
+        Material _material;
+
         public void Start()
         {
             //gameObject.SetActive(false);
             gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
             enabled = false;
 
+            _material = new Material(Shader.Find("Shader Graphs/OverlayCurve"));
+
+            //Shader[] shaders = Resources.FindObjectsOfTypeAll<Shader>();
+
+            //foreach (Shader shader in shaders)
+            //{
+            //    EDT.Logger.Info(shader.name);
+                
+            //}
 
             //for (int i = 0; i < 32; i++)
             //{
@@ -91,9 +106,6 @@ namespace ExtraDetailingTools.MonoBehaviours
             //gameObject.transform.rotation = rotation;
 
             CreateAxisHandles();
-
-            //gameObject.SetActive(true);
-            //enabled = true;
         }
 
         public void DestroyAxisHandles()
@@ -125,12 +137,29 @@ namespace ExtraDetailingTools.MonoBehaviours
             line.transform.localScale = new Vector3(0.1f, linelenght, 0.1f);
             line.transform.rotation = Quaternion.FromToRotation(Vector3.up, direction);
             MeshRenderer meshRendere = line.GetComponent<MeshRenderer>();
-            
-            //if(meshRendere.material != null) Destroy(meshRendere.material);
-            //meshRendere.material = new Material(Shader.Find("Unlit/Color"));
-            meshRendere.material.color = color;
+
+            if(meshRendere.material != null) Destroy(meshRendere.material);
+
+            //OverlayConfigurationPrefab singletonPrefab = EL.m_PrefabSystem.GetSingletonPrefab<OverlayConfigurationPrefab>(GetEntityQuery(ComponentType.ReadOnly<OverlayConfigurationData>()););
+            //material = new Material(singletonPrefab.m_CurveMaterial);
+
+            meshRendere.material = new(_material);
+
+            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Int)) { EDT.Logger.Info($"{meshRendere.material.name} | Int : {s}"); }
+            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Float)) { EDT.Logger.Info($"{meshRendere.material.name} | Float : {s}"); }
+            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Vector)) { EDT.Logger.Info($"{meshRendere.material.name} | Vector : {s}"); }
+            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Texture)) { EDT.Logger.Info($"{meshRendere.material.name} | Texture : {s}"); }
+            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Matrix)) { EDT.Logger.Info($"{meshRendere.material.name} | Matrix : {s}"); }
+            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.ConstantBuffer)) { EDT.Logger.Info($"{meshRendere.material.name} | ConstantBuffer : {s}"); }
+            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.ComputeBuffer)) { EDT.Logger.Info($"{meshRendere.material.name} | ComputeBuffer : {s}"); }
+
+            //meshRendere.material = new Material(Shader.Find("HDRP/Unlit"));
+            //meshRendere.material = new Material(Shader.Find("BH/Overlay/CurvedOverlayShader"));
+            //meshRendere.material.color = color;
+            meshRendere.material.SetVector("_EmissionColor", color);
             line.transform.SetParent(gameObject.transform);
             line.transform.localPosition = line.transform.rotation * line.transform.localScale / 2;
+
             //GameObject arrow = new();
             //MeshFilter meshFilter = arrow.AddComponent<MeshFilter>();
             //meshFilter.mesh = GenerateCone(0.1f, 0.5f, 10);
