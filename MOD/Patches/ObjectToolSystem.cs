@@ -15,19 +15,19 @@ namespace ExtraDetailingTools.Patches
     class ObjectToolSystemPatch
     {
 
-        [HarmonyPatch(typeof(ObjectToolSystem), "OnStartRunning")]
-        class ObjectToolSystem_OnStartRunning
-        {
-            static bool first = true;
-            public static void Postfix(ObjectToolSystem __instance)
-            {
-                if (first)
-                {
-                    __instance.selectedSnap &= ~(Snap.NetArea);
-                    first = false;
-                }
-            }
-        }
+        //[HarmonyPatch(typeof(ObjectToolSystem), "OnStartRunning")]
+        //class ObjectToolSystem_OnStartRunning
+        //{
+        //    static bool first = true;
+        //    public static void Postfix(ObjectToolSystem __instance)
+        //    {
+        //        if (first)
+        //        {
+        //            __instance.selectedSnap &= ~(Snap.NetArea);
+        //            first = false;
+        //        }
+        //    }
+        //}
 
 
         [HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
@@ -63,6 +63,7 @@ namespace ExtraDetailingTools.Patches
         ]
         class ObjectToolSystem_GetAvailableSnapMask
         {
+            static bool first = true;
             private static void Postfix(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, ObjectToolSystem.Mode mode, ref Snap onMask, ref Snap offMask) //, object[] __args, 
             {
                 if (EDT.objectToolSystem.actualMode != ObjectToolSystem.Mode.Create) return;
@@ -71,6 +72,13 @@ namespace ExtraDetailingTools.Patches
                 {
                     onMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea;
                     offMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea;
+
+                    if (first)
+                    {
+                        EDT.objectToolSystem.selectedSnap &= ~(Snap.NetArea);
+                        first = false;
+                    }
+
                 }
             }
         }

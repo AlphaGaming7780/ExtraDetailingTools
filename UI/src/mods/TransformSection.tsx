@@ -10,6 +10,8 @@ import { ActionButtonSCSS } from "../../game-ui/game/components/selected-info-pa
 import { InfoRowSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
 import { InfoSectionSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
 import TransfromSectionSCSS from "./Styles/TransformSection.module.scss";
+import { PropsToolButton, ToolButton } from "../../game-ui/game/components/tool-options/tool-button/tool-button";
+import { PropsSection, Section } from "../../game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options";
 
 export interface Float3 {
 	x: number,
@@ -17,6 +19,9 @@ export interface Float3 {
 	z: number
 }
 
+interface TransformSectionProps extends SelectedInfoSectionBase {
+	AsSubBuilding?: boolean
+}
 
 export const pos$ = bindValue<Float3>("edt", 'transformsection_pos');
 export const rot$ = bindValue<Float3>("edt", 'transformsection_rot');
@@ -25,6 +30,7 @@ export const incPos$ = bindValue<number>("edt", 'transformsection_incpos');
 export const incRot$ = bindValue<number>("edt", 'transformsection_incrot');
 export const incScale$ = bindValue<number>("edt", 'transformsection_incscale');
 export const localAxis$ = bindValue<boolean>("edt", 'transformsection_localaxis');
+export const moveSubBuildings$ = bindValue<boolean>("edt", 'transformsection_movesubbuildings');
 
 export const canPastPos$ = bindValue<boolean>("edt", "transformsection_canpastpos");
 export const canPastRot$ = bindValue<boolean>("edt", "transformsection_canpastrot");
@@ -32,7 +38,7 @@ export const canPastScale$ = bindValue<boolean>("edt", "transformsection_canpast
 
 export const TransformSection = (componentList: {[x: string]: any; }): any => {
 
-	componentList["ExtraDetailingTools.Systems.UI.TransformSection"] = (e: SelectedInfoSectionBase) => {
+	componentList["ExtraDetailingTools.Systems.UI.TransformSection"] = (e: TransformSectionProps) => {
 		const pos: Float3 = useValue(pos$);
 		const rot: Float3 = useValue(rot$);
 		const scale: Float3 = useValue(scale$);
@@ -40,12 +46,27 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 		var RotationIncrement: number = useValue(incRot$);
 		var ScaleIncrement: number = useValue(incScale$);
 		var localAxis: boolean = useValue(localAxis$);
+        var moveSubBuildings: boolean = useValue(moveSubBuildings$);
 
 		var canPastPos: boolean = useValue(canPastPos$);
 		var canPastRot: boolean = useValue(canPastRot$);
 		var canPastScale: boolean = useValue(canPastScale$);
 
 		const { translate } = useLocalization();
+
+		console.log(e)
+
+		let PropsToolButton: PropsToolButton = {
+			selected: moveSubBuildings,
+			tooltip: translate("SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip"),
+			src: "Media/Tools/Snap Options/All.svg",
+			onSelect: () => { trigger("edt", "transformsection_movesubbuildings") }
+		}
+
+		let MoveSubbuildingsProps: PropsSection = {
+			title: translate("SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings"), 
+			children: ToolButton(PropsToolButton)
+		}
 
 		function OnChange(event: ChangeEvent<HTMLInputElement>) {
 
@@ -313,6 +334,8 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 							</div>
 
 							{Inputs("POS", pos, true, PositionIncrement, canPastPos)}
+							{e.AsSubBuilding ? Section(MoveSubbuildingsProps) : <></> }
+
 						</CollapsiblePanel>
 
 						<CollapsiblePanel expanded={false} className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel} headerText={translate("PhotoMode.PROPERTY_TITLE[Rotation]")} >
@@ -335,6 +358,8 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 							</div>
 
 							{Inputs("ROT", rot, true, RotationIncrement, canPastRot)}
+							{e.AsSubBuilding ? Section(MoveSubbuildingsProps) : <></>}
+
 						</CollapsiblePanel>
 
 						<CollapsiblePanel expanded={false} className={TransfromSectionSCSS.TransfromSectionCollapsiblePanel} headerText={translate("SelectedInfoPanel.TRANSFORMTOOL.SCALE")} >

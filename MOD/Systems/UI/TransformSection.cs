@@ -52,8 +52,9 @@ namespace ExtraDetailingTools.Systems.UI
         private GetterValueBinding<double> transformSectionGetIncScale;
 
         private GetterValueBinding<bool> transformSectionGetLocalPos;
+        private GetterValueBinding<bool> transformSectionMoveSubBuilding;
 
-		private GetterValueBinding<bool> transformSectionCanPastPos;
+        private GetterValueBinding<bool> transformSectionCanPastPos;
         private GetterValueBinding<bool> transformSectionCanPastRot;
         private GetterValueBinding<bool> transformSectionCanPastScale;
 
@@ -62,6 +63,7 @@ namespace ExtraDetailingTools.Systems.UI
 		private Transform transform;
 		private bool useLocalAxis = false;
 		private bool showAxis = false;
+		private bool moveSubBuilding = true;
 
 		protected override string group => "Transform Tool";
 		protected override bool displayForUpgrades => true;
@@ -102,6 +104,9 @@ namespace ExtraDetailingTools.Systems.UI
 
             AddBinding(transformSectionGetLocalPos = new GetterValueBinding<bool>("edt", "transformsection_localaxis", () => useLocalAxis));
             AddBinding(new TriggerBinding("edt", "transformsection_localaxis", new Action(UseLocalAxis)));
+
+            AddBinding(transformSectionMoveSubBuilding = new GetterValueBinding<bool>("edt", "transformsection_movesubbuildings", () => moveSubBuilding));
+            AddBinding(new TriggerBinding("edt", "transformsection_movesubbuildings", () => SetMoveSubBuilding(!moveSubBuilding) ));
 
             AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
 
@@ -151,24 +156,24 @@ namespace ExtraDetailingTools.Systems.UI
 
                 float3 linesLenght = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
                 //linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
-                _moveHandle.Setup(transform.m_Position, transform.m_Rotation, linesLenght);
+                //_moveHandle.Setup(transform.m_Position, transform.m_Rotation, linesLenght);
 
-                //RenderAxisJob renderAxisJob = new()
-                //{
-                //    m_OverlayBuffer = _overlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
-                //    pos = transform.m_Position,
-                //    linesLenght = linesLenght,
-                //    rot = GetRotation(),
-                //    useLocalAxis = useLocalAxis,
-                //};
-                //JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
-                //_overlayRenderSystem.AddBufferWriter(jobHandle);
-                //Dependency = jobHandle;
-            }
-			else
-			{
-				_moveHandle.DestroyAxisHandles();
+				RenderAxisJob renderAxisJob = new()
+				{
+					m_OverlayBuffer = _overlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
+					pos = transform.m_Position,
+					linesLenght = linesLenght,
+					rot = GetRotation(),
+					useLocalAxis = useLocalAxis,
+				};
+				JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
+				_overlayRenderSystem.AddBufferWriter(jobHandle);
+				Dependency = jobHandle;
 			}
+			//else
+			//{
+			//	_moveHandle.DestroyAxisHandles();
+			//}
 
 		}
 
@@ -207,7 +212,26 @@ namespace ExtraDetailingTools.Systems.UI
 			}
 		}
 
-		public override void OnWriteProperties(IJsonWriter writer) { }
+		public override void OnWriteProperties(IJsonWriter writer) 
+		{
+
+			bool AsSubBuilding = false;
+
+            if (EntityManager.HasComponent<Building>(selectedEntity) && EntityManager.TryGetBuffer<InstalledUpgrade>(selectedEntity, true, out DynamicBuffer<InstalledUpgrade> installedUpgrades))
+			{
+                foreach (InstalledUpgrade installedUpgrade in installedUpgrades)
+                {
+                    if (EntityManager.HasComponent<Building>(installedUpgrade))
+                    {
+                        AsSubBuilding = true;
+                        break;
+                    }
+                }
+            }
+
+            writer.PropertyName("AsSubBuilding");
+			writer.Write(AsSubBuilding);
+        }
 
 		protected override void Reset() { }
 
@@ -234,7 +258,13 @@ namespace ExtraDetailingTools.Systems.UI
 			transformSectionGetPos.Update();
 		}
 
-		private float3 GetScale()
+		private void SetMoveSubBuilding(bool b)
+        {
+            moveSubBuilding = b;
+            transformSectionMoveSubBuilding.Update();
+        }
+
+        private float3 GetScale()
 		{
 			if (!EntityManager.HasComponent<TransformObject>(selectedEntity)) return new float3(1, 1, 1);
 
@@ -434,10 +464,17 @@ namespace ExtraDetailingTools.Systems.UI
 
 				foreach (Game.Buildings.InstalledUpgrade installedUpgrade in installedUpgrades)
 				{
+
+					if ( !moveSubBuilding && EntityManager.HasComponent<Building>(installedUpgrade))
+					{
+						continue;
+					}
+
 					if (!EntityManager.TryGetComponent(installedUpgrade, out Game.Objects.Transform transform1))
 					{
 						continue;
 					}
+
 					if (EntityManager.TryGetComponent(installedUpgrade, out PrefabRef prefabRef1) && EntityManager.TryGetComponent(prefabRef1.m_Prefab, out ObjectGeometryData geometryData1) && EntityManager.TryGetComponent(installedUpgrade, out CullingInfo cullingInfo1))
 					{
 						cullingInfo1.m_Bounds = ObjectUtils.CalculateBounds(transform1.m_Position, transform1.m_Rotation, geometryData1);
@@ -472,7 +509,7 @@ namespace ExtraDetailingTools.Systems.UI
 			if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Areas.SubArea> subAreas))
 			{
 
-				Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
+				//Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
 
 				foreach (Game.Areas.SubArea subArea in subAreas)
 				{
@@ -480,10 +517,14 @@ namespace ExtraDetailingTools.Systems.UI
 					{
 						for(int i = 0; i< nodes.Length; i++)
 						{
-							float3 ogVector = nodes.ElementAt(i).m_Position - parentTransform.m_Position;
-							float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
-							nodes.ElementAt(i).m_Position = parentTransform.m_Position + positionOffset + offset;
-						}
+							//float3 ogVector = nodes.ElementAt(i).m_Position - parentTransform.m_Position;
+							//float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
+							//nodes.ElementAt(i).m_Position = parentTransform.m_Position + positionOffset + offset;
+
+                            float3 ogVector = nodes.ElementAt(i).m_Position - transform.m_Position;
+                            float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
+                            nodes.ElementAt(i).m_Position = transform.m_Position + positionOffset + offset;
+                        }
 					}
 					EntityManager.AddComponentData(subArea.m_Area, new Game.Common.Updated());
 				}
@@ -495,19 +536,26 @@ namespace ExtraDetailingTools.Systems.UI
 			if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Objects.SubObject> subObjects))
 			{
 
-				Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
+				//Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
 
 				foreach (Game.Objects.SubObject subObject in subObjects)
 				{
 					if (EntityManager.TryGetComponent(subObject.m_SubObject, out Transform transform))
 					{
 
-						float3 ogVector = transform.m_Position - parentTransform.m_Position;
-						float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
+						//float3 ogVector = transform.m_Position - parentTransform.m_Position;
+						//float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
 
-						transform.m_Position = parentTransform.m_Position + positionOffset + offset;
-						transform.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation(transform));
-					}
+						//transform.m_Position = parentTransform.m_Position + positionOffset + offset;
+						//transform.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation(transform));
+
+                        float3 ogVector = transform.m_Position - transform.m_Position;
+                        float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
+
+                        transform.m_Position = transform.m_Position + positionOffset + offset;
+                        transform.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation(transform));
+
+                    }
 					EntityManager.AddComponentData(subObject.m_SubObject, new Game.Common.Updated());
 				}
 			}
@@ -518,28 +566,44 @@ namespace ExtraDetailingTools.Systems.UI
 			if (EntityManager.TryGetBuffer(entity, false, out DynamicBuffer<Game.Net.SubNet> subNets))
 			{
 
-                Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
+                //Transform parentTransform = EntityManager.GetComponentData<Transform>(entity);
 
                 foreach (Game.Net.SubNet subNet in subNets)
 				{
                     if (EntityManager.TryGetComponent(subNet.m_SubNet, out Game.Net.Curve curve))
                     {
 
-                        float3 ogVectorA = curve.m_Bezier.a - parentTransform.m_Position;
+                        //float3 ogVectorA = curve.m_Bezier.a - parentTransform.m_Position;
+                        //float3 offsetA = Quaternion.Euler(rotationOffset) * ogVectorA;
+                        //curve.m_Bezier.a = parentTransform.m_Position + positionOffset + offsetA;
+
+                        //float3 ogVectorB = curve.m_Bezier.b - parentTransform.m_Position;
+                        //float3 offsetB = Quaternion.Euler(rotationOffset) * ogVectorB;
+                        //curve.m_Bezier.b = parentTransform.m_Position + positionOffset + offsetB;
+
+                        //float3 ogVectorC = curve.m_Bezier.c - parentTransform.m_Position;
+                        //float3 offsetC = Quaternion.Euler(rotationOffset) * ogVectorC;
+                        //curve.m_Bezier.c = parentTransform.m_Position + positionOffset + offsetC;
+
+                        //float3 ogVectorD = curve.m_Bezier.d - parentTransform.m_Position;
+                        //float3 offsetD = Quaternion.Euler(rotationOffset) * ogVectorD;
+                        //curve.m_Bezier.d = parentTransform.m_Position + positionOffset + offsetD;
+
+                        float3 ogVectorA = curve.m_Bezier.a - transform.m_Position;
                         float3 offsetA = Quaternion.Euler(rotationOffset) * ogVectorA;
-                        curve.m_Bezier.a = parentTransform.m_Position + positionOffset + offsetA;
+                        curve.m_Bezier.a = transform.m_Position + positionOffset + offsetA;
 
-                        float3 ogVectorB = curve.m_Bezier.b - parentTransform.m_Position;
+                        float3 ogVectorB = curve.m_Bezier.b - transform.m_Position;
                         float3 offsetB = Quaternion.Euler(rotationOffset) * ogVectorB;
-                        curve.m_Bezier.b = parentTransform.m_Position + positionOffset + offsetB;
+                        curve.m_Bezier.b = transform.m_Position + positionOffset + offsetB;
 
-                        float3 ogVectorC = curve.m_Bezier.c - parentTransform.m_Position;
+                        float3 ogVectorC = curve.m_Bezier.c - transform.m_Position;
                         float3 offsetC = Quaternion.Euler(rotationOffset) * ogVectorC;
-                        curve.m_Bezier.c = parentTransform.m_Position + positionOffset + offsetC;
+                        curve.m_Bezier.c = transform.m_Position + positionOffset + offsetC;
 
-                        float3 ogVectorD = curve.m_Bezier.d - parentTransform.m_Position;
+                        float3 ogVectorD = curve.m_Bezier.d - transform.m_Position;
                         float3 offsetD = Quaternion.Euler(rotationOffset) * ogVectorD;
-                        curve.m_Bezier.d = parentTransform.m_Position + positionOffset + offsetD;
+                        curve.m_Bezier.d = transform.m_Position + positionOffset + offsetD;
 
                         EntityManager.SetComponentData(subNet.m_SubNet, curve);
                     }

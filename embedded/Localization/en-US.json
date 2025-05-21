@@ -32,5 +32,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_I": "The increment of the scroll up/down for the scale, scroll up/down or edit the input to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_X": "The scale X local axis, scroll up/down or type to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Y": "The scale Y local axis, scroll up/down or type to change the value.",
-	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Z": "The scale Z local axis, scroll up/down or type to change the value."
+	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Z": "The scale Z local axis, scroll up/down or type to change the value.",
+	"SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings": "Move Sub-Buildings",
+	"SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip": "Enables or disables the movement of building upgrades, which are themselves separate buildings."
 }
