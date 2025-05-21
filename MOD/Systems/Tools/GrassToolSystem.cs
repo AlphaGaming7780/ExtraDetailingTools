@@ -1,5 +1,4 @@
-﻿#if Extra4
-using Colossal.Mathematics;
+﻿using Colossal.Mathematics;
 using Colossal.Serialization.Entities;
 using ExtraDetailingTools.Prefabs;
 using Game;
@@ -474,4 +473,3 @@ namespace ExtraDetailingTools.Systems.Tools
 
     }
 }
-#endif

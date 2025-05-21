@@ -1,4 +1,5 @@
-﻿using Game.Tools;
+﻿#if Extra4
+using Game.Tools;
 using Game;
 using HarmonyLib;
 using System;
@@ -30,3 +31,4 @@ namespace ExtraDetailingTools.Patches
 
     }
 }
+#endif

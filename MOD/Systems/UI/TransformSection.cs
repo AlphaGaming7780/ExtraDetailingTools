@@ -231,9 +231,17 @@ namespace ExtraDetailingTools.Systems.UI
 
             writer.PropertyName("AsSubBuilding");
 			writer.Write(AsSubBuilding);
+
+			writer.PropertyName("AllowScaling");
+#if Extra4
+            writer.Write(true);
+#else
+			writer.Write(false);
+#endif
+
         }
 
-		protected override void Reset() { }
+        protected override void Reset() { }
 
 		private void ShowHighlight(bool b)
 		{
