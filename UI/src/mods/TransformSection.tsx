@@ -131,7 +131,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 						RotationIncrement = parseFloat(event.target.value)
 						triggerIncRot();
 						break;
-					case "cX":
+					case "ROTX":
 						triggerRot(rotValue , 0 ,0)
 						break;
 					case "ROTY":

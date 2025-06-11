@@ -98,7 +98,7 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/extradetailingtools.1675592/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.2.0" />
+	<ModVersion Value="1.2.1" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.3.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -110,13 +110,9 @@ I have also have to thanks all the content creator who try the mod and build ama
   <ChangeLog>
 > Extra 4 previw 1.
 
-### Improvements
+### Fixes
 - **Transform Tools**
-> - Work for building.
-> - Copy / Past axis.
-> - The inner section are now collapsible, so they take less space.
-> - Can now write in the inputs (scroll still availible).
-- Use ExtraLib AssetMultiCategory features now.
+> - Fixes scroll on rotation X input.
   </ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
