@@ -18,6 +18,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Windows;
 using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Systems.UI
@@ -155,8 +156,11 @@ namespace ExtraDetailingTools.Systems.UI
                 }
 
                 float3 linesLenght = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
-                //linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
-                //_moveHandle.Setup(transform.m_Position, transform.m_Rotation, linesLenght);
+				//linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
+
+				//Quaternion objectRot = (Quaternion)transform.m_Rotation;
+    //            quaternion rotation = Quaternion.Euler(0, objectRot.eulerAngles.y, 0);
+    //            _moveHandle.Setup(transform.m_Position, useLocalAxis ? rotation : new quaternion(), linesLenght);
 
 				RenderAxisJob renderAxisJob = new()
 				{

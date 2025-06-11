@@ -103,7 +103,7 @@ namespace ExtraDetailingTools.MonoBehaviours
 
             linesLenght = lineslenght;
             gameObject.transform.position = position;
-            //gameObject.transform.rotation = rotation;
+            gameObject.transform.rotation = rotation;
 
             CreateAxisHandles();
         }
@@ -134,8 +134,6 @@ namespace ExtraDetailingTools.MonoBehaviours
         GameObject CreateAxisHandle(Vector3 direction, Color color, float linelenght = 100f)
         {
             GameObject line = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            line.transform.localScale = new Vector3(0.1f, linelenght, 0.1f);
-            line.transform.rotation = Quaternion.FromToRotation(Vector3.up, direction);
             MeshRenderer meshRendere = line.GetComponent<MeshRenderer>();
 
             if(meshRendere.material != null) Destroy(meshRendere.material);
@@ -158,7 +156,10 @@ namespace ExtraDetailingTools.MonoBehaviours
             //meshRendere.material.color = color;
             meshRendere.material.SetVector("_EmissionColor", color);
             line.transform.SetParent(gameObject.transform);
-            line.transform.localPosition = line.transform.rotation * line.transform.localScale / 2;
+            //line.transform.localPosition = line.transform.rotation * line.transform.localScale / 2;
+            line.transform.localScale = new Vector3(0.1f, linelenght, 0.1f);
+            line.transform.localRotation = Quaternion.FromToRotation(Vector3.up, direction);
+            line.transform.localPosition = line.transform.localRotation * line.transform.localScale / 2;
 
             //GameObject arrow = new();
             //MeshFilter meshFilter = arrow.AddComponent<MeshFilter>();

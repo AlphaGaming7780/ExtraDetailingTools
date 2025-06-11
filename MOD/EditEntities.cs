@@ -143,7 +143,18 @@ namespace ExtraDetailingTools
 					prefabUI.m_Group = PrefabsHelper.GetOrCreateUIAssetChildCategoryPrefab(assetCat, $"{catName} {assetCat.name}");
 					prefabUI.m_Group.AddElement(entity);
 
-					EL.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
+                    // Patch 1.3.3 f1 rotation fix
+                    if (!prefab.Has<PlaceableObject>())
+                    {
+                        PlaceableObject placeableObject = prefab.AddComponent<PlaceableObject>();
+                        placeableObject.m_XPReward = 0;
+                        placeableObject.m_ConstructionCost = 0;
+
+						EL.m_EntityManager.AddOrSetComponentData(entity, default(PlaceableObjectData));
+						placeableObject.Initialize(EL.m_EntityManager, entity);
+                    }
+
+                    EL.m_EntityManager.AddOrSetComponentData(entity, prefabUI.ToComponentData());
 				}
 			}
 		}

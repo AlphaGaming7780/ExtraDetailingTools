@@ -118,8 +118,8 @@ I have also have to thanks all the content creator who try the mod and build ama
 - ✔️Polish 100% : karmel68
   </ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
-  <ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
-  <ExternalLink Type="crowdin" Url="https://crowdin.com/project/extradetailingtools" />
+	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
+	<ExternalLink Type="crowdin" Url="https://crowdin.com/project/extradetailingtools" />
 	<ExternalLink Type="discord" Url="https://discord.gg/HTav7ARPs2" />
 	<ExternalLink Type="github" Url="https://github.com/AlphaGaming7780/ExtraDetailingTools" />
 	<ExternalLink Type="paypal" Url="https://www.paypal.com/paypalme/TritonSupreme" />

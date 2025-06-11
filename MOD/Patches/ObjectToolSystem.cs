@@ -29,6 +29,18 @@ namespace ExtraDetailingTools.Patches
         //    }
         //}
 
+        //Patche 1.3.3 f1 rotation fixe
+       [HarmonyPatch(typeof(ObjectToolSystem), "GetAllowRotation")]
+        class ObjectToolSystem_GetAllowRotation
+        {
+            public static void Postfix(ObjectToolSystem __instance, ref bool __result)
+            {
+                // Only filter for props
+                if (__instance.prefab is not StaticObjectPrefab || __instance.prefab is BuildingPrefab || __instance.prefab is BuildingExtensionPrefab) return;
+                __result = __instance.allowRotation;
+            }
+        }
+
 
         [HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
         class ObjectToolSystem_SnapControlPoint
