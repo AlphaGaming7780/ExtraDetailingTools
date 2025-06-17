@@ -3,94 +3,94 @@
     flex-direction: column;
 }
 
-.TransfromSectionInputs {
+.FrontRowSection {
     display: flex;
     flex-direction: column;
-    width: 100%;
+    flex-shrink: 1;
+    flex-grow: 1;
+    margin-right: 5rem;
 
-    div {
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        align-items: center;
-
-
-        > input {
-            width: 85%;
-            margin-left: 2.5rem;
-            //margin-right: 5rem;
-        }
-
-        > div {
-            width: 25%
-        }
+    > span {
+        
     }
-    //div > input {
-    //    width: 20%;
-    //    margin-left: 2.5rem;
-    //    margin-right: 5rem;
-    //}
-    //div > div {
-    //    width: 20%;
-    //}
+
+    > div {
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        flex-wrap: nowrap;
+        flex-direction: row;
+    }
 }
 
-.TransfromSectionInputsWithoutIncrement {
-    display: flex;
-    flex-direction: column;
+.TransfromSectionInputs {
     width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-basis: auto;
+    flex-grow: 1;
+    flex-shrink: 1;
+    //align-content: center;
+    justify-content: space-around;
+    align-items: flex-end;
+    flex-wrap: nowrap;
 
-    div {
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        align-items: center;
+    > button {
+        width: 22.5rem;
+        height: 22.5rem;
 
-
-        > input {
-            width: 85%;
-            margin-left: 2.5rem;
-            //margin-right: 5rem;
-        }
-
-        > div {
-            width: 33%
+        > img {
+            width: 22.5rem;
+            height: 22.5rem;
         }
     }
-    //div > input {
-    //    width: 27.8%;
-    //    margin-left: 2.5rem;
-    //    margin-right: 5rem;
-    //}
-    //div > div {
-    //    width: 27.8%;
-    //}
+
+    > div {
+        display: flex;
+        flex-direction: column;
+        align-content: center;
+        align-items: center;
+        flex-grow: 1;
+        flex-shrink: 1;
+
+        > span {
+            display: flex;
+            flex-grow: 1;
+            flex-shrink: 1;
+            overflow: hidden;
+            padding: 0 5px;
+        }
+    }
+}
+
+.TransfromSectionTinyButton {
+    width: 20rem;
+    height: 20rem;
+}
+
+.TransfromSectionButtonTinyIcon {
+    width: 18rem;
+    height: 18rem;
 }
 
 .TransfromSectionButton {
-    width: 20rem;
-    height: 20rem;
+    width: 30rem;
+    height: 30rem;
+}
+
+.TransfromSectionButtonIcon {
+    width: 28rem;
+    height: 28rem;
 }
 
 .TransfromSectionButtonSelected {
     background-color: var(--selectedColor);
 }
 
-.TransfromSectionButtonIcon {
-    width: 18rem;
-    height: 18rem;
-}
-
-.TransfromSectionCollapsiblePanel {
-    padding-bottom: 5rem;
-    --panelRadius: 10rem;
+.TransformSectionToolOption {
+    display: flex;
+    flex-direction: row;
     width: 100%;
-
-    > div:last-child  {
-        > div:last-child {
-            padding-bottom: 5rem;
-        }
-    }
+    //padding-right: 5rem;
+    justify-content: flex-end;
 }
