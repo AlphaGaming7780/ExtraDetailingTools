@@ -35,6 +35,6 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.step": "Paso",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT": "Copiar posición y rotación",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT.tooltip": "Copia la posición y la rotación del asset.",
-	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT": "Paste position & rotation",
-	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT.tooltip": "Paste the position and the rotation."
+	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT": "Pegar posición y rotación",
+	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT.tooltip": "Pega la posición y la rotación del asset previamente copiada."
 }
