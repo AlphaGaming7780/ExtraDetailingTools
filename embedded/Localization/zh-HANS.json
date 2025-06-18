@@ -33,7 +33,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings": "移动子建筑",
 	"SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip": "启用或禁用建筑物升级模块的移动功能，这些子建筑本身是与主建筑分开的建筑物。",
 	"SelectedInfoPanel.TRANSFORMTOOL.step": "Step",
-	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT": "Copy position & rotation",
+	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT": "复制位置和旋转角度",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT.tooltip": "Copy the position and the rotation.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT": "Paste position & rotation",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT.tooltip": "Paste the position and the rotation."
