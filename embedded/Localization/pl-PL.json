@@ -32,9 +32,9 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Z": "Skala na osi lokalnej Z, przewiń w górę/dół lub wpisz, aby zmienić wartość.",
 	"SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings": "Przesuń budynki dodatkowe",
 	"SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip": "Włącza/wyłącza możliwość zmiany pozycji ulepszeń budynków, które są oddzielnymi budynkami.",
-	"SelectedInfoPanel.TRANSFORMTOOL.step": "Step",
-	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT": "Copy position & rotation",
-	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT.tooltip": "Copy the position and the rotation.",
-	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT": "Paste position & rotation",
-	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT.tooltip": "Paste the position and the rotation."
+	"SelectedInfoPanel.TRANSFORMTOOL.step": "Krok",
+	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT": "Skopiuj pozycję i rotację",
+	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT.tooltip": "Skopiuj pozycję i rotację.",
+	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT": "Wklej pozycję i rotację",
+	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT.tooltip": "Wklej pozycję i rotację."
 }
