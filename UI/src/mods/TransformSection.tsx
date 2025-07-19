@@ -56,8 +56,6 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 
 		const { translate } = useLocalization();
 
-		console.log(e)
-
 		const MoveSubBuildingsButton = ToolButton({
 			selected: moveSubBuildings,
 			tooltip: translate("SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip"),
