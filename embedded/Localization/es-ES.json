@@ -32,9 +32,9 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Z": "Para escalar el eje Z, desplaza arriba/abajo para cambiar el valor.",
 	"SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings": "Mover Sub-edificios",
 	"SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip": "Habilita o deshabilita el movimiento de mejoras de edificios, que son en sí mismos edificios separados.",
-	"SelectedInfoPanel.TRANSFORMTOOL.step": "Step",
-	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT": "Copy position & rotation",
-	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT.tooltip": "Copy the position and the rotation.",
-	"SelectedInfoPanel.TRANSFORMTOOL.PAST_POS_ROT": "Paste position & rotation",
-	"SelectedInfoPanel.TRANSFORMTOOL.PAST_POS_ROT.tooltip": "Paste the position and the rotation"
+	"SelectedInfoPanel.TRANSFORMTOOL.step": "Paso",
+	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT": "Copiar posición y rotación",
+	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT.tooltip": "Copia la posición y la rotación del asset.",
+	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT": "Pegar posición y rotación",
+	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT.tooltip": "Pega la posición y la rotación del asset previamente copiada."
 }
