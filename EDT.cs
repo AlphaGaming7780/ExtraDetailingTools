@@ -9,9 +9,11 @@ using ExtraDetailingTools.Prefabs;
 using ExtraDetailingTools.Systems;
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI;
+using ExtraDetailingTools.Systems.UI.BetterInfoPanel;
 using ExtraLib;
 using ExtraLib.Debugger;
 using ExtraLib.Helpers;
+using ExtraLib.Systems.UI.ExtraPanels;
 using Game;
 using Game.Modding;
 using Game.Prefabs;
@@ -68,6 +70,9 @@ namespace ExtraDetailingTools
             updateSystem.UpdateAt<GrassToolSystem>(SystemUpdatePhase.ToolUpdate);
             updateSystem.UpdateAt<GrassSystem>(SystemUpdatePhase.ModificationEnd);
             updateSystem.UpdateAt<GrassRenderSystem>(SystemUpdatePhase.PreCulling);
+
+            ExtraPanelsUISystem extraPanelsUISystem = updateSystem.World.GetOrCreateSystemManaged<ExtraPanelsUISystem>();
+            extraPanelsUISystem.AddExtraPanel<BetterInfoPanelUISystem>();
 #endif
 
             SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();

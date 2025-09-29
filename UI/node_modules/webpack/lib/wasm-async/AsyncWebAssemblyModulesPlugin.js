@@ -55,7 +55,7 @@ const getAsyncWebAssemblyParser = memoize(() =>
 
 /**
  * @typedef {object} AsyncWebAssemblyModulesPluginOptions
- * @property {boolean} [mangleImports] mangle imports
+ * @property {boolean=} mangleImports mangle imports
  */
 
 /** @type {WeakMap<Compilation, CompilationHooks>} */
@@ -133,58 +133,55 @@ class AsyncWebAssemblyModulesPlugin {
 						});
 					});
 
-				compilation.hooks.renderManifest.tap(
-					"WebAssemblyModulesPlugin",
-					(result, options) => {
-						const { moduleGraph, chunkGraph, runtimeTemplate } = compilation;
-						const {
-							chunk,
-							outputOptions,
-							dependencyTemplates,
-							codeGenerationResults
-						} = options;
+				compilation.hooks.renderManifest.tap(PLUGIN_NAME, (result, options) => {
+					const { moduleGraph, chunkGraph, runtimeTemplate } = compilation;
+					const {
+						chunk,
+						outputOptions,
+						dependencyTemplates,
+						codeGenerationResults
+					} = options;
 
-						for (const module of chunkGraph.getOrderedChunkModulesIterable(
-							chunk,
-							compareModulesByIdOrIdentifier(chunkGraph)
-						)) {
-							if (module.type === WEBASSEMBLY_MODULE_TYPE_ASYNC) {
-								const filenameTemplate =
-									/** @type {NonNullable<OutputOptions["webassemblyModuleFilename"]>} */
-									(outputOptions.webassemblyModuleFilename);
+					for (const module of chunkGraph.getOrderedChunkModulesIterable(
+						chunk,
+						compareModulesByIdOrIdentifier(chunkGraph)
+					)) {
+						if (module.type === WEBASSEMBLY_MODULE_TYPE_ASYNC) {
+							const filenameTemplate =
+								/** @type {NonNullable<OutputOptions["webassemblyModuleFilename"]>} */
+								(outputOptions.webassemblyModuleFilename);
 
-								result.push({
-									render: () =>
-										this.renderModule(
-											module,
-											{
-												chunk,
-												dependencyTemplates,
-												runtimeTemplate,
-												moduleGraph,
-												chunkGraph,
-												codeGenerationResults
-											},
-											hooks
-										),
-									filenameTemplate,
-									pathOptions: {
+							result.push({
+								render: () =>
+									this.renderModule(
 										module,
-										runtime: chunk.runtime,
-										chunkGraph
-									},
-									auxiliary: true,
-									identifier: `webassemblyAsyncModule${chunkGraph.getModuleId(
-										module
-									)}`,
-									hash: chunkGraph.getModuleHash(module, chunk.runtime)
-								});
-							}
+										{
+											chunk,
+											dependencyTemplates,
+											runtimeTemplate,
+											moduleGraph,
+											chunkGraph,
+											codeGenerationResults
+										},
+										hooks
+									),
+								filenameTemplate,
+								pathOptions: {
+									module,
+									runtime: chunk.runtime,
+									chunkGraph
+								},
+								auxiliary: true,
+								identifier: `webassemblyAsyncModule${chunkGraph.getModuleId(
+									module
+								)}`,
+								hash: chunkGraph.getModuleHash(module, chunk.runtime)
+							});
 						}
-
-						return result;
 					}
-				);
+
+					return result;
+				});
 			}
 		);
 	}
