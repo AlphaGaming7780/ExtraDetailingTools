@@ -345,14 +345,14 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 
 							<div className={classNames(TransfromSectionSCSS.TransformSectionToolOption, InfoRowSCSS.left, InfoRowSCSS.link)}>
 								<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT.tooltip")}>
-									<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerCopy("POS"); triggerCopy("ROT") }}>
-										<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
+									<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionTinyButton)} onClick={() => { triggerCopy("POS"); triggerCopy("ROT") }}>
+										<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonTinyIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
 									</button>
 								</Tooltip>
 								{canPastPos && canPastRot ?
 									<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.PAST_POS_ROT.tooltip")}>
-										<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionButton)} onClick={() => { triggerPast("POS"); triggerPast("ROT") }}>
-											<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
+										<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionTinyButton)} onClick={() => { triggerPast("POS"); triggerPast("ROT") }}>
+											<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonTinyIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
 										</button>
 									</Tooltip>
 									: <></>}

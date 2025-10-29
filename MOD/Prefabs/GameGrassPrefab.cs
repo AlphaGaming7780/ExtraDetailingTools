@@ -1,7 +1,6 @@
 ﻿using Game.Prefabs;
 using System;
 using UnityEngine;
-using static Colossal.AssetPipeline.Importers.DidimoImporter.DidimoData;
 
 namespace ExtraDetailingTools.Prefabs
 {

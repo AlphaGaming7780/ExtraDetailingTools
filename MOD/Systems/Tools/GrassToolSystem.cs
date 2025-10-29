@@ -128,8 +128,8 @@ namespace ExtraDetailingTools.Systems.Tools
             this.m_RaycastPoint = default(ControlPoint);
             this.m_StartPoint = default(ControlPoint);
             this.m_State = GrassToolSystem.State.Default;
-            base.applyAction.enabled = true;
-            base.secondaryApplyAction.enabled = true;
+            base.applyAction.shouldBeEnabled = true;
+            base.secondaryApplyAction.shouldBeEnabled = true;
         }
 
         public override void InitializeRaycast()
