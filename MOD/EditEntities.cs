@@ -86,7 +86,7 @@ namespace ExtraDetailingTools
 			{
 				if (EL.m_PrefabSystem.TryGetPrefab(entity, out SurfacePrefab prefab))
 				{
-					if (!prefab.builtin || prefab.name == "Surface Area") continue;
+					if (!prefab.isBuiltin || prefab.name == "Surface Area") continue;
 
 					var prefabUI = prefab.GetComponent<UIObject>();
 					if (prefabUI == null)
@@ -117,7 +117,7 @@ namespace ExtraDetailingTools
 			{
 				if (EL.m_PrefabSystem.TryGetPrefab(entity, out StaticObjectPrefab prefab))
 				{
-					if (!prefab.builtin) continue;
+					if (!prefab.isBuiltin) continue;
 
 					if (!EL.m_EntityManager.HasBuffer<SubMesh>(entity)) continue;
 
