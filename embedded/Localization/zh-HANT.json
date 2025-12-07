@@ -26,7 +26,7 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.PAST_SCALE_X": "Paste the scale, only the X axis.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PAST_SCALE_Y": "Paste the scale, only the Y axis.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PAST_SCALE_Z": "Paste the scale, only the Z axis.",
-	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_I": "The increment of the scroll up/down for the scale, scroll up/down or edit the input to change the value.",
+	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_I": "縮放的增量（向上/向下捲動），向上/向下滾動滑鼠滾輪或輸入變更值。",
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_X": "The scale X local axis, scroll up/down or type to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Y": "The scale Y local axis, scroll up/down or type to change the value.",
 	"SelectedInfoPanel.TRANSFORMTOOL.SCALE_Z": "The scale Z local axis, scroll up/down or type to change the value.",
