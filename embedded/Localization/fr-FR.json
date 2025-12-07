@@ -1,6 +1,6 @@
 {
 	"Toolbar.SHOWMARKER": "Afficher les marqueurs",
-	"ToolOptions.TOOLTIP[ShowMarker]": "Afficher / masquer les marqueurs.",
+	"ToolOptions.TOOLTIP[ShowMarker]": "Afficher/masquer les marqueurs.",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS": "Copier la position.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PAST_POS": "Coller la position.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PAST_POS_X": "Coller la position, seulement l’axe X.",
