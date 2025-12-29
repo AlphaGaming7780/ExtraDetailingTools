@@ -436,7 +436,6 @@ namespace ExtraDetailingTools.Patches
                 snapPosition.m_Direction =
                     math.mul(
                         rotation,
-                        //math.mul(targetTransform.m_Rotation, rotation),
                         new float3(0f, 0f, 1f)
                     ).xz;
 
