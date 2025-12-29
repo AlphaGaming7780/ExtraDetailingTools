@@ -52,18 +52,18 @@ You’ll find this alongside the other snapping options in the games UI.
 
 # Translation
 ⚠️ This mod uses crowdin so there maybe inconsistencies with translations due to translations from different translators ⚠️
-- ⚠️French 48% : aricoseco
-- ⚠️Chinese Simplified 94% : RilkeXS(无手文) (RilkeXS), 一叶杳舟 (Yao_Zhou)
+- ✔️French 100% : aricoseco, Morgan Touverey Quilling (mtouverey)
+- ✔️Chinese Simplified 100% : RilkeXS(无手文) (RilkeXS), 一叶杳舟 (Yao_Zhou)
 - ⚠️Chinese Traditional 48% : Tiger Zhang (tiger42231), boan51204, Source Design (source_design)
-- ⚠️German 48% : Konsi, Kai Stammen (stammenkai)
+- ⚠️German 80% : Konsi, Kai Stammen (stammenkai), Fuchs23
 - ❌Italian 0%
 - ❌Japanese 0%
-- ⚠️Korean 48% : Twotoolus-FLY-LShst, Hinanchovo
-- ⚠️Polish 94% : Lisek, karmel68
-- ⚠️Portuguese 48% -> [European Portuguese Localization mod](https://mods.paradoxplaza.com/mods/92599/Windows)
-- ⚠️Portuguese, Brazilian 48% : Miguel Pereira Campos (mpcamposz)
-- ⚠️Russian 5% : Mihail (kaktyc)
-- ⚠️Spanish 94% : Alex (AlexofCA), elGendo87
+- ✔️Korean 100% : Twotoolus-FLY-LShst, Hinanchovo
+- ✔️Polish 100% : Lisek, karmel68
+- ✔️Portuguese 100% -> [European Portuguese Localization mod](https://mods.paradoxplaza.com/mods/92599/Windows)
+- ✔️Portuguese, Brazilian 100% : Miguel Pereira Campos (mpcamposz), Matheus Bernardes da Rocha Reis (matheusbreis10)
+- ✔️Russian 100% : Mihail (kaktyc), Albert Antonyan (quoxsii) 
+- ✔️Spanish 100% : Alex (AlexofCA), elGendo87
 
 # Thanking
 I must particularly thank all the people who helped me in this major project which lasted several months :
@@ -98,9 +98,9 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/extradetailingtools.1675592/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.2.2" />
+	<ModVersion Value="1.2.5.2" />
 	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.3.*" />
+	<GameVersion Value="1.5.*" />
 	<!--Dependency for the mod, can be set multiple times-->
   <Dependency Id="75724" />
   <Dependency Id="75250" />
@@ -108,15 +108,8 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
   <ChangeLog>
-### Improvements
-- **Transform Tools**
-> - New UI for the transform tool.
-> - Added buttons to copy/past the rotation and postion at the same time.
-
-### Translations
-- ⚠️Chinese Simplified 94% : RilkeXS(无手文) (RilkeXS)
-- ⚠️Polish 94% : karmel68
-- ⚠️Spanish 94% : elGendo87
+### Fixes:
+- UI issue
   </ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />

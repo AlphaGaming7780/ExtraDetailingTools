@@ -1,6 +1,10 @@
 ﻿
 using Game.UI.InGame;
 using HarmonyLib;
+using Unity.Entities;
+using ExtraLib;
+using Colossal.Entities;
+using Game.Prefabs;
 
 namespace ExtraDetailingTools.Patches
 {
@@ -16,7 +20,7 @@ namespace ExtraDetailingTools.Patches
 				//Entity selectedEntity = traverse.Property("selectedEntity").GetValue<Entity>();
 				//bool disableable = traverse.Property("disableable").GetValue<bool>();
 
-				//if (ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out PrefabData prefabData) && ExtraLib.m_PrefabSystem.TryGetPrefab(prefabData, out PrefabBase prefabBase))
+				//if (EL.m_EntityManager.TryGetComponent(selectedEntity, out PrefabData prefabData) && EL.m_PrefabSystem.TryGetPrefab(prefabData, out PrefabBase prefabBase))
 				//{
 				//	EDT.Logger.Info(prefabBase);
 				//}

@@ -43,10 +43,12 @@ export const ToolOption: ModuleRegistryExtend = (Component: any) => {
 
 		trigger("edt", "updatemarkersvisible")
 
+		var EDTTool = Section(ShowMarkerProps)
+
 		if (activeTool.id === tool.OBJECT_TOOL || activeTool.id === tool.AREA_TOOL || activeTool.id === tool.NET_TOOL) {
 
 			result.props.children?.unshift(
-				Section(ShowMarkerProps),
+				EDTTool
 			);
 		}
 
