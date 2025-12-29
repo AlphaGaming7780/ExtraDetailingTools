@@ -8,16 +8,12 @@ using Game.Prefabs;
 using Game.Tools;
 using HarmonyLib;
 using System;
-using System.Numerics;
 using System.Reflection;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-using UnityEngine.UI;
-using static Colossal.AssetPipeline.Diagnostic.Report;
 using static Game.Tools.ObjectToolSystem;
-using static Unity.Mathematics.math;
 
 namespace ExtraDetailingTools.Patches
 {
@@ -208,11 +204,11 @@ namespace ExtraDetailingTools.Patches
                 if (!isBuilding && (prefabPlaceableData.m_Flags & (PlacementFlags.OwnerSide | PlacementFlags.RoadSide | PlacementFlags.Shoreline | PlacementFlags.Floating | PlacementFlags.Hovering | PlacementFlags.RoadNode | PlacementFlags.RoadEdge)) == PlacementFlags.None)
                 {
                     onMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea | Snap.ObjectSide;
-                    offMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea;
+                    offMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea | Snap.ObjectSide;
 
                     if (first)
                     {
-                        EDT.objectToolSystem.selectedSnap &= ~(Snap.NetArea);
+                        EDT.objectToolSystem.selectedSnap &= ~(Snap.NetArea | Snap.ObjectSide);
                         first = false;
                     }
 
@@ -356,90 +352,110 @@ namespace ExtraDetailingTools.Patches
                 if ((m_Snap & Snap.ObjectSide) != Snap.None && m_TransformData.HasComponent(controlPoint.m_OriginalEntity))
                 {
                     Entity targetEntity = controlPoint.m_OriginalEntity;
+                    if (targetEntity == Entity.Null)
+                        return;
 
-                    if (targetEntity != Entity.Null)
-                    {
-                        Bounds3 prefabBounds = ObjectUtils.GetBounds(m_ObjectGeometryData[m_Prefab]);
-                        PrefabRef targetPrefabRef = m_PrefabRefData[targetEntity];
-                        Entity targetPrefab = targetPrefabRef.m_Prefab;
-                        Transform targetTransform = m_TransformData[targetEntity];
-                        Bounds3 targetBounds = ObjectUtils.GetBounds(m_ObjectGeometryData[targetPrefab]);
+                    // ===== Prefab & target bounds =====
+                    Bounds3 placedBounds = ObjectUtils.GetBounds(m_ObjectGeometryData[m_Prefab]);
 
-                        float3 placedSize = prefabBounds.max - prefabBounds.min;
-                        float3 targetSize = targetBounds.max - targetBounds.min;
+                    PrefabRef targetPrefabRef = m_PrefabRefData[targetEntity];
+                    Entity targetPrefab = targetPrefabRef.m_Prefab;
 
-                        float3 placedHalf = placedSize * 0.5f;
-                        float3 targetHalf = targetSize * 0.5f;
+                    Transform targetTransform = m_TransformData[targetEntity];
+                    Bounds3 targetBounds = ObjectUtils.GetBounds(m_ObjectGeometryData[targetPrefab]);
 
-                        Quad2 targetQuad = ObjectUtils.CalculateBaseCorners(
-                            targetTransform.m_Position,
+                    float3 placedSize = placedBounds.max - placedBounds.min;
+                    float3 targetSize = targetBounds.max - targetBounds.min;
+
+                    // ===== Target base quad =====
+                    Quad2 targetQuad = ObjectUtils.CalculateBaseCorners(
+                        targetTransform.m_Position,
+                        targetTransform.m_Rotation,
+                        targetBounds
+                    ).xz;
+
+
+                    // ===== Rotation handling (relative to target object) =====
+                    // Compute rotation of placed object relative to target
+                    quaternion relativeRotation =
+                        math.mul(
+                            math.inverse(targetTransform.m_Rotation),
+                            m_Rotation
+                        );
+
+                    // Clamp rotation in target local space
+                    quaternion snappedRelativeRotation = ClampTo90(relativeRotation);
+
+                    // Convert back to world space
+                    quaternion snappedWorldRotation =
+                        math.mul(
                             targetTransform.m_Rotation,
-                            targetBounds
-                        ).xz;
-
-                        quaternion targetRotation = ClampTo90(m_Rotation);
-
-                        Quad2 prefabQuad = ObjectUtils.CalculateBaseCorners(
-                            new float3(0, 0, 0),
-                            targetRotation,
-                            prefabBounds
-                        ).xz;
-
-
-                        // Max offset used to clamp snapping along edges
-                        float maxOffset =
-                            math.length(placedSize.xz) +
-                            math.length(targetSize.xz);
-
-                        Quad2 xz4 = ObjectUtils.CalculateBaseCorners(targetTransform.m_Position, targetTransform.m_Rotation, new float2(placedSize.x, placedSize.z)).xz;
-                        Quad2 xz5 = ObjectUtils.CalculateBaseCorners(controlPoint.m_HitPosition, targetRotation, new float2(placedHalf.x, placedHalf.z)).xz;
-                        bool allowSnap = MathUtils.Intersect(xz4, xz5) && MathUtils.Intersect(targetQuad, controlPoint.m_HitPosition.xz);
-
-                        CheckSnapLineGeneric(
-                            prefabBounds,
-                            targetTransform,
-                            controlPoint,
-                            ref bestSnapPosition,
-                            new Line2(targetQuad.a, targetQuad.b),
-                            maxOffset,
-                            Euler(targetRotation).y,
-                            allowSnap
+                            snappedRelativeRotation
                         );
 
-                        CheckSnapLineGeneric(
-                            prefabBounds,
-                            targetTransform,
-                            controlPoint,
-                            ref bestSnapPosition,
-                            new Line2(targetQuad.b, targetQuad.c),
-                            maxOffset,
-                            Euler(targetRotation).y,//math.PI / 2f,
-                            allowSnap
-                        );
+                    // Extract final yaw used for snapping
+                    float snappedYaw = math.Euler(snappedWorldRotation).y;
 
-                        CheckSnapLineGeneric(
-                            prefabBounds,
-                            targetTransform,
-                            controlPoint,
-                            ref bestSnapPosition,
-                            new Line2(targetQuad.c, targetQuad.d),
-                            maxOffset,
-                            Euler(targetRotation).y, //math.PI,
-                            allowSnap
-                        );
 
-                        CheckSnapLineGeneric(
-                            prefabBounds,
-                            targetTransform,
-                            controlPoint,
-                            ref bestSnapPosition,
-                            new Line2(targetQuad.d, targetQuad.a),
-                            maxOffset,
-                            Euler(targetRotation).y, //3f * math.PI / 2f,
-                            allowSnap
-                        );
-                    }
+                    // ===== Snap validity test =====
+                    Quad2 placedQuadAtTarget = ObjectUtils.CalculateBaseCorners(
+                        targetTransform.m_Position,
+                        targetTransform.m_Rotation,
+                        new float2(placedSize.x, placedSize.z)
+                    ).xz;
+
+                    Quad2 placedQuadAtHit = ObjectUtils.CalculateBaseCorners(
+                        controlPoint.m_HitPosition,
+                        snappedWorldRotation,
+                        placedSize.xz * 0.5f
+                    ).xz;
+
+                    bool allowSnap =
+                        MathUtils.Intersect(placedQuadAtTarget, placedQuadAtHit) &&
+                        MathUtils.Intersect(targetQuad, controlPoint.m_HitPosition.xz);
+
+                    // ===== Iterate over all target edges =====
+                    CheckSnapLineGeneric(
+                        placedBounds,
+                        targetTransform,
+                        controlPoint,
+                        ref bestSnapPosition,
+                        new Line2(targetQuad.a, targetQuad.b),
+                        snappedYaw,
+                        allowSnap
+                    );
+
+                    CheckSnapLineGeneric(
+                        placedBounds,
+                        targetTransform,
+                        controlPoint,
+                        ref bestSnapPosition,
+                        new Line2(targetQuad.b, targetQuad.c),
+                        snappedYaw,
+                        allowSnap
+                    );
+
+                    CheckSnapLineGeneric(
+                        placedBounds,
+                        targetTransform,
+                        controlPoint,
+                        ref bestSnapPosition,
+                        new Line2(targetQuad.c, targetQuad.d),
+                        snappedYaw,
+                        allowSnap
+                    );
+
+                    CheckSnapLineGeneric(
+                        placedBounds,
+                        targetTransform,
+                        controlPoint,
+                        ref bestSnapPosition,
+                        new Line2(targetQuad.d, targetQuad.a),
+                        snappedYaw,
+                        allowSnap
+                    );
                 }
+
 
                 m_ControlPoints[m_ControlPoints.Length - 1] = bestSnapPosition;
 
@@ -458,46 +474,76 @@ namespace ExtraDetailingTools.Patches
             }
 
             private static void CheckSnapLineGeneric(
-                Bounds3 bounds,                    // bounds of the PLACED prefab
-                Transform ownerTransformData,       // transform of the TARGET object
+                Bounds3 bounds,                    // Bounds of the PLACED prefab
+                Transform targetTransform,          // Transform of the TARGET object
                 ControlPoint controlPoint,
                 ref ControlPoint bestPosition,
                 Line2 line,
-                float maxOffset,
                 float angle,
                 bool forceSnap)
             {
-                // Project control point onto the edge
-                MathUtils.Distance(line, controlPoint.m_Position.xz, out var t);
+                // Rotation of the placed object (world)
+                quaternion rotation = quaternion.RotateY(angle);
 
-                float3 size = bounds.max - bounds.min;
-                float2 halfSizeXZ = size.xz * 0.5f;
-
-                float2 pointOnLine = MathUtils.Position(line, t);
-
-                // Compute edge normal (perpendicular to the edge)
+                // Edge direction & outward normal
                 float2 edgeDir = math.normalize(line.b - line.a);
                 float2 normal = new float2(-edgeDir.y, edgeDir.x);
 
-                // Offset along the normal using prefab half size
-                float offset =
-                    math.dot(halfSizeXZ, math.abs(normal));
+                // Half-size of placed object (local space)
+                float3 size = bounds.max - bounds.min;
+                float2 halfSize = size.xz * 0.5f;
 
+                // Local axes of the placed object in world space
+                float2 axisX =
+                    math.normalize(
+                        math.mul(rotation, new float3(1f, 0f, 0f)).xz
+                    );
+
+                float2 axisZ =
+                    math.normalize(
+                        math.mul(rotation, new float3(0f, 0f, 1f)).xz
+                    );
+
+                // Project OBB onto edge normal
+                float offset =
+                    math.abs(math.dot(axisX, normal)) * halfSize.x +
+                    math.abs(math.dot(axisZ, normal)) * halfSize.y;
+
+                // Project OBB onto edge direction (PARALLEL side length)
+                float halfLength =
+                     math.abs(math.dot(axisX, edgeDir)) * halfSize.x +
+                     math.abs(math.dot(axisZ, edgeDir)) * halfSize.y;
+
+                // Project mouse position onto edge
+                MathUtils.Distance(line, controlPoint.m_Position.xz, out float t);
+
+                float lineLength = math.distance(line.a, line.b);
+                t *= lineLength;
+                //t = MathUtils.Snap(t, 0.5f);
+                t = math.clamp(t, 0f - halfLength, lineLength + halfLength);
+
+                // Position along the edge (THIS is what allows sliding)
+                float2 pointOnLine = math.lerp(line.a, line.b, t / lineLength);
+
+
+                // Final snapped position
                 float2 snappedXZ = pointOnLine + normal * offset;
 
                 ControlPoint snapPosition = controlPoint;
                 snapPosition.m_OriginalEntity = Entity.Null;
                 snapPosition.m_Position.xz = snappedXZ;
-                snapPosition.m_Position.y = ownerTransformData.m_Position.y;
+                snapPosition.m_Position.y = targetTransform.m_Position.y;
 
-                // Force rotation so edges are parallel
+                // Rotation aligned to target edge
                 snapPosition.m_Direction =
                     math.mul(
-                        math.mul(ownerTransformData.m_Rotation, Unity.Mathematics.quaternion.RotateY(angle)),
+                        rotation,
+                        //math.mul(targetTransform.m_Rotation, rotation),
                         new float3(0f, 0f, 1f)
                     ).xz;
 
-                snapPosition.m_Rotation = ToolUtils.CalculateRotation(snapPosition.m_Direction);
+                snapPosition.m_Rotation =
+                    ToolUtils.CalculateRotation(snapPosition.m_Direction);
 
                 float level = forceSnap ? 1f : 0f;
                 snapPosition.m_SnapPriority =
@@ -528,9 +574,9 @@ namespace ExtraDetailingTools.Patches
                 float3 euler = q.eulerAngles; // euler() retourne radians, on convertit en degrés
 
                 // Clamp each angle to nearest multiple of 90
-                euler.x = round(euler.x / 90f) * 90f;
-                euler.y = round(euler.y / 90f) * 90f;
-                euler.z = round(euler.z / 90f) * 90f;
+                euler.x = math.round(euler.x / 90f) * 90f;
+                euler.y = math.round(euler.y / 90f) * 90f;
+                euler.z = math.round(euler.z / 90f) * 90f;
 
                 // Reconvert to quaternion
                 return UnityEngine.Quaternion.Euler(euler); // On repasse en radians
