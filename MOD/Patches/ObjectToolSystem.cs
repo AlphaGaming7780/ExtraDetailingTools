@@ -15,6 +15,10 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using static Game.Tools.ObjectToolSystem;
 
+#if RELEASE
+using Unity.Burst;
+#endif
+
 namespace ExtraDetailingTools.Patches
 {
     class ObjectToolSystemPatch
@@ -77,88 +81,6 @@ namespace ExtraDetailingTools.Patches
         [HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
         class ObjectToolSystem_SnapControlPoint
         {
-            static Entity oldEntity = Entity.Null;
-
-            public static bool Prefix(ObjectToolSystem __instance)
-            {
-                //ToolSystem toolSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<ToolSystem>();
-                //Traverse traverse = Traverse.Create(__instance);
-                //NativeList<ControlPoint> controlPoints = traverse.Field("m_ControlPoints").GetValue<NativeList<ControlPoint>>();
-                //Entity m_Selected = ((__instance.actualMode == Mode.Move) ? traverse.Field("m_MovingObject").GetValue<Entity>() : GetUpgradable(toolSystem.selected));
-                //Entity m_Prefab = EL.m_PrefabSystem.GetEntity(traverse.Field("m_Prefab").GetValue<PrefabBase>());
-                //ControlPoint m_LastRaycastPoint = traverse.Field("m_LastRaycastPoint").GetValue<ControlPoint>();
-                //ControlPoint controlPoint = controlPoints[controlPoints.Length - 1];
-
-                //EDT.Logger.Info($"SnapControlPoint Prefix");
-                //if (m_Selected != Entity.Null)
-                //    if (EL.m_PrefabSystem.TryGetPrefab(m_Selected, out PrefabBase prefabbase))
-                //        EDT.Logger.Info($"m_Selected: {prefabbase.name}");
-                //    else if (EL.m_EntityManager.TryGetComponent<PrefabRef>(m_Selected, out PrefabRef prefabRef) && EL.m_PrefabSystem.TryGetPrefab(prefabRef, out PrefabBase prefabBase2))
-                //        EDT.Logger.Info($"m_Selected: {prefabBase2.name}");
-                //    else
-                //        EDT.Logger.Info($"m_Selected: Failed to get Prefab, Entity: {m_Selected}");
-                //else
-                //    EDT.Logger.Info($"m_Selected: null");
-
-                //if (m_Prefab != Entity.Null)
-                //    EDT.Logger.Info($"m_Prefab: {EL.m_PrefabSystem.GetPrefab<PrefabBase>(m_Prefab).name}");
-                //else
-                //    EDT.Logger.Info($"m_Prefab: null");
-
-                //if (m_LastRaycastPoint.m_OriginalEntity != Entity.Null)
-                //    if (EL.m_PrefabSystem.TryGetPrefab(m_LastRaycastPoint.m_OriginalEntity, out PrefabBase prefabbase))
-                //        EDT.Logger.Info($"m_LastRaycastPoint.m_OriginalEntity: {prefabbase.name}");
-                //    else if (EL.m_EntityManager.TryGetComponent<PrefabRef>(m_LastRaycastPoint.m_OriginalEntity, out PrefabRef prefabRef) && EL.m_PrefabSystem.TryGetPrefab(prefabRef, out PrefabBase prefabBase2))
-                //        EDT.Logger.Info($"m_LastRaycastPoint.m_OriginalEntity: {prefabBase2.name}");
-                //    else
-                //        EDT.Logger.Info($"m_LastRaycastPoint.m_OriginalEntity: Failed to get Prefab, Entity: {m_Selected}");
-                //else
-                //    EDT.Logger.Info($"m_LastRaycastPoint.m_OriginalEntity: null");
-
-                //if (controlPoint.m_OriginalEntity != Entity.Null)
-                //    if (EL.m_PrefabSystem.TryGetPrefab(controlPoint.m_OriginalEntity, out PrefabBase prefabbase))
-                //        EDT.Logger.Info($"controlPoint.m_OriginalEntity: {prefabbase.name}");
-                //    else if (EL.m_EntityManager.TryGetComponent<PrefabRef>(controlPoint.m_OriginalEntity, out PrefabRef prefabRef) && EL.m_PrefabSystem.TryGetPrefab(prefabRef, out PrefabBase prefabBase2))
-                //        EDT.Logger.Info($"controlPoint.m_OriginalEntity: {prefabBase2.name}");
-                //    else
-                //        EDT.Logger.Info($"controlPoint.m_OriginalEntity: Failed to get Prefab, Entity: {m_Selected}");
-                //else
-                //    EDT.Logger.Info($"controlPoint.m_OriginalEntity: null");
-
-                return true;
-
-                //if ((__instance.selectedSnap & Snap.ObjectSurface) == Snap.None)
-                //    return true;
-
-                //ControlPoint controlPoint = Traverse.Create(__instance).Field("m_ControlPoints").GetValue<NativeList<ControlPoint>>()[0];
-
-                //if (controlPoint.m_OriginalEntity == Entity.Null || controlPoint.m_OriginalEntity == oldEntity)
-                //    return true;
-
-                //if (EL.m_EntityManager.HasBuffer<SubObject>(controlPoint.m_OriginalEntity) || EL.m_EntityManager.HasComponent<Owner>(controlPoint.m_OriginalEntity))
-                //    return true;
-
-                //if (EL.m_EntityManager.Exists(oldEntity) &&
-                //    EL.m_EntityManager.HasBuffer<SubObject>(oldEntity) &&
-                //    EL.m_EntityManager.GetBuffer<SubObject>(oldEntity).Length <= 0)
-                //    EL.m_EntityManager.RemoveComponent<SubObject>(oldEntity);
-
-                //oldEntity = controlPoint.m_OriginalEntity;
-
-                //EL.m_EntityManager.AddBuffer<SubObject>(controlPoint.m_OriginalEntity);
-
-                //return true;
-            }
-
-
-            private static Entity GetUpgradable(Entity entity)
-            {
-                if (EL.m_EntityManager.TryGetComponent<Attached>(entity, out var component))
-                {
-                    return component.m_Parent;
-                }
-                return entity;
-            }
 
             public static void Postfix(ObjectToolSystem __instance, ref JobHandle __result, JobHandle inputDeps)
             {
@@ -214,6 +136,15 @@ namespace ExtraDetailingTools.Patches
 
                 }
             }
+        }
+
+        private static Entity GetUpgradable(Entity entity)
+        {
+            if (EL.m_EntityManager.TryGetComponent<Attached>(entity, out var component))
+            {
+                return component.m_Parent;
+            }
+            return entity;
         }
 
         public struct PublicRotation
@@ -292,43 +223,6 @@ namespace ExtraDetailingTools.Patches
             {
                 ControlPoint controlPoint = m_LastRaycastPoint;
                 ControlPoint bestSnapPosition = m_ControlPoints[m_ControlPoints.Length - 1];
-
-                //EDT.Logger.Info($"SnapJob Execute");
-
-                //if (m_Selected != Entity.Null)
-                //    if (EL.m_PrefabSystem.TryGetPrefab(m_Selected, out PrefabBase prefabbase))
-                //        EDT.Logger.Info($"m_Selected: {prefabbase.name}");
-                //    else if (EL.m_EntityManager.TryGetComponent<PrefabRef>(m_Selected, out PrefabRef prefabRef) && EL.m_PrefabSystem.TryGetPrefab(prefabRef, out PrefabBase prefabBase2))
-                //        EDT.Logger.Info($"m_Selected: {prefabBase2.name}");
-                //    else
-                //        EDT.Logger.Info($"m_Selected: Failed to get Prefab, Entity: {m_Selected}");
-                //else
-                //    EDT.Logger.Info($"m_Selected: null");
-
-                //if (m_Prefab != Entity.Null)
-                //    EDT.Logger.Info($"m_Prefab: {EL.m_PrefabSystem.GetPrefab<PrefabBase>(m_Prefab).name}");
-                //else
-                //    EDT.Logger.Info($"m_Prefab: null");
-
-                //if (m_LastRaycastPoint.m_OriginalEntity != Entity.Null)
-                //    if (EL.m_PrefabSystem.TryGetPrefab(m_LastRaycastPoint.m_OriginalEntity, out PrefabBase prefabbase))
-                //        EDT.Logger.Info($"m_LastRaycastPoint.m_OriginalEntity: {prefabbase.name}");
-                //    else if (EL.m_EntityManager.TryGetComponent<PrefabRef>(m_LastRaycastPoint.m_OriginalEntity, out PrefabRef prefabRef) && EL.m_PrefabSystem.TryGetPrefab(prefabRef, out PrefabBase prefabBase2))
-                //        EDT.Logger.Info($"m_LastRaycastPoint.m_OriginalEntity: {prefabBase2.name}");
-                //    else
-                //        EDT.Logger.Info($"m_LastRaycastPoint.m_OriginalEntity: Failed to get Prefab, Entity: {m_Selected}");
-                //else
-                //    EDT.Logger.Info($"m_LastRaycastPoint.m_OriginalEntity: null");
-
-                //if (controlPoint.m_OriginalEntity != Entity.Null)
-                //    if (EL.m_PrefabSystem.TryGetPrefab(controlPoint.m_OriginalEntity, out PrefabBase prefabbase))
-                //        EDT.Logger.Info($"controlPoint.m_OriginalEntity: {prefabbase.name}");
-                //    else if (EL.m_EntityManager.TryGetComponent<PrefabRef>(controlPoint.m_OriginalEntity, out PrefabRef prefabRef) && EL.m_PrefabSystem.TryGetPrefab(prefabRef, out PrefabBase prefabBase2))
-                //        EDT.Logger.Info($"controlPoint.m_OriginalEntity: {prefabBase2.name}");
-                //    else
-                //        EDT.Logger.Info($"controlPoint.m_OriginalEntity: Failed to get Prefab, Entity: {m_Selected}");
-                //else
-                //    EDT.Logger.Info($"controlPoint.m_OriginalEntity: null");
 
                 if ((m_Snap & Snap.ObjectSurface) != Snap.None && m_TransformData.HasComponent(controlPoint.m_OriginalEntity))
                 {
@@ -509,6 +403,9 @@ namespace ExtraDetailingTools.Patches
                     math.abs(math.dot(axisX, normal)) * halfSize.x +
                     math.abs(math.dot(axisZ, normal)) * halfSize.y;
 
+
+
+                // This shit doesn't work, can't slide the prefab on the line.
                 // Project OBB onto edge direction (PARALLEL side length)
                 float halfLength =
                      math.abs(math.dot(axisX, edgeDir)) * halfSize.x +
@@ -524,6 +421,7 @@ namespace ExtraDetailingTools.Patches
 
                 // Position along the edge (THIS is what allows sliding)
                 float2 pointOnLine = math.lerp(line.a, line.b, t / lineLength);
+
 
 
                 // Final snapped position
