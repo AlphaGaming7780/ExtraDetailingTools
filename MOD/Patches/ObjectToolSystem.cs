@@ -123,18 +123,21 @@ namespace ExtraDetailingTools.Patches
             {
                 if (EDT.objectToolSystem.actualMode != ObjectToolSystem.Mode.Create) return;
 
+                onMask |= Snap.ObjectSide;
+                offMask |= Snap.ObjectSide;
+
                 if (!isBuilding && (prefabPlaceableData.m_Flags & (PlacementFlags.OwnerSide | PlacementFlags.RoadSide | PlacementFlags.Shoreline | PlacementFlags.Floating | PlacementFlags.Hovering | PlacementFlags.RoadNode | PlacementFlags.RoadEdge)) == PlacementFlags.None)
                 {
-                    onMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea | Snap.ObjectSide;
-                    offMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea | Snap.ObjectSide;
-
-                    if (first)
-                    {
-                        EDT.objectToolSystem.selectedSnap &= ~(Snap.NetArea | Snap.ObjectSide);
-                        first = false;
-                    }
-
+                    onMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea;
+                    offMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea;
                 }
+
+                if (first)
+                {
+                    EDT.objectToolSystem.selectedSnap &= ~(Snap.NetArea | Snap.ObjectSide);
+                    first = false;
+                }
+
             }
         }
 
