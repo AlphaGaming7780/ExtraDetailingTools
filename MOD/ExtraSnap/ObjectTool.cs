@@ -1,5 +1,4 @@
-using Colossal.Entities;
-using Colossal.Mathematics;
+ï»¿using Colossal.Entities;
 using ExtraLib;
 using Game;
 using Game.Common;
@@ -13,167 +12,77 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using static ExtraDetailingTools.ExtraSnap.ObjectToolSystemExtraSnap;
 using static Game.Tools.ObjectToolSystem;
+using Colossal.Mathematics;
 
 #if RELEASE
 using Unity.Burst;
 #endif
 
-namespace ExtraDetailingTools.Patches
+
+namespace ExtraDetailingTools.ExtraSnap
 {
-    class ObjectToolSystemPatch
+    internal class ObjectToolSystemExtraSnap : ExtraSnap<ObjectToolSystem, ObjectToolExtraSnap>
     {
-
-        //[HarmonyPatch(typeof(ObjectToolSystem), "OnStartRunning")]
-        //class ObjectToolSystem_OnStartRunning
-        //{
-        //    static bool first = true;
-        //    public static void Postfix(ObjectToolSystem __instance)
-        //    {
-        //        if (first)
-        //        {
-        //            __instance.selectedSnap &= ~(Snap.NetArea);
-        //            first = false;
-        //        }
-        //    }
-        //}
-
-        //Patche 1.3.3 f1 rotation fixe
-       [HarmonyPatch(typeof(ObjectToolSystem), "GetAllowRotation")]
-        class ObjectToolSystem_GetAllowRotation
+        [Flags]
+        public enum ObjectToolExtraSnap : uint
         {
-            public static void Postfix(ObjectToolSystem __instance, ref bool __result)
-            {
-                // Only filter for props
-                if (__instance.prefab is not StaticObjectPrefab || __instance.prefab is BuildingPrefab || __instance.prefab is BuildingExtensionPrefab) return;
-                __result = __instance.allowRotation;
-            }
+            ObjectSurface,
+            ObjectSide,
         }
 
-        [HarmonyPatch(typeof(ObjectToolSystem), "InitializeRaycast")]
-        class ObjectToolSystem_InitializeRaycast
-        {
-            public static void Postfix(ObjectToolSystem __instance)
-            {
-                Traverse traverse = Traverse.Create(__instance);
-                PrefabBase m_Prefab = traverse.Field("m_Prefab").GetValue<PrefabBase>();
-                __instance.GetAvailableSnapMask(out var onMask, out var offMask);
-                Snap snap = ToolBaseSystem.GetActualSnap(__instance.selectedSnap, onMask, offMask);
-                ToolRaycastSystem m_ToolRaycastSystem = traverse.Field("m_ToolRaycastSystem").GetValue<ToolRaycastSystem>();
-                ToolSystem m_ToolSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<ToolSystem>();
+        readonly Traverse traverse;
 
-                if (m_Prefab != null)
+        ObjectToolSystemExtraSnap() : base()
+        {
+            traverse = Traverse.Create(_Tool);
+        }
+
+        protected override void InitializeRaycast()
+        {
+            PrefabBase m_Prefab = traverse.Field("m_Prefab").GetValue<PrefabBase>();
+            Snap snap = GetActualToolSnap();
+
+            if (m_Prefab != null)
+            {
+                // Same as snap to surface I guess for now
+                if ((snap & Snap.ObjectSide) != Snap.None)
                 {
-                    // Same as snap to surface I guess for now
-                    if ((snap & Snap.ObjectSide) != Snap.None)
+                    _ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
+                    if (_ToolSystem.actionMode.IsEditor())
                     {
-                        m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
-                        if (m_ToolSystem.actionMode.IsEditor())
-                        {
-                            m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Placeholders;
-                        }
+                        _ToolRaycastSystem.raycastFlags |= RaycastFlags.Placeholders;
                     }
                 }
             }
         }
 
-
-        [HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
-        class ObjectToolSystem_SnapControlPoint
+        protected override JobHandle SnapControlPoint(JobHandle inputDeps)
         {
+            NativeList<ControlPoint> controlPoints = traverse.Field("m_ControlPoints").GetValue<NativeList<ControlPoint>>();
+            Entity selected = ((_Tool.actualMode == Mode.Move) ? traverse.Field("m_MovingObject").GetValue<Entity>() : GetUpgradable(_ToolSystem.selected));
 
-            public static void Postfix(ObjectToolSystem __instance, ref JobHandle __result, JobHandle inputDeps)
+            JobHandle jobHandle = IJobExtensions.Schedule(new SnapJob
             {
-                ToolSystem toolSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<ToolSystem>();
-                Traverse traverse = Traverse.Create(__instance);
-                NativeList<ControlPoint> controlPoints = traverse.Field("m_ControlPoints").GetValue<NativeList<ControlPoint>>();
-                Entity selected = ((__instance.actualMode == Mode.Move) ? traverse.Field("m_MovingObject").GetValue<Entity>() : GetUpgradable(toolSystem.selected));
+                m_EditorMode = _ToolSystem.actionMode.IsEditor(),
+                m_Snap = traverse.Method("GetActualSnap").GetValue<Snap>(),
+                m_Mode = _Tool.actualMode,
+                m_Prefab = _PrefabSystem.GetEntity(traverse.Field("m_Prefab").GetValue<PrefabBase>()),
+                m_Selected = selected,
+                m_LastRaycastPoint = traverse.Field("m_LastRaycastPoint").GetValue<ControlPoint>(),
+                m_Rotation = GetRotation().m_Rotation,
+                m_ControlPoints = controlPoints,
 
-                __result = IJobExtensions.Schedule(new SnapJob
-                {
-                    m_EditorMode =              toolSystem.actionMode.IsEditor(),
-                    m_Snap =                    traverse.Method("GetActualSnap").GetValue<Snap>(),
-                    m_Mode =                    __instance.actualMode,
-                    m_Prefab =                  EL.m_PrefabSystem.GetEntity(traverse.Field("m_Prefab").GetValue<PrefabBase>()),
-                    m_Selected =                selected,
-                    m_LastRaycastPoint =        traverse.Field("m_LastRaycastPoint").GetValue<ControlPoint>(),
-                    m_Rotation =                GetRotation(__instance).m_Rotation,
-                    m_ControlPoints =           controlPoints,
+                m_OwnerData = _Tool.GetComponentLookup<Owner>(true),
+                m_TransformData = _Tool.GetComponentLookup<Transform>(true),
+                m_LocalTransformCacheData = _Tool.GetComponentLookup<LocalTransformCache>(true),
+                m_ServiceUpgradeData = _Tool.GetComponentLookup<Game.Buildings.ServiceUpgrade>(true),
+                m_ObjectGeometryData = _Tool.GetComponentLookup<ObjectGeometryData>(true),
+                m_PrefabRefData = _Tool.GetComponentLookup<PrefabRef>(true),
+            }, inputDeps);
 
-                    m_OwnerData =               __instance.GetComponentLookup<Owner>(true),
-                    m_TransformData =           __instance.GetComponentLookup<Transform>(true),
-                    m_LocalTransformCacheData = __instance.GetComponentLookup<LocalTransformCache>(true),
-                    m_ServiceUpgradeData =      __instance.GetComponentLookup<Game.Buildings.ServiceUpgrade>(true),
-                    m_ObjectGeometryData =      __instance.GetComponentLookup<ObjectGeometryData>(true),
-                    m_PrefabRefData =           __instance.GetComponentLookup<PrefabRef>(true),
-                }, __result);
-            }
-        }
-
-        [HarmonyPatch(
-            typeof(ObjectToolSystem), nameof(ObjectToolSystem.GetAvailableSnapMask),
-                new Type[] { typeof(PlaceableObjectData), typeof(bool), typeof(bool), typeof(bool), typeof(ObjectToolSystem.Mode), typeof(Snap), typeof(Snap) },
-                new ArgumentType[] { ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out, ArgumentType.Out }
-            )
-        ]
-        class ObjectToolSystem_GetAvailableSnapMask
-        {
-            static bool first = true;
-            private static void Postfix(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, ObjectToolSystem.Mode mode, ref Snap onMask, ref Snap offMask) //, object[] __args, 
-            {
-                if (EDT.objectToolSystem.actualMode != ObjectToolSystem.Mode.Create) return;
-
-                onMask |= Snap.ObjectSide;
-                offMask |= Snap.ObjectSide;
-
-                if (!isBuilding && (prefabPlaceableData.m_Flags & (PlacementFlags.OwnerSide | PlacementFlags.RoadSide | PlacementFlags.Shoreline | PlacementFlags.Floating | PlacementFlags.Hovering | PlacementFlags.RoadNode | PlacementFlags.RoadEdge)) == PlacementFlags.None)
-                {
-                    onMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea;
-                    offMask |= Snap.ObjectSurface | Snap.Upright | Snap.NetArea;
-                }
-
-                if (first)
-                {
-                    EDT.objectToolSystem.selectedSnap &= ~(Snap.NetArea | Snap.ObjectSide);
-                    first = false;
-                }
-
-            }
-        }
-
-        private static Entity GetUpgradable(Entity entity)
-        {
-            if (EL.m_EntityManager.TryGetComponent<Attached>(entity, out var component))
-            {
-                return component.m_Parent;
-            }
-            return entity;
-        }
-
-        public struct Rotation
-        {
-            public quaternion m_Rotation;
-            public quaternion m_ParentRotation;
-            public bool m_IsAligned;
-            public bool m_IsSnapped;
-
-            public Rotation(object privateRotation)
-            {
-                Type type = privateRotation.GetType();
-                m_Rotation = (quaternion)type.GetField("m_Rotation", BindingFlags.Public | BindingFlags.Instance).GetValue(privateRotation);
-                m_ParentRotation = (quaternion)type.GetField("m_ParentRotation", BindingFlags.Public | BindingFlags.Instance).GetValue(privateRotation);
-                m_IsAligned = (bool)type.GetField("m_IsAligned", BindingFlags.Public | BindingFlags.Instance).GetValue(privateRotation);
-                m_IsSnapped = (bool)type.GetField("m_IsSnapped", BindingFlags.Public | BindingFlags.Instance).GetValue(privateRotation);
-            }
-        }
-
-        // Fonction unique pour récupérer la struct publique
-        public static Rotation GetRotation(ObjectToolSystem objectToolSystem)
-        {
-            var field = objectToolSystem.GetType().GetField("m_Rotation", BindingFlags.NonPublic | BindingFlags.Instance);
-            var nativeRef = field.GetValue(objectToolSystem); // NativeReference<Rotation>
-            object privateRotation = nativeRef.GetType().GetProperty("Value").GetValue(nativeRef);
-            return new Rotation(privateRotation);
+            return jobHandle;
         }
 
 #if RELEASE
@@ -472,7 +381,7 @@ namespace ExtraDetailingTools.Patches
             public static quaternion ClampTo90(UnityEngine.Quaternion q)
             {
                 // Convert quaternion to Euler angles (in degrees)
-                float3 euler = q.eulerAngles; // euler() retourne radians, on convertit en degrés
+                float3 euler = q.eulerAngles; // euler() retourne radians, on convertit en degrÃ©s
 
                 // Clamp each angle to nearest multiple of 90
                 euler.x = math.round(euler.x / 90f) * 90f;
@@ -485,7 +394,39 @@ namespace ExtraDetailingTools.Patches
 
         }
 
+        private static Entity GetUpgradable(Entity entity)
+        {
+            if (EL.m_EntityManager.TryGetComponent<Attached>(entity, out var component))
+            {
+                return component.m_Parent;
+            }
+            return entity;
+        }
+
+        private struct Rotation
+        {
+            public quaternion m_Rotation;
+            public quaternion m_ParentRotation;
+            public bool m_IsAligned;
+            public bool m_IsSnapped;
+
+            public Rotation(object privateRotation)
+            {
+                Type type = privateRotation.GetType();
+                m_Rotation = (quaternion)type.GetField("m_Rotation", BindingFlags.Public | BindingFlags.Instance).GetValue(privateRotation);
+                m_ParentRotation = (quaternion)type.GetField("m_ParentRotation", BindingFlags.Public | BindingFlags.Instance).GetValue(privateRotation);
+                m_IsAligned = (bool)type.GetField("m_IsAligned", BindingFlags.Public | BindingFlags.Instance).GetValue(privateRotation);
+                m_IsSnapped = (bool)type.GetField("m_IsSnapped", BindingFlags.Public | BindingFlags.Instance).GetValue(privateRotation);
+            }
+        }
+
+        private Rotation GetRotation()
+        {
+            var field = _Tool.GetType().GetField("m_Rotation", BindingFlags.NonPublic | BindingFlags.Instance);
+            var nativeRef = field.GetValue(_Tool); // NativeReference<Rotation>
+            object privateRotation = nativeRef.GetType().GetProperty("Value").GetValue(nativeRef);
+            return new Rotation(privateRotation);
+        }
 
     }
-
 }
