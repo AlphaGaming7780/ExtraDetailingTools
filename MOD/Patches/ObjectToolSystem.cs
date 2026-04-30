@@ -50,65 +50,65 @@ namespace ExtraDetailingTools.Patches
             }
         }
 
-        [HarmonyPatch(typeof(ObjectToolSystem), "InitializeRaycast")]
-        class ObjectToolSystem_InitializeRaycast
-        {
-            public static void Postfix(ObjectToolSystem __instance)
-            {
-                Traverse traverse = Traverse.Create(__instance);
-                PrefabBase m_Prefab = traverse.Field("m_Prefab").GetValue<PrefabBase>();
-                __instance.GetAvailableSnapMask(out var onMask, out var offMask);
-                Snap snap = ToolBaseSystem.GetActualSnap(__instance.selectedSnap, onMask, offMask);
-                ToolRaycastSystem m_ToolRaycastSystem = traverse.Field("m_ToolRaycastSystem").GetValue<ToolRaycastSystem>();
-                ToolSystem m_ToolSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<ToolSystem>();
+        //[HarmonyPatch(typeof(ObjectToolSystem), "InitializeRaycast")]
+        //class ObjectToolSystem_InitializeRaycast
+        //{
+        //    public static void Postfix(ObjectToolSystem __instance)
+        //    {
+        //        Traverse traverse = Traverse.Create(__instance);
+        //        PrefabBase m_Prefab = traverse.Field("m_Prefab").GetValue<PrefabBase>();
+        //        __instance.GetAvailableSnapMask(out var onMask, out var offMask);
+        //        Snap snap = ToolBaseSystem.GetActualSnap(__instance.selectedSnap, onMask, offMask);
+        //        ToolRaycastSystem m_ToolRaycastSystem = traverse.Field("m_ToolRaycastSystem").GetValue<ToolRaycastSystem>();
+        //        ToolSystem m_ToolSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<ToolSystem>();
 
-                if (m_Prefab != null)
-                {
-                    // Same as snap to surface I guess for now
-                    if ((snap & Snap.ObjectSide) != Snap.None)
-                    {
-                        m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
-                        if (m_ToolSystem.actionMode.IsEditor())
-                        {
-                            m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Placeholders;
-                        }
-                    }
-                }
-            }
-        }
+        //        if (m_Prefab != null)
+        //        {
+        //            // Same as snap to surface I guess for now
+        //            if ((snap & Snap.ObjectSide) != Snap.None)
+        //            {
+        //                m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
+        //                if (m_ToolSystem.actionMode.IsEditor())
+        //                {
+        //                    m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Placeholders;
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
 
 
-        [HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
-        class ObjectToolSystem_SnapControlPoint
-        {
+        //[HarmonyPatch(typeof(ObjectToolSystem), "SnapControlPoint")]
+        //class ObjectToolSystem_SnapControlPoint
+        //{
 
-            public static void Postfix(ObjectToolSystem __instance, ref JobHandle __result, JobHandle inputDeps)
-            {
-                ToolSystem toolSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<ToolSystem>();
-                Traverse traverse = Traverse.Create(__instance);
-                NativeList<ControlPoint> controlPoints = traverse.Field("m_ControlPoints").GetValue<NativeList<ControlPoint>>();
-                Entity selected = ((__instance.actualMode == Mode.Move) ? traverse.Field("m_MovingObject").GetValue<Entity>() : GetUpgradable(toolSystem.selected));
+        //    public static void Postfix(ObjectToolSystem __instance, ref JobHandle __result, JobHandle inputDeps)
+        //    {
+        //        ToolSystem toolSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<ToolSystem>();
+        //        Traverse traverse = Traverse.Create(__instance);
+        //        NativeList<ControlPoint> controlPoints = traverse.Field("m_ControlPoints").GetValue<NativeList<ControlPoint>>();
+        //        Entity selected = ((__instance.actualMode == Mode.Move) ? traverse.Field("m_MovingObject").GetValue<Entity>() : GetUpgradable(toolSystem.selected));
 
-                __result = IJobExtensions.Schedule(new SnapJob
-                {
-                    m_EditorMode =              toolSystem.actionMode.IsEditor(),
-                    m_Snap =                    traverse.Method("GetActualSnap").GetValue<Snap>(),
-                    m_Mode =                    __instance.actualMode,
-                    m_Prefab =                  EL.m_PrefabSystem.GetEntity(traverse.Field("m_Prefab").GetValue<PrefabBase>()),
-                    m_Selected =                selected,
-                    m_LastRaycastPoint =        traverse.Field("m_LastRaycastPoint").GetValue<ControlPoint>(),
-                    m_Rotation =                GetRotation(__instance).m_Rotation,
-                    m_ControlPoints =           controlPoints,
+        //        __result = IJobExtensions.Schedule(new SnapJob
+        //        {
+        //            m_EditorMode =              toolSystem.actionMode.IsEditor(),
+        //            m_Snap =                    traverse.Method("GetActualSnap").GetValue<Snap>(),
+        //            m_Mode =                    __instance.actualMode,
+        //            m_Prefab =                  EL.m_PrefabSystem.GetEntity(traverse.Field("m_Prefab").GetValue<PrefabBase>()),
+        //            m_Selected =                selected,
+        //            m_LastRaycastPoint =        traverse.Field("m_LastRaycastPoint").GetValue<ControlPoint>(),
+        //            m_Rotation =                GetRotation(__instance).m_Rotation,
+        //            m_ControlPoints =           controlPoints,
 
-                    m_OwnerData =               __instance.GetComponentLookup<Owner>(true),
-                    m_TransformData =           __instance.GetComponentLookup<Transform>(true),
-                    m_LocalTransformCacheData = __instance.GetComponentLookup<LocalTransformCache>(true),
-                    m_ServiceUpgradeData =      __instance.GetComponentLookup<Game.Buildings.ServiceUpgrade>(true),
-                    m_ObjectGeometryData =      __instance.GetComponentLookup<ObjectGeometryData>(true),
-                    m_PrefabRefData =           __instance.GetComponentLookup<PrefabRef>(true),
-                }, __result);
-            }
-        }
+        //            m_OwnerData =               __instance.GetComponentLookup<Owner>(true),
+        //            m_TransformData =           __instance.GetComponentLookup<Transform>(true),
+        //            m_LocalTransformCacheData = __instance.GetComponentLookup<LocalTransformCache>(true),
+        //            m_ServiceUpgradeData =      __instance.GetComponentLookup<Game.Buildings.ServiceUpgrade>(true),
+        //            m_ObjectGeometryData =      __instance.GetComponentLookup<ObjectGeometryData>(true),
+        //            m_PrefabRefData =           __instance.GetComponentLookup<PrefabRef>(true),
+        //        }, __result);
+        //    }
+        //}
 
         [HarmonyPatch(
             typeof(ObjectToolSystem), nameof(ObjectToolSystem.GetAvailableSnapMask),
@@ -123,8 +123,15 @@ namespace ExtraDetailingTools.Patches
             {
                 if (EDT.objectToolSystem.actualMode != ObjectToolSystem.Mode.Create) return;
 
-                onMask |= Snap.ObjectSide;
-                offMask |= Snap.ObjectSide;
+
+                if((prefabPlaceableData.m_Flags & PlacementFlags.OwnerSide) == PlacementFlags.None)
+                {
+                    onMask |= Snap.ObjectSide;
+                    offMask |= Snap.ObjectSide;
+                }
+
+                onMask |= Snap.AutoParent;
+                offMask |= Snap.AutoParent;
 
                 if (!isBuilding && (prefabPlaceableData.m_Flags & (PlacementFlags.OwnerSide | PlacementFlags.RoadSide | PlacementFlags.Shoreline | PlacementFlags.Floating | PlacementFlags.Hovering | PlacementFlags.RoadNode | PlacementFlags.RoadEdge)) == PlacementFlags.None)
                 {

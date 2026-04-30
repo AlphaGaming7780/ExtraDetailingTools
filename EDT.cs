@@ -5,19 +5,13 @@
 
 
 using Colossal.Logging;
-using ExtraDetailingTools.Prefabs;
+using ExtraDetailingTools.ExtraSnap;
 using ExtraDetailingTools.Systems;
-using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI;
-using ExtraDetailingTools.Systems.UI.BetterInfoPanel;
-using ExtraLib;
 using ExtraLib.Debugger;
 using ExtraLib.Helpers;
-using ExtraLib.Systems.UI.ExtraPanels;
 using Game;
 using Game.Modding;
-using Game.Prefabs;
-using Game.Rendering;
 using Game.SceneFlow;
 using Game.Tools;
 using Game.UI.InGame;
@@ -100,7 +94,7 @@ namespace ExtraDetailingTools
             EL.m_PrefabSystem.AddPrefab(grassPrefabNew);
 
 #endif
-
+            ExtraSnapBase.RegisterInstance<ObjectToolSystemExtraSnap>();
             harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
             harmony.PatchAll(typeof(EDT).Assembly);
             var patchedMethods = harmony.GetPatchedMethods().ToArray();

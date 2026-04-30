@@ -23,7 +23,7 @@ using Unity.Burst;
 
 namespace ExtraDetailingTools.ExtraSnap
 {
-    internal class ObjectToolSystemExtraSnap : ExtraSnap<ObjectToolSystem, ObjectToolExtraSnap>
+    public class ObjectToolSystemExtraSnap : ExtraSnapBase<ObjectToolSystem, ObjectToolExtraSnap>
     {
         [Flags]
         public enum ObjectToolExtraSnap : uint
@@ -34,7 +34,7 @@ namespace ExtraDetailingTools.ExtraSnap
 
         readonly Traverse traverse;
 
-        ObjectToolSystemExtraSnap() : base()
+        public ObjectToolSystemExtraSnap() : base()
         {
             traverse = Traverse.Create(_Tool);
         }
@@ -50,7 +50,7 @@ namespace ExtraDetailingTools.ExtraSnap
                 if ((snap & Snap.ObjectSide) != Snap.None)
                 {
                     _ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
-                    if (_ToolSystem.actionMode.IsEditor())
+                    if (IsEditor)
                     {
                         _ToolRaycastSystem.raycastFlags |= RaycastFlags.Placeholders;
                     }
@@ -65,7 +65,7 @@ namespace ExtraDetailingTools.ExtraSnap
 
             JobHandle jobHandle = IJobExtensions.Schedule(new SnapJob
             {
-                m_EditorMode = _ToolSystem.actionMode.IsEditor(),
+                m_EditorMode = IsEditor,
                 m_Snap = traverse.Method("GetActualSnap").GetValue<Snap>(),
                 m_Mode = _Tool.actualMode,
                 m_Prefab = _PrefabSystem.GetEntity(traverse.Field("m_Prefab").GetValue<PrefabBase>()),
@@ -263,6 +263,11 @@ namespace ExtraDetailingTools.ExtraSnap
                     );
                 }
 
+                if (!m_EditorMode && (m_Snap & Snap.AutoParent) != Snap.None && controlPoint.m_OriginalEntity != Entity.Null)
+                {
+                    Entity entity2 = controlPoint.m_OriginalEntity;
+                    bestSnapPosition.m_OriginalEntity = entity2;
+                }
 
                 m_ControlPoints[m_ControlPoints.Length - 1] = bestSnapPosition;
 
