@@ -28,19 +28,27 @@ namespace ExtraDetailingTools.MonoBehaviours
             gameObject.transform.localScale = new Vector3(1f, 1f, 1f);
             enabled = false;
 
-            _material = new Material(Shader.Find("Shader Graphs/OverlayCurve"));
+            _material = new Material(Shader.Find("Shader Graphs/OverlayObject")); // Shader Graphs/OverlayCurve
 
             //Shader[] shaders = Resources.FindObjectsOfTypeAll<Shader>();
 
             //foreach (Shader shader in shaders)
             //{
             //    EDT.Logger.Info(shader.name);
-                
+
             //}
+
+            //foreach (string s in _material.GetPropertyNames(UnityEngine.MaterialPropertyType.Int)) { EDT.Logger.Info($"{_material.name} | Int : {s}"); }
+            //foreach (string s in _material.GetPropertyNames(UnityEngine.MaterialPropertyType.Float)) { EDT.Logger.Info($"{_material.name} | Float : {s}"); }
+            //foreach (string s in _material.GetPropertyNames(UnityEngine.MaterialPropertyType.Vector)) { EDT.Logger.Info($"{_material.name} | Vector : {s}"); }
+            //foreach (string s in _material.GetPropertyNames(UnityEngine.MaterialPropertyType.Texture)) { EDT.Logger.Info($"{_material.name} | Texture : {s}"); }
+            //foreach (string s in _material.GetPropertyNames(UnityEngine.MaterialPropertyType.Matrix)) { EDT.Logger.Info($"{_material.name} | Matrix : {s}"); }
+            //foreach (string s in _material.GetPropertyNames(UnityEngine.MaterialPropertyType.ConstantBuffer)) { EDT.Logger.Info($"{_material.name} | ConstantBuffer : {s}"); }
+            //foreach (string s in _material.GetPropertyNames(UnityEngine.MaterialPropertyType.ComputeBuffer)) { EDT.Logger.Info($"{_material.name} | ComputeBuffer : {s}"); }
 
             //for (int i = 0; i < 32; i++)
             //{
-            //    EDT.Logger.Info(LayerMask.LayerToName(i));
+            //    EDT.Logger.Info(LayerMask .LayerToName(i));
             //}
         }
 
@@ -133,6 +141,7 @@ namespace ExtraDetailingTools.MonoBehaviours
 
         GameObject CreateAxisHandle(Vector3 direction, Color color, float linelenght = 100f)
         {
+
             GameObject line = GameObject.CreatePrimitive(PrimitiveType.Cube);
             MeshRenderer meshRendere = line.GetComponent<MeshRenderer>();
 
@@ -142,14 +151,6 @@ namespace ExtraDetailingTools.MonoBehaviours
             //material = new Material(singletonPrefab.m_CurveMaterial);
 
             meshRendere.material = new(_material);
-
-            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Int)) { EDT.Logger.Info($"{meshRendere.material.name} | Int : {s}"); }
-            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Float)) { EDT.Logger.Info($"{meshRendere.material.name} | Float : {s}"); }
-            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Vector)) { EDT.Logger.Info($"{meshRendere.material.name} | Vector : {s}"); }
-            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Texture)) { EDT.Logger.Info($"{meshRendere.material.name} | Texture : {s}"); }
-            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.Matrix)) { EDT.Logger.Info($"{meshRendere.material.name} | Matrix : {s}"); }
-            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.ConstantBuffer)) { EDT.Logger.Info($"{meshRendere.material.name} | ConstantBuffer : {s}"); }
-            //foreach (string s in meshRendere.material.GetPropertyNames(UnityEngine.MaterialPropertyType.ComputeBuffer)) { EDT.Logger.Info($"{meshRendere.material.name} | ComputeBuffer : {s}"); }
 
             //meshRendere.material = new Material(Shader.Find("HDRP/Unlit"));
             //meshRendere.material = new Material(Shader.Find("BH/Overlay/CurvedOverlayShader"));

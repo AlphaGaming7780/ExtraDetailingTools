@@ -1,9 +1,11 @@
 ﻿using System;
+using Colossal;
 using Colossal.Entities;
 using Colossal.Mathematics;
 using Colossal.UI.Binding;
 using ExtraDetailingTools.MonoBehaviours;
 using ExtraDetailingTools.Prefabs;
+using ExtraDetailingTools.Systems.Tools;
 using Game.Buildings;
 using Game.Common;
 using Game.Objects;
@@ -18,6 +20,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Windows;
 using Transform = Game.Objects.Transform;
 
@@ -42,7 +45,9 @@ namespace ExtraDetailingTools.Systems.UI
 		private bool canPastScale = false;
 
 		private OverlayRenderSystem _overlayRenderSystem;
-
+		private GizmosSystem _gizmosSystem;
+		private ToolSystem _toolSystem;
+		private TransformGizmoTool _transformGizmoTool;
 
 		private GetterValueBinding<float3> transformSectionGetPos;
 		private GetterValueBinding<float3> transformSectionGetRot;
@@ -77,8 +82,11 @@ namespace ExtraDetailingTools.Systems.UI
 			base.OnCreate();
 
 			_overlayRenderSystem = World.GetOrCreateSystemManaged<OverlayRenderSystem>();
+			_gizmosSystem = World.GetOrCreateSystemManaged<GizmosSystem>();
+			_toolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
+            _transformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
 
-			AddBinding(transformSectionGetPos = new GetterValueBinding<float3>("edt", "transformsection_pos", GetPosition));
+            AddBinding(transformSectionGetPos = new GetterValueBinding<float3>("edt", "transformsection_pos", GetPosition));
 			AddBinding(new TriggerBinding<float3>("edt", "transformsection_pos", new Action<float3>(SetPosition)));
 
 			AddBinding(transformSectionGetRot = new GetterValueBinding<float3>("edt", "transformsection_rot", GetRotation));
@@ -110,6 +118,8 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(new TriggerBinding("edt", "transformsection_movesubbuildings", () => SetMoveSubBuilding(!moveSubBuilding) ));
 
             AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
+
+			AddBinding(new TriggerBinding<bool>("edt", "ontransformsectionopened", new Action<bool>(OnPanelOpned)));
 
 			_moveHandle = new GameObject("MoveHandle").AddComponent<MoveHandle>();
         }
@@ -156,12 +166,28 @@ namespace ExtraDetailingTools.Systems.UI
                 }
 
                 float3 linesLenght = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
-				//linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
+#if Extra4
+                //linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
 
-				//Quaternion objectRot = (Quaternion)transform.m_Rotation;
-    //            quaternion rotation = Quaternion.Euler(0, objectRot.eulerAngles.y, 0);
-    //            _moveHandle.Setup(transform.m_Position, useLocalAxis ? rotation : new quaternion(), linesLenght);
+                //Quaternion objectRot = (Quaternion)transform.m_Rotation;
+                //quaternion rotation = Quaternion.Euler(0, objectRot.eulerAngles.y, 0);
+                //_moveHandle.Setup(transform.m_Position, useLocalAxis ? rotation : new quaternion(), linesLenght);
 
+
+                RenderAxisWithHandlesJob job = new RenderAxisWithHandlesJob()
+				{
+                    m_GizmoBatcher = _gizmosSystem.GetGizmosBatcher(out JobHandle dep),
+					//pos = transform.m_Position,
+					linesLenght = linesLenght,
+					//rot = GetRotation(),
+					transform = transform,
+					useLocalAxis = useLocalAxis,
+				};
+                JobHandle jobHandle = job.Schedule(JobHandle.CombineDependencies(Dependency, dep));
+                _gizmosSystem.AddGizmosBatcherWriter(jobHandle);
+                Dependency = jobHandle;
+
+#else
 				RenderAxisJob renderAxisJob = new()
 				{
 					m_OverlayBuffer = _overlayRenderSystem.GetBuffer(out JobHandle outJobHandle),
@@ -173,17 +199,20 @@ namespace ExtraDetailingTools.Systems.UI
 				JobHandle jobHandle = renderAxisJob.Schedule(Dependency);
 				_overlayRenderSystem.AddBufferWriter(jobHandle);
 				Dependency = jobHandle;
+#endif
+            }
+#if Extra4
+			else
+			{
+				_moveHandle.DestroyAxisHandles();
 			}
-			//else
-			//{
-			//	_moveHandle.DestroyAxisHandles();
-			//}
+#endif
 
 		}
 
 
 #if RELEASE
-	[BurstCompile]
+        [BurstCompile]
 #endif
         private struct RenderAxisJob : IJob
 		{
@@ -209,14 +238,61 @@ namespace ExtraDetailingTools.Systems.UI
 					xAxis = new(sinX, 0, cosX);
 					zAxis = new(sinZ, 0, cosZ);
 				}
-				m_OverlayBuffer.DrawLine(UnityEngine.Color.red,		UnityEngine.Color.red,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos,							pos + xAxis),							0.1f, 0.5f);
+				m_OverlayBuffer.DrawLine(UnityEngine.Color.red,		UnityEngine.Color.red,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos,								pos + xAxis),							0.1f, 0.5f);
 				m_OverlayBuffer.DrawLine(UnityEngine.Color.green,	UnityEngine.Color.green,	0, OverlayRenderSystem.StyleFlags.Grid, new(pos + new float3(-0.001f, 0, 0),	pos + yAxis + new float3(0.001f, 0, 0)),	0.1f, 0.5f);
 				m_OverlayBuffer.DrawLine(UnityEngine.Color.green,	UnityEngine.Color.green,	0, OverlayRenderSystem.StyleFlags.Grid, new(pos + new float3(0, 0, -0.001f),	pos + yAxis + new float3(0, 0, 0.001f)),	0.1f, 0.5f);
-                m_OverlayBuffer.DrawLine(UnityEngine.Color.blue,	UnityEngine.Color.blue,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos,							pos + zAxis),							0.1f, 0.5f);
+                m_OverlayBuffer.DrawLine(UnityEngine.Color.blue,	UnityEngine.Color.blue,		0, OverlayRenderSystem.StyleFlags.Grid, new(pos,								pos + zAxis),							0.1f, 0.5f);
 			}
 		}
 
-		public override void OnWriteProperties(IJsonWriter writer) 
+		private struct RenderAxisWithHandlesJob : IJob
+		{
+			public GizmoBatcher m_GizmoBatcher;
+			//public float3 pos;
+			//public float3 rot;
+            public Transform transform;
+            public float3 linesLenght;
+			public bool useLocalAxis;
+			public void Execute()
+			{
+                //float3 xAxis = new(linesLenght.x, 0f, 0f);
+                //float3 yAxis = new(0f, linesLenght.y, 0f);
+                //float3 zAxis = new(0f, 0f, linesLenght.z);
+                //if (useLocalAxis)
+                //{
+                //	float sinX = linesLenght.z * Mathf.Sin(rot.y * Mathf.PI / 180);
+                //	float cosX = linesLenght.z * Mathf.Cos(rot.y * Mathf.PI / 180);
+                //	float sinZ = linesLenght.x * Mathf.Sin((rot.y + 90) * Mathf.PI / 180);
+                //	float cosZ = linesLenght.x * Mathf.Cos((rot.y + 90) * Mathf.PI / 180);
+                //	xAxis = new(sinX, 0, cosX);
+                //	zAxis = new(sinZ, 0, cosZ);
+                //}
+
+                quaternion rot = transform.m_Rotation;
+                float3 pos = transform.m_Position;
+
+                float3 xAxis = new float3(1, 0, 0);
+                float3 yAxis = new float3(0, 1, 0);
+                float3 zAxis = new float3(0, 0, 1);
+
+                if (useLocalAxis)
+                {
+                    xAxis = math.rotate(rot, xAxis);
+                    yAxis = math.rotate(rot, yAxis);
+                    zAxis = math.rotate(rot, zAxis);
+                }
+
+                xAxis *= linesLenght.x;
+                yAxis *= linesLenght.y;
+                zAxis *= linesLenght.z;
+
+                m_GizmoBatcher.DrawArrow(pos, pos + xAxis, UnityEngine.Color.red, 0.4f * linesLenght.x);
+				m_GizmoBatcher.DrawArrow(pos, pos + yAxis, UnityEngine.Color.green, 0.4f * linesLenght.y);
+				m_GizmoBatcher.DrawArrow(pos, pos + zAxis, UnityEngine.Color.blue, 0.4f * linesLenght.z);
+			}
+		}
+
+        public override void OnWriteProperties(IJsonWriter writer) 
 		{
 
 			bool AsSubBuilding = false;
@@ -262,6 +338,18 @@ namespace ExtraDetailingTools.Systems.UI
 				showAxis = false;
 			}
 		}
+
+		private void OnPanelOpned(bool opened)
+		{
+            //showAxis = opened;
+			if(opened)
+			{
+				_toolSystem.activeTool = _transformGizmoTool;
+            } else
+			{
+				//_toolSystem.activeTool = null;
+			}
+        }
 
 		private void UseLocalAxis()
 		{
@@ -422,17 +510,11 @@ namespace ExtraDetailingTools.Systems.UI
 
 		private void SetPosition(float3 positionOffset)
 		{
-			if (useLocalAxis)
-			{
-				float3 rot = GetRotation();
-				float sinX = positionOffset.x * Mathf.Sin(rot.y * Mathf.PI / 180);
-				float cosX = positionOffset.x * Mathf.Cos(rot.y * Mathf.PI / 180);
-
-				float sinZ = positionOffset.z * Mathf.Sin((rot.y + 90) * Mathf.PI / 180);
-				float cosZ = positionOffset.z * Mathf.Cos((rot.y + 90) * Mathf.PI / 180);
-
-				positionOffset = new(sinX + sinZ, positionOffset.y, cosX + cosZ);
-			}
+            if (useLocalAxis)
+            {
+                quaternion rot = transform.m_Rotation;
+                positionOffset = math.mul(rot, positionOffset);
+            }
 			UpdateSelectedEntity(positionOffset, float3.zero);
 		}
 
@@ -477,12 +559,13 @@ namespace ExtraDetailingTools.Systems.UI
 				foreach (Game.Buildings.InstalledUpgrade installedUpgrade in installedUpgrades)
 				{
 
-					if ( !moveSubBuilding && EntityManager.HasComponent<Building>(installedUpgrade))
-					{
-						continue;
-					}
+                    if (EntityManager.TryGetComponent(installedUpgrade, out Building building))
+                    {
+                        EntityManager.AddComponentData(building.m_RoadEdge, new Updated());
+                        if (!moveSubBuilding) continue;
+                    }
 
-					if (!EntityManager.TryGetComponent(installedUpgrade, out Game.Objects.Transform transform1))
+                    if (!EntityManager.TryGetComponent(installedUpgrade, out Transform transform1))
 					{
 						continue;
 					}
@@ -552,7 +635,7 @@ namespace ExtraDetailingTools.Systems.UI
 
 				foreach (Game.Objects.SubObject subObject in subObjects)
 				{
-					if (EntityManager.TryGetComponent(subObject.m_SubObject, out Transform transform))
+					if (EntityManager.TryGetComponent(subObject.m_SubObject, out Transform transform1))
 					{
 
 						//float3 ogVector = transform.m_Position - parentTransform.m_Position;
@@ -561,11 +644,11 @@ namespace ExtraDetailingTools.Systems.UI
 						//transform.m_Position = parentTransform.m_Position + positionOffset + offset;
 						//transform.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation(transform));
 
-                        float3 ogVector = transform.m_Position - transform.m_Position;
+                        float3 ogVector = transform1.m_Position - transform.m_Position;
                         float3 offset = Quaternion.Euler(rotationOffset) * ogVector;
 
-                        transform.m_Position = transform.m_Position + positionOffset + offset;
-                        transform.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation(transform));
+                        transform1.m_Position = transform.m_Position + positionOffset + offset;
+                        transform1.m_Rotation = Quaternion.Euler(rotationOffset + GetRotation(transform1));
 
                     }
 					EntityManager.AddComponentData(subObject.m_SubObject, new Game.Common.Updated());

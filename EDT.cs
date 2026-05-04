@@ -6,12 +6,17 @@
 
 using Colossal.Logging;
 using ExtraDetailingTools.ExtraSnap;
+using ExtraDetailingTools.Gizmos;
+using ExtraDetailingTools.Prefabs;
 using ExtraDetailingTools.Systems;
+using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI;
+using ExtraLib;
 using ExtraLib.Debugger;
 using ExtraLib.Helpers;
 using Game;
 using Game.Modding;
+using Game.Prefabs;
 using Game.SceneFlow;
 using Game.Tools;
 using Game.UI.InGame;
@@ -41,67 +46,72 @@ namespace ExtraDetailingTools
 
         public void OnLoad(UpdateSystem updateSystem)
         {
-            Logger.Info(nameof(this.OnLoad));
-
-            // effectControlSystem = updateSystem.World.GetOrCreateSystemManaged<EffectControlSystem>();
-            if (!GameManager.instance.modManager.TryGetExecutableAsset(this, out var asset)) return;
-
-            Logger.Info($"Current mod asset at {asset.path}");
-
-            FileInfo fileInfo = new(asset.path);
-
-            ResourcesIcons = Path.Combine(fileInfo.DirectoryName, "Icons");
-            Icons.LoadIcons(fileInfo.DirectoryName);
-
-            ExtraLocalization.LoadLocalization(Logger, Assembly.GetExecutingAssembly());
-            EditEntities.SetupEditEntities();
-
-            updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
-            //updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
-            updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
-#if Extra4
-            updateSystem.UpdateAfter<TransformObjectSystem>(SystemUpdatePhase.Rendering);
-            updateSystem.UpdateAt<GrassToolSystem>(SystemUpdatePhase.ToolUpdate);
-            updateSystem.UpdateAt<GrassSystem>(SystemUpdatePhase.ModificationEnd);
-            updateSystem.UpdateAt<GrassRenderSystem>(SystemUpdatePhase.PreCulling);
-
-            ExtraPanelsUISystem extraPanelsUISystem = updateSystem.World.GetOrCreateSystemManaged<ExtraPanelsUISystem>();
-            extraPanelsUISystem.AddExtraPanel<BetterInfoPanelUISystem>();
-#endif
-
-            SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
-            selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
-
-            // toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
-             objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
-
-            //PrefabsHelper.LoadPrefabsInDirectory(Path.Combine(fileInfo.Directory.FullName, "Prefabs"));
-
-#if Extra4
-
-            GameGrassPrefab gameGrassPrefab = UnityEngine.ScriptableObject.CreateInstance<GameGrassPrefab>();
-            gameGrassPrefab.name = "GameGrassPrefab";
-            UIObject uIObject = gameGrassPrefab.AddComponent<UIObject>();
-            uIObject.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
-            uIObject.m_Icon = Icons.GetIcon(gameGrassPrefab);
-            EL.m_PrefabSystem.AddPrefab(gameGrassPrefab);
-
-            GrassPrefabNew grassPrefabNew = UnityEngine.ScriptableObject.CreateInstance<GrassPrefabNew>();
-            grassPrefabNew.name = "GrassPrefabNew";
-            UIObject uIObject1 = grassPrefabNew.AddComponent<UIObject>();
-            uIObject1.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
-            uIObject1.m_Icon = Icons.GetIcon(grassPrefabNew);
-            EL.m_PrefabSystem.AddPrefab(grassPrefabNew);
-
-#endif
-            ExtraSnapBase.RegisterInstance<ObjectToolSystemExtraSnap>();
-            harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
-            harmony.PatchAll(typeof(EDT).Assembly);
-            var patchedMethods = harmony.GetPatchedMethods().ToArray();
-            Logger.Info($"Plugin ExtraDetailingTools made patches! Patched methods: " + patchedMethods.Length);
-            foreach (var patchedMethod in patchedMethods)
+            try
             {
-                Logger.Info($"Patched method: {patchedMethod.Module.ScopeName}:{patchedMethod.Name}");
+                Logger.Info(nameof(this.OnLoad));
+
+                // effectControlSystem = updateSystem.World.GetOrCreateSystemManaged<EffectControlSystem>();
+                if (!GameManager.instance.modManager.TryGetExecutableAsset(this, out var asset)) return;
+
+                Logger.Info($"Current mod asset at {asset.path}");
+
+                FileInfo fileInfo = new(asset.path);
+
+                ResourcesIcons = Path.Combine(fileInfo.DirectoryName, "Icons");
+                Icons.LoadIcons(fileInfo.DirectoryName);
+
+                ExtraLocalization.LoadLocalization(Logger, Assembly.GetExecutingAssembly());
+                EditEntities.SetupEditEntities();
+
+                updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
+                //updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
+                updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
+#if Extra4
+                updateSystem.UpdateAt<GizmosRenderSystem>(SystemUpdatePhase.Rendering);
+                updateSystem.UpdateAt<GizmosRaycastSystem>(SystemUpdatePhase.Raycast);
+                updateSystem.UpdateAt<TransformGizmoTool>(SystemUpdatePhase.ToolUpdate);
+                updateSystem.UpdateAfter<TransformObjectSystem>(SystemUpdatePhase.Rendering);
+                updateSystem.UpdateAt<GrassToolSystem>(SystemUpdatePhase.ToolUpdate);
+                updateSystem.UpdateAt<GrassSystem>(SystemUpdatePhase.ModificationEnd);
+                updateSystem.UpdateAt<GrassRenderSystem>(SystemUpdatePhase.PreCulling);
+#endif
+
+                SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
+                selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
+
+                // toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
+                objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
+
+                //PrefabsHelper.LoadPrefabsInDirectory(Path.Combine(fileInfo.Directory.FullName, "Prefabs"));
+
+#if Extra4
+                //GameGrassPrefab gameGrassPrefab = UnityEngine.ScriptableObject.CreateInstance<GameGrassPrefab>();
+                //gameGrassPrefab.name = "GameGrassPrefab";
+                //UIObject uIObject = gameGrassPrefab.AddComponent<UIObject>();
+                //uIObject.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
+                //uIObject.m_Icon = Icons.GetIcon(gameGrassPrefab);
+                //EL.m_PrefabSystem.AddPrefab(gameGrassPrefab);
+
+                //GrassPrefabNew grassPrefabNew = UnityEngine.ScriptableObject.CreateInstance<GrassPrefabNew>();
+                //grassPrefabNew.name = "GrassPrefabNew";
+                //UIObject uIObject1 = grassPrefabNew.AddComponent<UIObject>();
+                //uIObject1.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
+                //uIObject1.m_Icon = Icons.GetIcon(grassPrefabNew);
+                //EL.m_PrefabSystem.AddPrefab(grassPrefabNew);
+#endif
+                ExtraSnapBase.RegisterInstance<ObjectToolSystemExtraSnap>();
+                harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
+                harmony.PatchAll(typeof(EDT).Assembly);
+                var patchedMethods = harmony.GetPatchedMethods().ToArray();
+                Logger.Info($"Plugin ExtraDetailingTools made patches! Patched methods: " + patchedMethods.Length);
+                foreach (var patchedMethod in patchedMethods)
+                {
+                    Logger.Info($"Patched method: {patchedMethod.Module.ScopeName}:{patchedMethod.Name}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Logger.Error($"Error in {nameof(OnLoad)}: {ex}"); Logger.Error(ex.Message);
             }
         }
 

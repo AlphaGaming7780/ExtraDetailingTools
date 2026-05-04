@@ -71,7 +71,7 @@ namespace ExtraDetailingTools.Systems
             m_GrassVisualEffectMap = new();
 
             m_GrassDataQuery = GetEntityQuery(new ComponentType[]
-{
+            {
                 ComponentType.ReadWrite<GrassData>(),
                 ComponentType.ReadOnly<PrefabRef>(),
                 ComponentType.ReadOnly<Updated>(),

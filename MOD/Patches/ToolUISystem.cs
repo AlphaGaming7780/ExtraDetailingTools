@@ -22,9 +22,16 @@ namespace ExtraDetailingTools.Patches
         {
             public static void Postfix(ref bool __result)
             {
-                if( GrassToolSystem.s_Instance.toolSystem.activeTool == GrassToolSystem.s_Instance )
+                try
                 {
-                    __result = true;
+                    if (GrassToolSystem.s_Instance.toolSystem.activeTool == GrassToolSystem.s_Instance)
+                    {
+                        __result = true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    EDT.Logger.Warn(e); 
                 }
             }
         }

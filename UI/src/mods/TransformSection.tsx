@@ -313,7 +313,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
                 initialExpanded={PanelOpen}
 				expandFromContent={false}
 				focusKey={FOCUS_AUTO}
-				onToggleExpanded={(value: boolean) => { PanelOpen = value }}
+				onToggleExpanded={(value: boolean) => { trigger("edt", "ontransformsectionopened", value); PanelOpen = value; }}
 			>
 				<div className={classNames(InfoSectionSCSS.content, InfoSectionSCSS.disableFocusHighlight)}
 					onMouseEnter={(e: MouseEvent) => { trigger("edt", "showhighlight", true) }} onMouseLeave={(e: MouseEvent) => { trigger("edt", "showhighlight", false) }}
