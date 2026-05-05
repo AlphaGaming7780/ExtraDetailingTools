@@ -114,8 +114,8 @@ namespace ExtraDetailingTools.Gizmos
                     case GizmoType.Arrow:
                         return IntersectArrow(g.A, g.B, g.Params0.x, g.Params0.y, line, tolerance, out hit);
 
-                    //case GizmoType.WireArc:
-                    //    return;
+                    case GizmoType.WireArc:
+                        return IntersectWireArc(g, line, tolerance, out hit);
 
                     default:
                         hit = default;
@@ -252,6 +252,58 @@ namespace ExtraDetailingTools.Gizmos
 
                 hit = default;
                 return false;
+            }
+
+            private bool IntersectWireArc(GizmosData g, Line3.Segment ray, float tolerance, out RaycastHit hit)
+            {
+                hit = default;
+
+                float3 center = g.A;
+                float3 normal = g.B;
+                float3 from = g.C;
+                float angle = g.Params0.x;
+                float radius = g.Params0.y;
+                int segments = g.Segments;
+
+                float angleRad = math.radians(angle);
+
+                float3 n = math.normalize(normal);
+                float3 f = math.normalize(from);
+
+                f = math.normalize(f - n * math.dot(f, n));
+
+                float step = angleRad / segments;
+
+                float3 prev = center + f * radius;
+
+                float bestDist = float.MaxValue;
+                bool found = false;
+
+                for (int i = 1; i <= segments; i++)
+                {
+                    float a = step * i;
+
+                    quaternion rot = quaternion.AxisAngle(n, a);
+                    float3 dir = math.rotate(rot, f);
+
+                    float3 curr = center + dir * radius;
+
+                    float capsuleRadius = tolerance;
+
+                    if (IntersectCapsule(prev, curr, capsuleRadius, ray, out RaycastHit h))
+                    {
+                        if (h.m_NormalizedDistance < bestDist)
+                        {
+                            bestDist = h.m_NormalizedDistance;
+                            hit = h;
+                            found = true;
+                        }
+                    }
+
+                    prev = curr;
+                }
+
+                return found;
             }
 
             private bool IntersectCapsule(float3 a, float3 b, float radius, Line3.Segment ray, out RaycastHit hit)

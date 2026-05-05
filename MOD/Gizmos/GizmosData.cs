@@ -13,8 +13,8 @@ namespace ExtraDetailingTools.Gizmos
     {
         Line,
         Bezier,
-        Arrow,
         ArrowHead,
+        Arrow,
         Sphere,
         Cube,
         WireArc,

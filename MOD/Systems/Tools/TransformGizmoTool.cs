@@ -1,4 +1,5 @@
-﻿using Colossal.Entities;
+﻿using Colossal;
+using Colossal.Entities;
 using Colossal.Mathematics;
 using ExtraDetailingTools.Gizmos;
 using Game;
@@ -14,7 +15,10 @@ using Game.Prefabs;
 using Game.Rendering;
 using Game.Routes;
 using Game.Tools;
+using Game.UI.Debug;
 using Game.Vehicles;
+using PDX.SDK.Contracts.Enums.Errors;
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -35,6 +39,14 @@ namespace ExtraDetailingTools.Systems.Tools
 {
     internal partial class TransformGizmoTool : ToolBaseSystem
     {
+
+        public enum AllowHightlightState
+        {
+            Default,
+            Enabled,
+            Disabled,
+        }
+
 #if RELEASE
         [BurstCompile]
 #endif
@@ -120,6 +132,9 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly]
             public bool m_MoveSubBuildings;
 
+            [ReadOnly]
+            public bool AllowHighlight;
+
             public void Execute()
             {
                 Entity entity = m_Entity;
@@ -181,7 +196,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     component.m_Flags |= CreationFlags.Parent | CreationFlags.Duplicate;
                 }
-                else
+                else if (AllowHighlight)
                 {
                     component.m_Flags |= CreationFlags.Select;
                 }
@@ -414,7 +429,8 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public float3 m_Position;
             [ReadOnly] public quaternion m_Rotation;
 
-            public EntityCommandBuffer m_CommandBuffer;
+            [ReadOnly] public EntityCommandBuffer m_CommandBuffer;
+            [ReadOnly] public GizmoBatcher m_Batcher;
 
             [ReadOnly] public Entity m_xAxisEntity;
             [ReadOnly] public Entity m_yAxisEntity;
@@ -449,7 +465,10 @@ namespace ExtraDetailingTools.Systems.Tools
                     bounds3 = m_UseLocalAxis ? geometryData.m_Bounds : ObjectUtils.CalculateBounds(pos, rot, geometryData);
                 }
 
+                //float3 center = MathUtils.Center(bounds3);
                 float3 size = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
+
+                RenderOriginPoint(transform.m_Position, size);
 
                 switch (m_Mode)
                 {
@@ -465,6 +484,12 @@ namespace ExtraDetailingTools.Systems.Tools
                         DestroyAllEntity();
                         break;
                 }
+            }
+
+            private void RenderOriginPoint(Vector3 pos, float3 size)
+            {
+                float radius = math.cmax(size) * 0.1f;
+                m_Batcher.DrawWireSphere(pos, radius, Color.yellow);
             }
 
             private void UpdateMoveHandle(float3 pos, quaternion rot, float3 size)
@@ -507,9 +532,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private void UpdateRotateHandle(float3 pos, quaternion rot, float3 size)
             {
-                float height = size.y;
-                pos.y += height / 2;
-                float radius = math.cmax(size) /2;
+                float radius = math.cmax(size) / 2;
 
                 float3 xAxis = new float3(1, 0, 0);
                 float3 yAxis = new float3(0, 1, 0);
@@ -522,9 +545,9 @@ namespace ExtraDetailingTools.Systems.Tools
                     zAxis = math.rotate(rot, zAxis);
                 }
 
-                float3 fromX = math.normalize(math.any(math.abs(xAxis) > 0.9f) ? yAxis : xAxis);
-                float3 fromY = math.normalize(math.any(math.abs(yAxis) > 0.9f) ? zAxis : yAxis);
-                float3 fromZ = math.normalize(math.any(math.abs(zAxis) > 0.9f) ? xAxis : zAxis);
+                float3 fromX = GetPerpendicular(xAxis);
+                float3 fromY = GetPerpendicular(yAxis);
+                float3 fromZ = GetPerpendicular(zAxis);
 
                 UpdateRotateArc(m_xAxisEntity, pos, xAxis, fromX, radius, Color.red);
                 UpdateRotateArc(m_yAxisEntity, pos, yAxis, fromY, radius, Color.green);
@@ -547,6 +570,18 @@ namespace ExtraDetailingTools.Systems.Tools
                 }
             }
 
+            private float3 GetPerpendicular(float3 n)
+            {
+                float3 refAxis = math.abs(n.y) < 0.99f
+                    ? new float3(0, 1, 0)
+                    : new float3(1, 0, 0);
+
+                float3 perp = math.normalize(math.cross(n, refAxis));
+
+                return perp;
+            }
+
+
             private void UpdateScaleGizmos(float3 pos, quaternion rot, float3 size)
             {
 
@@ -559,23 +594,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_CommandBuffer.RemoveComponent<GizmosData>(m_xAxisEntity);
                 m_CommandBuffer.RemoveComponent<GizmosData>(m_yAxisEntity);
                 m_CommandBuffer.RemoveComponent<GizmosData>(m_zAxisEntity);
-                //if (m_xAxisEntity.Value != Entity.Null)
-                //{
-                //    m_CommandBuffer.DestroyEntity(m_xAxisEntity.Value);
-                //    m_xAxisEntity.Value = Entity.Null;
-                //}
-
-                //if (m_yAxisEntity.Value != Entity.Null)
-                //{
-                //    m_CommandBuffer.DestroyEntity(m_yAxisEntity.Value);
-                //    m_yAxisEntity.Value = Entity.Null;
-                //}
-
-                //if (m_zAxisEntity.Value != Entity.Null)
-                //{
-                //    m_CommandBuffer.DestroyEntity(m_zAxisEntity.Value);
-                //    m_zAxisEntity.Value = Entity.Null;
-                //}
             }
         }
 
@@ -604,8 +622,11 @@ namespace ExtraDetailingTools.Systems.Tools
 
             public void Execute()
             {
+                isTemp = m_TempLookup.HasComponent(m_SelectedEntity);
+
                 UpdateObject(m_SelectedEntity, m_Position, m_Rotation);
             }
+
 
             private void UpdateObject(Entity entity, float3 position, quaternion rotation)
             {
@@ -615,8 +636,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 }
 
                 if (!m_TransformLookup.TryGetComponent(entity, out Transform transform)) return;
-
-                isTemp = m_TempLookup.HasComponent(entity);
 
                 position = !position.Equals(default) ? position : transform.m_Position;
                 rotation = !rotation.Equals(default) ? rotation : transform.m_Rotation;
@@ -655,20 +674,24 @@ namespace ExtraDetailingTools.Systems.Tools
 
                 foreach (InstalledUpgrade installedUpgrade in installedUpgrades)
                 {
-                    if (!m_MoveSubBuildings && m_BuildingLookup.HasComponent(installedUpgrade))
-                    {
-                        continue;
-                    }
 
                     if (m_BuildingLookup.TryGetComponent(installedUpgrade, out Building building))
                     {
-                        if (!m_MoveSubBuildings) continue;
                         m_CommandBuffer.AddComponent(building.m_RoadEdge, new Updated());
+                        if (!m_MoveSubBuildings) continue;
                     }
+
+                    if (!m_TransformLookup.TryGetComponent(installedUpgrade, out Transform transform)) continue;
+
+                    transform = ApplyTransformOffset(transform, parentTransform.m_Position, positionOffset, rotationOffset);
+
+                    UpdateObject(installedUpgrade, transform.m_Position, transform.m_Rotation);
+
+                    continue; 
 
                     //if (!m_MoveSubBuildings && m_BuildingLookup.HasComponent(installedUpgrade)) continue;
 
-                    if (!m_TransformLookup.TryGetComponent(installedUpgrade, out Transform transform)) continue;
+                    if (!m_TransformLookup.TryGetComponent(installedUpgrade, out Transform transform1)) continue;
 
                     // need that ? Nop, get updated by the game.
                     //if (EntityManager.TryGetComponent(installedUpgrade, out PrefabRef prefabRef1) && EntityManager.TryGetComponent(prefabRef1.m_Prefab, out ObjectGeometryData geometryData1) && EntityManager.TryGetComponent(installedUpgrade, out CullingInfo cullingInfo1))
@@ -676,6 +699,8 @@ namespace ExtraDetailingTools.Systems.Tools
                     //    cullingInfo1.m_Bounds = ObjectUtils.CalculateBounds(transform1.m_Position, transform1.m_Rotation, geometryData1);
                     //    EntityManager.SetComponentData(installedUpgrade, cullingInfo1);
                     //}
+
+                    transform = ApplyTransformOffset(transform, parentTransform.m_Position, positionOffset, rotationOffset);
 
                     UpdateSubElement(installedUpgrade, transform, positionOffset, rotationOffset);
 
@@ -786,9 +811,8 @@ namespace ExtraDetailingTools.Systems.Tools
         public override string toolID => "TransformGizmoTool";
 
         private AudioManager m_AudioManager;
-
+        private GizmosSystem m_GizmosSystem;
         private GizmosRaycastSystem m_GimzosRaycastSystem;
-
         private ToolOutputBarrier m_ToolOutputBarrier;
 
         private Mode m_Mode = Mode.Move;
@@ -808,12 +832,17 @@ namespace ExtraDetailingTools.Systems.Tools
         private Entity m_zAxisEntity;
 
         private int m_LastSelectedIndex;
-        private float3 m_DragStartGizmo;
+        private float3 m_DragStartGizmoPos;
+        private quaternion m_DragStartGizmoRot;
         private float3 m_DragStartMouseHitPos;
 
         public bool m_UseLocalAxis { get; set; } = true;
         public bool m_MoveSubBuildings { get; set; } = true;
-        public bool underground { get; set; } = false;
+        private bool m_Underground { get; set; } = false;
+        public AllowHightlightState m_AllowHightlight { get; set; } = AllowHightlightState.Default;
+
+        public override int uiModeIndex => (int)m_Mode;
+        public override bool allowUnderground { get => true; protected set { } }
 
         public override PrefabBase GetPrefab() { return null; }
 
@@ -823,6 +852,7 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             base.OnCreate();
             Enabled = false;
+            m_GizmosSystem = World.GetOrCreateSystemManaged<GizmosSystem>();
             m_ToolOutputBarrier = base.World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_AudioManager = base.World.GetOrCreateSystemManaged<AudioManager>();
             m_SoundQuery = GetEntityQuery(ComponentType.ReadOnly<ToolUXSoundSettingsData>());
@@ -854,7 +884,11 @@ namespace ExtraDetailingTools.Systems.Tools
             EnableActions(false);
         }
 
-        
+        public override void SetUnderground(bool underground)
+        {
+            m_Underground = underground;
+            requireUnderground = underground;
+        }
 
         public override void InitializeRaycast()
         {
@@ -862,7 +896,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             if(m_Mode == Mode.Default)
             {
-                if (underground)
+                if (m_Underground)
                 {
                     m_ToolRaycastSystem.collisionMask = CollisionMask.Underground;
                 }
@@ -875,7 +909,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_ToolRaycastSystem.netLayerMask = Layer.None;
                 m_ToolRaycastSystem.areaTypeMask = AreaTypeMask.None;
                 m_ToolRaycastSystem.iconLayerMask = IconLayerMask.Default;
-                if (!underground)
+                if (!m_Underground)
                 {
                     m_ToolRaycastSystem.typeMask |= TypeMask.Areas;
                     m_ToolRaycastSystem.areaTypeMask |= AreaTypeMask.Lots;
@@ -894,7 +928,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     m_Type = GizmosRaycastType.ALL,
                     m_Line = ToolRaycastSystem.CalculateRaycastLine(Camera.main),
-                    m_Tolerance = 0,
+                    m_Tolerance = m_Mode == Mode.Rotate ? 0.1f : 0,
                     m_Debug = true
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);
@@ -978,15 +1012,17 @@ namespace ExtraDetailingTools.Systems.Tools
             {
                 if (GetRaycastResult(out var entity2, out var hit2, out var forceUpdate) && entity2 == m_LastRaycastEntity && !forceUpdate)
                 {
-                    base.applyMode = ApplyMode.None;
+                    applyMode = ApplyMode.None;
                     return inputDeps;
                 }
                 m_LastRaycastEntity = entity2;
-                base.applyMode = ApplyMode.Clear;
-                //inputDeps = UpdateGizmos(inputDeps);
+                applyMode = ApplyMode.Clear;
                 inputDeps = UpdateDefinitions(inputDeps, entity2, hit2.m_CellIndex.x);
                 return inputDeps;
             }
+
+            float3 newPos = default;
+            quaternion newRot = default;
 
             if (m_State == State.Idle)
             {
@@ -1001,33 +1037,67 @@ namespace ExtraDetailingTools.Systems.Tools
                 applyMode = ApplyMode.Clear;
                 inputDeps = UpdateDefinitions(inputDeps, m_ToolSystem.selected, m_ToolSystem.selectedIndex);
             }
-
-            float3 newPos = default;
-            quaternion newRot = default;
-
-            if (m_Mode == Mode.Move && m_State == State.Dragging)
+            else if(m_State == State.Dragging)
             {
-                applyMode = ApplyMode.None;
-                float3 axisDir = GetSelectedAxisDirection(m_LastRaycastGizmos);
-                Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmo);
-
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                if (dragPlane.Raycast(ray, out float enter))
+                if (m_Mode == Mode.Move)
                 {
-                    float3 hitPos = ray.origin + ray.direction * enter;
+                    applyMode = ApplyMode.None;
+                    float3 axisDir = GetSelectedAxisDirection(m_LastRaycastGizmos);
+                    Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
 
-                    float3 mouseDelta = hitPos - m_DragStartMouseHitPos;
-                    float3 projectedDelta = math.dot(mouseDelta, axisDir) * axisDir;
-
-                    newPos = m_DragStartGizmo + projectedDelta;
-
-                    if (m_SelectedTempEntity != Entity.Null)
+                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                    if (dragPlane.Raycast(ray, out float enter))
                     {
-                        inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newPos);
+                        float3 hitPos = ray.origin + ray.direction * enter;
+
+                        float3 mouseDelta = hitPos - m_DragStartMouseHitPos;
+                        float3 projectedDelta = math.dot(mouseDelta, axisDir) * axisDir;
+
+                        newPos = projectedDelta;
+
+                        if (m_SelectedTempEntity != Entity.Null)
+                        {
+                            inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newPos);
+                        }
+                        else
+                        {
+                            EDT.Logger.Error("m_SelectedTempEntity is null");
+                        }
                     }
-                    else
+                }
+
+                else if (m_Mode == Mode.Rotate )
+                {
+                    applyMode = ApplyMode.None;
+
+                    float3 axisDir = GetSelectedAxisDirection(m_LastRaycastGizmos);
+                    Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
+
+                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+                    if (dragPlane.Raycast(ray, out float enter))
                     {
-                        EDT.Logger.Error("m_SelectedTempEntity is null");
+                        float3 hitPos = ray.origin + ray.direction * enter;
+                        float3 currentDir = math.normalize(hitPos - m_DragStartGizmoPos);
+                        float3 startDir = m_DragStartMouseHitPos;
+
+                        float angle = math.atan2(
+                            math.dot(axisDir, math.cross(startDir, currentDir)),
+                            math.dot(startDir, currentDir)
+                        );
+
+                        quaternion deltaRot = quaternion.AxisAngle(axisDir, angle);
+
+                        newRot = math.mul(deltaRot, m_DragStartGizmoRot);
+
+                        if (m_SelectedTempEntity != Entity.Null)
+                        {
+                            inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newRot);
+                        }
+                        else
+                        {
+                            EDT.Logger.Error("m_SelectedTempEntity is null");
+                        }
                     }
                 }
             }
@@ -1038,48 +1108,48 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private JobHandle Apply(JobHandle inputDeps, bool singleFrameOnly = false, bool toggleSelected = false)
         {
-            switch (m_Mode)
+
+            if(m_Mode == Mode.Default)
             {
-                case Mode.Default:
-                    applyMode = ApplyMode.None;
-                    m_LastRaycastGizmos = Entity.Null;
-                    JobHandle jobHandle = SelectTempEntity(inputDeps, toggleSelected);
-                    if(m_ToolSystem.selected != Entity.Null)
-                    {
-                        m_Mode = Mode.Rotate;
-                        m_State = State.Idle;
-                    }
-                    return jobHandle;
-                
-                case Mode.Move:
+                applyMode = ApplyMode.None;
+                m_LastRaycastGizmos = Entity.Null;
+                JobHandle jobHandle = SelectTempEntity(inputDeps, toggleSelected);
+                if (m_ToolSystem.selected != Entity.Null)
+                {
+                    m_Mode = Mode.Rotate;
+                    m_State = State.Idle;
+                }
+                return jobHandle;
+            }
 
-                    if (m_State == State.Idle)
-                    {
-                        applyMode = ApplyMode.None;
-                        NativeArray<RaycastResult> raycastResults = m_GimzosRaycastSystem.GetResult(this);
+            if (m_State == State.Idle)
+            {
+                applyMode = ApplyMode.None;
+                NativeArray<RaycastResult> raycastResults = m_GimzosRaycastSystem.GetResult(this);
 
-                        if (raycastResults.Length <= 0) break;
+                if (raycastResults.Length <= 0) return inputDeps;
 
-                        RaycastResult raycastResult = raycastResults[0];
+                RaycastResult raycastResult = raycastResults[0];
 
-                        if (raycastResult.m_Owner == Entity.Null) break;
+                if (raycastResult.m_Owner == Entity.Null) return inputDeps;
 
-                        StartDragging(raycastResult.m_Hit);
+                StartDragging(raycastResult.m_Hit);
 
-                        break;
-                    }
+                return inputDeps;
+            }
 
-                    if(m_State == State.Dragging)
-                    {
-                        float3 pos = GetGizmoCenter(m_LastRaycastGizmos);
-                        StopDragging();
-                        //applyMode = ApplyMode.Clear;
-                        inputDeps = UpdateObject(inputDeps, m_ToolSystem.selected, pos);
-                        //inputDeps = UpdateGizmos(inputDeps);
-                        return inputDeps; //UpdateDefinitions(inputDeps, m_ToolSystem.selected, m_LastSelectedIndex);
-                    }
-                        
-                    break;
+            if (m_State == State.Dragging)
+            {
+                float3 pos = default;
+                quaternion rot = default;
+                if (m_SelectedTempEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedTempEntity, out Transform transform))
+                {
+                    pos = transform.m_Position;
+                    rot = transform.m_Rotation;
+                }
+                StopDragging();
+                inputDeps = UpdateObject(inputDeps, m_ToolSystem.selected, pos, rot);
+                return inputDeps;
             }
 
             return inputDeps;
@@ -1087,40 +1157,27 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private JobHandle Cancel(JobHandle inputDeps, bool singleFrameOnly = false)
         {
-            switch (m_Mode)
+            if(m_Mode == Mode.Default)
             {
-                case Mode.Default:
-                    base.applyMode = ApplyMode.None;
-                    m_ToolSystem.activeTool = m_DefaultToolSystem;
-                    return inputDeps;
-                
-
-                case Mode.Move:
-
-                    if (m_State == State.Idle)
-                    {
-                        m_Mode = Mode.Default;
-                        return UpdateGizmos(inputDeps);
-                    }
-
-                    if (m_State == State.Dragging)
-                    {
-                        StopDragging();
-                        //base.applyMode = ApplyMode.Clear;
-                        inputDeps = UpdateGizmos(inputDeps);
-                        return inputDeps; //UpdateDefinitions(inputDeps, m_ToolSystem.selected, m_LastSelectedIndex);
-                    }
-
-                    break;
-
+                applyMode = ApplyMode.Clear;
+                m_ToolSystem.activeTool = m_DefaultToolSystem;
+                return inputDeps;
             }
 
-            return inputDeps;
-        }
+            if (m_State == State.Idle)
+            {
+                m_Mode = Mode.Default;
+                return UpdateGizmos(inputDeps);
+            }
 
-        private JobHandle Clear(JobHandle inputDeps)
-        {
-            base.applyMode = ApplyMode.Clear;
+            if (m_State == State.Dragging)
+            {
+                StopDragging();
+                //base.applyMode = ApplyMode.Clear;
+                inputDeps = UpdateGizmos(inputDeps);
+                return inputDeps; //UpdateDefinitions(inputDeps, m_ToolSystem.selected, m_LastSelectedIndex);
+            }
+
             return inputDeps;
         }
 
@@ -1210,7 +1267,8 @@ namespace ExtraDetailingTools.Systems.Tools
                     m_RouteWaypoints = SystemAPI.GetBufferLookup<RouteWaypoint>(true),
                     m_AggregateElements = SystemAPI.GetBufferLookup<AggregateElement>(true),
                     m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
-                    m_MoveSubBuildings = m_MoveSubBuildings
+                    m_MoveSubBuildings = m_MoveSubBuildings,
+                    AllowHighlight = AllowHightlight(entity)
                 }, inputDeps);
                 m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle2);
                 jobHandle = JobHandle.CombineDependencies(jobHandle, jobHandle2);
@@ -1255,11 +1313,12 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_UseLocalAxis = m_UseLocalAxis,
                 m_Position = position,
                 m_Rotation = rotation,
-                m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer()
-            }, inputDeps);
+                m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
+                m_Batcher = m_GizmosSystem.GetGizmosBatcher(out JobHandle dep)
+            }, JobHandle.CombineDependencies(inputDeps, dep));
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
+            m_GizmosSystem.AddGizmosBatcherWriter(jobHandle);
             return jobHandle;
-
         }
 
         private JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position)
@@ -1296,6 +1355,17 @@ namespace ExtraDetailingTools.Systems.Tools
             return jobHandle;
         }
 
+        public void SetMode(Mode mode)
+        {
+            if(m_State == State.Dragging)
+            {
+                StopDragging();
+            }
+
+            SetState(State.Idle);
+            m_Mode = mode;
+        }
+
         private void SetState(State state)
         {
             m_State = state;
@@ -1308,7 +1378,7 @@ namespace ExtraDetailingTools.Systems.Tools
             cancelAction.shouldBeEnabled = enable;
         }
 
-        private void StartDragging(RaycastHit raycastHit)
+        private void StartDragging(RaycastHit raycastHit)   
         {
             m_SelectedTempEntity = Entity.Null;
             if (m_TempQuery.IsEmptyIgnoreFilter)
@@ -1338,12 +1408,6 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         temp = temps[j];
 
-                        //if ((temp.m_Flags & (TempFlags.Select | TempFlags.Essential)) != 0)
-                        //{
-                        //    m_SelectedTempEntity = entities[j];
-                        //    break;
-                        //}
-
                         if(temp.m_Original == m_ToolSystem.selected)
                         {
                             m_SelectedTempEntity = entities[j];
@@ -1360,21 +1424,28 @@ namespace ExtraDetailingTools.Systems.Tools
                 chunks.Dispose();
             }
 
-            if (m_SelectedTempEntity != Entity.Null)
+            if (m_SelectedTempEntity != Entity.Null && EntityManager.TryGetComponent(m_ToolSystem.selected, out Transform transform))
             {
                 m_LastRaycastGizmos = raycastHit.m_HitEntity;
-                m_DragStartGizmo = GetGizmoCenter(m_LastRaycastGizmos);
+
+                m_DragStartGizmoPos = transform.m_Position;
+                m_DragStartGizmoRot = transform.m_Rotation;
 
                 float3 axisDir = GetSelectedAxisDirection(m_LastRaycastGizmos);
-                Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmo);
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
+
                 if (dragPlane.Raycast(ray, out float enter))
                 {
                     m_DragStartMouseHitPos = ray.origin + ray.direction * enter;
+                    if (m_Mode == Mode.Rotate)
+                    {
+                        m_DragStartMouseHitPos = math.normalize(m_DragStartMouseHitPos - m_DragStartGizmoPos);
+                    }
                 }
                 else
                 {
-                    m_DragStartMouseHitPos = m_DragStartGizmo;
+                    m_DragStartMouseHitPos = m_DragStartGizmoPos;
                 }
 
                 EntityCommandBuffer entityCommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer();
@@ -1407,6 +1478,9 @@ namespace ExtraDetailingTools.Systems.Tools
 
         public Plane CreateDragPlane(float3 axisDir, float3 gizmoCenter)
         {
+            if(m_Mode == Mode.Rotate)
+                return new Plane(axisDir, gizmoCenter);
+
             // Camera vectors
             float3 camForward = Camera.main.transform.forward;
             float3 camRight = Camera.main.transform.right;
@@ -1441,18 +1515,25 @@ namespace ExtraDetailingTools.Systems.Tools
 
             if (entity == m_zAxisEntity)
                 return m_UseLocalAxis ? math.rotate(rot, new float3(0, 0, 1)) : new float3(0, 0, 1);
+            
 
             return float3.zero;
         }
-
-        private float3 GetGizmoCenter(Entity gizmoEntity)
+    
+        private bool AllowHightlight(Entity entity)
         {
-            if (EntityManager.TryGetComponent<GizmosData>(gizmoEntity, out GizmosData gizmosData))
-            {
-                return gizmosData.A;
-            }
+            if (m_Mode == Mode.Default) return true;
 
-            return float3.zero;
+            if (m_AllowHightlight == AllowHightlightState.Enabled) return true;
+            if (m_AllowHightlight == AllowHightlightState.Disabled) return false;
+
+            if (EntityManager.HasComponent<Building>(entity)
+                || EntityManager.HasBuffer<SubObject>(entity)
+            ) 
+                return true;
+
+            return false;
         }
+
     }
 }

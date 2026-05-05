@@ -1,10 +1,13 @@
-﻿using System;
+﻿using Colossal.Internal.Gizmos;
+using Colossal.Mathematics;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace ExtraDetailingTools.Gizmos
 {
@@ -31,6 +34,18 @@ namespace ExtraDetailingTools.Gizmos
                 Color = color,
                 Params0 = new float4(headLength, headAngle, 0, 0),
                 Segments = circleSegmentsCount
+            };
+        }
+
+        public static GizmosData DrawWireSphere(float3 center, float radius, Color color, int slicesX = 1, int slicesY = 2, int slicesZ = 0, int segmentsCount = 36)
+        {
+            return new GizmosData()
+            {
+                Type = GizmoType.Sphere,
+                A = center,
+                Params0 = new float4(radius, slicesX, slicesY, slicesZ),
+                Color = color,
+                Segments = segmentsCount
             };
         }
 

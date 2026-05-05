@@ -107,6 +107,16 @@ namespace ExtraDetailingTools.Gizmos
                             g.Params0.y, /* headAngle */
                             g.Segments);
                         break;
+                    case GizmoType.Sphere:
+                        Batcher.DrawWireSphere(
+                            g.A,
+                            g.Params0.x,
+                            color,
+                            (int)g.Params0.y,
+                            (int)g.Params0.z,
+                            (int)g.Params0.w
+                            );
+                        break;
                     case GizmoType.WireArc:
                         Batcher.DrawWireArc(
                             g.A,
