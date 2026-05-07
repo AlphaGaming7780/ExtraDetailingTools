@@ -88,80 +88,82 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 
 		function OnScroll(event: WheelEvent) {
 
-			if (event.target instanceof HTMLInputElement) {
-				let posValue: number = - Math.sign(event.deltaY) * PositionIncrement;
-				let rotValue: number = - Math.sign(event.deltaY) * RotationIncrement;
-				let scaleVelue: number = - Math.sign(event.deltaY) * ScaleIncrement;
-				switch (event.target.id) {
-					case "POSI":
-						if (event.deltaY < 0) {
-							if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
-							else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
-						} else {
-							if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
-							else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
-						}
-						PositionIncrement = parseFloat(event.target.value)
-						triggerIncPos();
-						break;
-					case "POSX":
-						triggerPos(posValue,0,0);
-						break;
-					case "POSY":
-						triggerPos(0, posValue,0);
-						break;
-					case "POSZ":
-						triggerPos(0, 0, posValue);
-						break;
+			if (!(event.target instanceof HTMLInputElement)) return;
+				
+			event.preventDefault();
+			let posValue: number = - Math.sign(event.deltaY) * PositionIncrement;
+			let rotValue: number = - Math.sign(event.deltaY) * RotationIncrement;
+			let scaleVelue: number = - Math.sign(event.deltaY) * ScaleIncrement;
+			switch (event.target.id) {
+				case "POSI":
+					if (event.deltaY < 0) {
+						if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
+						else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
+					} else {
+						if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
+						else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
+					}
+					PositionIncrement = parseFloat(event.target.value)
+					triggerIncPos();
+					break;
+				case "POSX":
+					triggerPos(posValue,0,0);
+					break;
+				case "POSY":
+					triggerPos(0, posValue,0);
+					break;
+				case "POSZ":
+					triggerPos(0, 0, posValue);
+					break;
 
-					case "ROTI":
-						if (event.deltaY < 0) {
-							if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
-							else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
-						} else {
-							if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
-							else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
-						}
-						RotationIncrement = parseFloat(event.target.value)
-						triggerIncRot();
-						break;
-					case "ROTX":
-						triggerRot(rotValue , 0 ,0)
-						break;
-					case "ROTY":
-						triggerRot(0, rotValue, 0)
-						break;
-					case "ROTZ":
-						triggerRot(0, 0, rotValue)
-						break;
+				case "ROTI":
+					if (event.deltaY < 0) {
+						if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
+						else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
+					} else {
+						if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
+						else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
+					}
+					RotationIncrement = parseFloat(event.target.value)
+					triggerIncRot();
+					break;
+				case "ROTX":
+					triggerRot(rotValue , 0 ,0)
+					break;
+				case "ROTY":
+					triggerRot(0, rotValue, 0)
+					break;
+				case "ROTZ":
+					triggerRot(0, 0, rotValue)
+					break;
 
-					case "SCALEI":
-						if (event.deltaY < 0) {
-							if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
-							else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
-						} else {
-							if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
-							else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
-						}
-						ScaleIncrement = parseFloat(event.target.value)
-						triggerIncScale();
-						break;
-					case "SCALEX":
-						scale.x += scaleVelue;
-						triggerScale()
-						break;
-					case "SCALEY":
-						scale.y += scaleVelue;
-						triggerScale()
-						break;
-					case "SCALEZ":
-						scale.z += scaleVelue;
-						triggerScale()
-						break;
-				}
-				if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
-				else trigger("audio", "playSound", "decrease-elevation", 1);
+				case "SCALEI":
+					if (event.deltaY < 0) {
+						if (parseFloat(event.target.value) >= 1) { event.target.value = (parseFloat(event.target.value) + 1).toString() }
+						else { event.target.value = (parseFloat(event.target.value) * 10).toString() }
+					} else {
+						if (parseFloat(event.target.value) > 1) { event.target.value = (parseFloat(event.target.value) - 1).toString() }
+						else if (parseFloat(event.target.value) > 0.001) { event.target.value = (parseFloat(event.target.value) / 10).toString() }
+					}
+					ScaleIncrement = parseFloat(event.target.value)
+					triggerIncScale();
+					break;
+				case "SCALEX":
+					scale.x += scaleVelue;
+					triggerScale()
+					break;
+				case "SCALEY":
+					scale.y += scaleVelue;
+					triggerScale()
+					break;
+				case "SCALEZ":
+					scale.z += scaleVelue;
+					triggerScale()
+					break;
 			}
+			if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
+			else trigger("audio", "playSound", "decrease-elevation", 1);
+			
 		}
 
 		function triggerPos(x: number, y: number, z: number) {
