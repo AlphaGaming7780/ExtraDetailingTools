@@ -12,9 +12,11 @@ using ExtraDetailingTools.Systems;
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.Tooltip;
 using ExtraDetailingTools.Systems.UI;
+using ExtraDetailingTools.Systems.UI.BetterInfoPanel;
 using ExtraLib;
 using ExtraLib.Debugger;
 using ExtraLib.Helpers;
+using ExtraLib.Systems.UI.ExtraPanels;
 using Game;
 using Game.Modding;
 using Game.Prefabs;
@@ -78,6 +80,8 @@ namespace ExtraDetailingTools
                 updateSystem.UpdateAt<GrassToolSystem>(SystemUpdatePhase.ToolUpdate);
                 updateSystem.UpdateAt<GrassSystem>(SystemUpdatePhase.ModificationEnd);
                 updateSystem.UpdateAt<GrassRenderSystem>(SystemUpdatePhase.PreCulling);
+                //ExtraPanelsUISystem extraPanelsUISystem = updateSystem.World.GetOrCreateSystemManaged<ExtraPanelsUISystem>();
+                //extraPanelsUISystem.AddExtraPanel<BetterInfoPanelUISystem>();
 #endif
 
                 SelectedInfoUISystem selectedInfoUISystem = updateSystem.World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
@@ -89,12 +93,12 @@ namespace ExtraDetailingTools
                 //PrefabsHelper.LoadPrefabsInDirectory(Path.Combine(fileInfo.Directory.FullName, "Prefabs"));
 
 #if Extra4
-                //GameGrassPrefab gameGrassPrefab = UnityEngine.ScriptableObject.CreateInstance<GameGrassPrefab>();
-                //gameGrassPrefab.name = "GameGrassPrefab";
-                //UIObject uIObject = gameGrassPrefab.AddComponent<UIObject>();
-                //uIObject.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
-                //uIObject.m_Icon = Icons.GetIcon(gameGrassPrefab);
-                //EL.m_PrefabSystem.AddPrefab(gameGrassPrefab);
+                GameGrassPrefab gameGrassPrefab = UnityEngine.ScriptableObject.CreateInstance<GameGrassPrefab>();
+                gameGrassPrefab.name = "GameGrassPrefab";
+                UIObject uIObject = gameGrassPrefab.AddComponent<UIObject>();
+                uIObject.m_Group = PrefabsHelper.GetUIAssetCategoryPrefab("Terraforming");
+                uIObject.m_Icon = Icons.GetIcon(gameGrassPrefab);
+                EL.m_PrefabSystem.AddPrefab(gameGrassPrefab);
 
                 //GrassPrefabNew grassPrefabNew = UnityEngine.ScriptableObject.CreateInstance<GrassPrefabNew>();
                 //grassPrefabNew.name = "GrassPrefabNew";

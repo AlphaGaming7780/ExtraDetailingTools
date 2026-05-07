@@ -67,6 +67,7 @@ namespace ExtraDetailingTools.Systems.UI
 
         private double3 increment = new(1, 45, 1);
 		private Transform transform;
+		private TransformObject transformObject;
 		private bool useLocalAxis = false;
 		private bool showAxis = false;
 		private bool moveSubBuilding = true;
@@ -120,8 +121,9 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(new TriggerBinding<bool>("edt", "showhighlight", new Action<bool>(ShowHighlight)));
 
 			AddBinding(new TriggerBinding<bool>("edt", "ontransformsectionopened", new Action<bool>(OnPanelOpned)));
+			AddBinding(new TriggerBinding("edt", "selectTransformGizmosTool", new Action(() => _toolSystem.activeTool = _transformGizmoTool)));
 
-			_moveHandle = new GameObject("MoveHandle").AddComponent<MoveHandle>();
+            _moveHandle = new GameObject("MoveHandle").AddComponent<MoveHandle>();
         }
 
         protected override void OnPreUpdate()
@@ -147,6 +149,10 @@ namespace ExtraDetailingTools.Systems.UI
 			transform = EntityManager.HasComponent<InterpolatedTransform>(selectedEntity) ?
 						EntityManager.GetComponentData<InterpolatedTransform>(selectedEntity).ToTransform() :
 						EntityManager.GetComponentData<Transform>(selectedEntity);
+
+			transformObject = EntityManager.HasComponent<TransformObject>(selectedEntity) ?
+							  EntityManager.GetComponentData<TransformObject>(selectedEntity) : 
+							  default;
 
 			transformSectionGetPos.Update();
 			transformSectionGetRot.Update();
@@ -341,14 +347,7 @@ namespace ExtraDetailingTools.Systems.UI
 
 		private void OnPanelOpned(bool opened)
 		{
-            //showAxis = opened;
-			if(opened)
-			{
-				_toolSystem.activeTool = _transformGizmoTool;
-            } else
-			{
-				//_toolSystem.activeTool = null;
-			}
+
         }
 
 		private void UseLocalAxis()
@@ -368,7 +367,7 @@ namespace ExtraDetailingTools.Systems.UI
 		{
 			if (!EntityManager.HasComponent<TransformObject>(selectedEntity)) return new float3(1, 1, 1);
 
-			TransformObject transformObject = EntityManager.GetComponentData<TransformObject>(selectedEntity);
+            //transformObject = EntityManager.GetComponentData<TransformObject>(selectedEntity);
 
 			return transformObject.m_Scale;
 
@@ -390,11 +389,11 @@ namespace ExtraDetailingTools.Systems.UI
 			{
 				EntityManager.AddComponent<TransformObject>(selectedEntity);
 			}
-			TransformObject transformObject = EntityManager.GetComponentData<TransformObject>(selectedEntity);
-			transformObject.m_Scale = scale;
+            transformObject = EntityManager.GetComponentData<TransformObject>(selectedEntity);
+            transformObject.m_Scale = scale;
 			EntityManager.SetComponentData(selectedEntity, transformObject);
             EntityManager.AddComponentData<Updated>(selectedEntity, default);
-            transformSectionGetScale.Update();
+			transformSectionGetScale.Update();
         }
 
 		private void Copy(string id)

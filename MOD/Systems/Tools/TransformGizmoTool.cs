@@ -2,6 +2,7 @@
 using Colossal.Entities;
 using Colossal.Mathematics;
 using ExtraDetailingTools.Gizmos;
+using ExtraDetailingTools.Systems.UI;
 using Game;
 using Game.Areas;
 using Game.Audio;
@@ -30,6 +31,7 @@ using Node = Game.Areas.Node;
 using Plane = UnityEngine.Plane;
 using RaycastHit = Game.Common.RaycastHit;
 using RaycastResult = Game.Common.RaycastResult;
+using ServiceUpgrade = Game.Buildings.ServiceUpgrade;
 using SubArea = Game.Areas.SubArea;
 using SubNet = Game.Net.SubNet;
 using SubObject = Game.Objects.SubObject;
@@ -66,6 +68,9 @@ namespace ExtraDetailingTools.Systems.Tools
 
             [ReadOnly]
             public BufferLookup<InstalledUpgrade> m_InstalledUpgrades;
+
+            [ReadOnly]
+            public ComponentLookup<Building> m_BuildingData;
 
             [ReadOnly]
             public ComponentLookup<LocalTransformCache> m_LocalTransformCacheData;
@@ -180,7 +185,8 @@ namespace ExtraDetailingTools.Systems.Tools
                     Entity entity2 = installedUpgrades[i];
                     if (entity2 != m_Entity)
                     {
-                        AddEntity(entity2, Entity.Null, ownerDefinition, isParent || !m_MoveSubBuildings, attachParentCreated: false);
+                        isParent = (!m_BuildingData.HasComponent(entity2) && !m_MoveSubBuildings) || isParent;
+                        AddEntity(entity2, Entity.Null, ownerDefinition, isParent, attachParentCreated: false);
                     }
                 }
             }
@@ -488,7 +494,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private void RenderOriginPoint(Vector3 pos, float3 size)
             {
-                float radius = math.cmax(size) * 0.1f;
+                float radius = math.cmin(size) * 0.1f;
                 m_Batcher.DrawWireSphere(pos, radius, Color.yellow);
             }
 
@@ -610,6 +616,7 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public ComponentLookup<Building> m_BuildingLookup;
             [ReadOnly] public ComponentLookup<Curve> m_CurveLookup;
             [ReadOnly] public ComponentLookup<Temp> m_TempLookup;
+            [ReadOnly] public ComponentLookup<ServiceUpgrade> m_ServiceUpgradeLookup;
             [ReadOnly] public BufferLookup<InstalledUpgrade> m_InstalledUpgradeLookup;
             [ReadOnly] public BufferLookup<SubArea> m_SubAreaLookup;
             [ReadOnly] public BufferLookup<Node> m_NodeLookup;
@@ -630,11 +637,6 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private void UpdateObject(Entity entity, float3 position, quaternion rotation)
             {
-                if (m_BuildingLookup.TryGetComponent(entity, out Building building))
-                {
-                    m_CommandBuffer.AddComponent(building.m_RoadEdge, new Updated());
-                }
-
                 if (!m_TransformLookup.TryGetComponent(entity, out Transform transform)) return;
 
                 position = !position.Equals(default) ? position : transform.m_Position;
@@ -686,28 +688,6 @@ namespace ExtraDetailingTools.Systems.Tools
                     transform = ApplyTransformOffset(transform, parentTransform.m_Position, positionOffset, rotationOffset);
 
                     UpdateObject(installedUpgrade, transform.m_Position, transform.m_Rotation);
-
-                    continue; 
-
-                    //if (!m_MoveSubBuildings && m_BuildingLookup.HasComponent(installedUpgrade)) continue;
-
-                    if (!m_TransformLookup.TryGetComponent(installedUpgrade, out Transform transform1)) continue;
-
-                    // need that ? Nop, get updated by the game.
-                    //if (EntityManager.TryGetComponent(installedUpgrade, out PrefabRef prefabRef1) && EntityManager.TryGetComponent(prefabRef1.m_Prefab, out ObjectGeometryData geometryData1) && EntityManager.TryGetComponent(installedUpgrade, out CullingInfo cullingInfo1))
-                    //{
-                    //    cullingInfo1.m_Bounds = ObjectUtils.CalculateBounds(transform1.m_Position, transform1.m_Rotation, geometryData1);
-                    //    EntityManager.SetComponentData(installedUpgrade, cullingInfo1);
-                    //}
-
-                    transform = ApplyTransformOffset(transform, parentTransform.m_Position, positionOffset, rotationOffset);
-
-                    UpdateSubElement(installedUpgrade, transform, positionOffset, rotationOffset);
-
-                    transform = ApplyTransformOffset(transform, parentTransform.m_Position, positionOffset, rotationOffset);
-
-                    m_CommandBuffer.SetComponent(installedUpgrade, transform);
-                    m_CommandBuffer.AddComponent(installedUpgrade, new Updated());
                 }
             }
 
@@ -735,16 +715,17 @@ namespace ExtraDetailingTools.Systems.Tools
             {
                 if (m_SubObjectLookup.TryGetBuffer(entity, out DynamicBuffer<SubObject> subObjects))
                 {
-
                     foreach (SubObject subObject in subObjects)
                     {
+                        if (m_ServiceUpgradeLookup.HasComponent(subObject.m_SubObject)) continue;
+
                         if (m_TransformLookup.TryGetComponent(subObject.m_SubObject, out Transform transform))
                         {
 
                             transform = ApplyTransformOffset(transform, parentTransform.m_Position, positionOffset, rotationOffset);
 
                             m_CommandBuffer.SetComponent(subObject.m_SubObject, transform);
-
+                            
                         }
                         m_CommandBuffer.AddComponent(subObject.m_SubObject, new Updated());
                     }
@@ -814,8 +795,9 @@ namespace ExtraDetailingTools.Systems.Tools
         private GizmosSystem m_GizmosSystem;
         private GizmosRaycastSystem m_GimzosRaycastSystem;
         private ToolOutputBarrier m_ToolOutputBarrier;
+        private TransformGizmoToolUI m_TransformGizmoToolUI;
 
-        private Mode m_Mode = Mode.Move;
+        private Mode m_Mode = Mode.Default;
 
         private State m_State = State.Idle;
 
@@ -860,6 +842,7 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             base.OnCreate();
             Enabled = false;
+            m_TransformGizmoToolUI = World.GetOrCreateSystemManaged<TransformGizmoToolUI>();
             m_GizmosSystem = World.GetOrCreateSystemManaged<GizmosSystem>();
             m_ToolOutputBarrier = base.World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_AudioManager = base.World.GetOrCreateSystemManaged<AudioManager>();
@@ -880,6 +863,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_xAxisEntity = EntityManager.CreateEntity();
             m_yAxisEntity = EntityManager.CreateEntity();
             m_zAxisEntity = EntityManager.CreateEntity();
+            m_SelectedEntity = m_ToolSystem.selected;
             EnableActions(true);
         }
 
@@ -889,6 +873,10 @@ namespace ExtraDetailingTools.Systems.Tools
             EntityManager.DestroyEntity(m_xAxisEntity);
             EntityManager.DestroyEntity(m_yAxisEntity);
             EntityManager.DestroyEntity(m_zAxisEntity);
+            if(m_ToolSystem.selected != Entity.Null)
+            {
+                m_ToolSystem.selected = m_SelectedEntity;
+            }
             EnableActions(false);
         }
 
@@ -937,7 +925,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     m_Type = GizmosRaycastType.ALL,
                     m_Line = ToolRaycastSystem.CalculateRaycastLine(Camera.main),
                     m_Tolerance = m_Mode == Mode.Rotate ? 0.1f : 0,
-                    m_Debug = true
+                    m_Debug = false
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);
             }
@@ -974,7 +962,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 return inputDeps;
             }
 
-            if ((m_ToolRaycastSystem.raycastFlags & (RaycastFlags.DebugDisable | RaycastFlags.UIDisable)) == 0)
+            if ((m_ToolRaycastSystem.raycastFlags & (RaycastFlags.DebugDisable)) == 0)// | RaycastFlags.UIDisable)
             {
                 switch (m_Mode)
                 {
@@ -1010,7 +998,8 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             m_State = State.Idle;
-            m_Mode = Mode.Default;
+            m_TransformGizmoToolUI.SetMode((int)Mode.Default);
+            //m_Mode = Mode.Default;
             return inputDeps;
         }
 
@@ -1024,6 +1013,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     return inputDeps;
                 }
                 m_LastRaycastEntity = entity2;
+                if (entity2 == Entity.Null) entity2 = m_SelectedEntity;
                 applyMode = ApplyMode.Clear;
                 inputDeps = UpdateDefinitions(inputDeps, entity2, hit2.m_CellIndex.x);
                 return inputDeps;
@@ -1123,8 +1113,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 JobHandle jobHandle = SelectTempEntity(inputDeps, toggleSelected);
                 if (m_SelectedEntity != Entity.Null)
                 {
-                    m_Mode = Mode.Move;
-                    m_State = State.Idle;
+                    m_TransformGizmoToolUI.SetMode((int)Mode.Move);
                 }
                 return jobHandle;
             }
@@ -1173,7 +1162,8 @@ namespace ExtraDetailingTools.Systems.Tools
 
             if (m_State == State.Idle)
             {
-                m_Mode = Mode.Default;
+                //m_Mode = Mode.Default;
+                m_TransformGizmoToolUI.SetMode((int)Mode.Default);
                 return UpdateGizmos(inputDeps);
             }
 
@@ -1254,6 +1244,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     m_SetPosition = setPosition,
                     m_Edges = SystemAPI.GetBufferLookup<ConnectedEdge>(true),
                     m_InstalledUpgrades = SystemAPI.GetBufferLookup<InstalledUpgrade>(true),
+                    m_BuildingData = SystemAPI.GetComponentLookup<Building>(true),
                     m_LocalTransformCacheData = SystemAPI.GetComponentLookup<LocalTransformCache>(true),
                     m_EdgeData = SystemAPI.GetComponentLookup<Edge>(true),
                     m_NodeData = SystemAPI.GetComponentLookup<Game.Net.Node>(true),
@@ -1349,6 +1340,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_TransformLookup = GetComponentLookup<Transform>(true),
                 m_TempLookup = GetComponentLookup<Temp>(true),
                 m_CurveLookup = GetComponentLookup<Curve>(true),
+                m_ServiceUpgradeLookup = GetComponentLookup<ServiceUpgrade>(true),
                 m_InstalledUpgradeLookup = GetBufferLookup<InstalledUpgrade>(true),
                 m_NodeLookup = GetBufferLookup<Node>(true),
                 m_SubAreaLookup = GetBufferLookup<SubArea>(true),

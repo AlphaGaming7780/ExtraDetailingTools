@@ -3,7 +3,7 @@ import { HelloWorldComponent } from "mods/hello-world";
 import { TransformSection } from "./mods/TransformSection";
 import { ToolOption } from "./mods/ToolOption";
 import { GrassToolUI } from "./mods/GrassToolUI";
-import { TransformGizmoTool } from "mods/TransformGizmoTool";
+import { TransformGizmosToolButton, TransformGizmoTool } from "mods/TransformGizmosTool/TransformGizmoTool";
 
 const register: ModRegistrar = (moduleRegistry) => {
 
@@ -13,6 +13,7 @@ const register: ModRegistrar = (moduleRegistry) => {
     moduleRegistry.extend("game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.tsx", 'MouseToolOptions', GrassToolUI);
 
     moduleRegistry.append('Menu', HelloWorldComponent);
+    moduleRegistry.append('UniversalModMenu', TransformGizmosToolButton);
 }
 
 export default register;

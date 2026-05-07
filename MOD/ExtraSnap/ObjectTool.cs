@@ -15,6 +15,7 @@ using Unity.Mathematics;
 using static ExtraDetailingTools.ExtraSnap.ObjectToolSystemExtraSnap;
 using static Game.Tools.ObjectToolSystem;
 using Colossal.Mathematics;
+using Unity.Mathematics.Geometry;
 
 #if RELEASE
 using Unity.Burst;
@@ -297,6 +298,9 @@ namespace ExtraDetailingTools.ExtraSnap
                 // Rotation of the placed object (world)
                 quaternion rotation = quaternion.RotateY(angle);
 
+                float3 center = (bounds.min + bounds.max) * 0.5f;
+                float2 centerOffset = math.mul(rotation, center).xz;
+
                 // Edge direction & outward normal
                 float2 edgeDir = math.normalize(line.b - line.a);
                 float2 normal = new float2(-edgeDir.y, edgeDir.x);
@@ -340,10 +344,10 @@ namespace ExtraDetailingTools.ExtraSnap
                 // Position along the edge (THIS is what allows sliding)
                 float2 pointOnLine = math.lerp(line.a, line.b, t / lineLength);
 
-
-
                 // Final snapped position
-                float2 snappedXZ = pointOnLine + normal * offset;
+                float centerProjection = math.dot(centerOffset, normal);
+                float finalOffset = offset - centerProjection;
+                float2 snappedXZ = pointOnLine + normal * finalOffset;
 
                 ControlPoint snapPosition = controlPoint;
                 snapPosition.m_OriginalEntity = Entity.Null;
@@ -383,18 +387,12 @@ namespace ExtraDetailingTools.ExtraSnap
                 }
             }
 
-            public static quaternion ClampTo90(UnityEngine.Quaternion q)
+            public static quaternion ClampTo90(quaternion q)
             {
-                // Convert quaternion to Euler angles (in degrees)
-                float3 euler = q.eulerAngles; // euler() retourne radians, on convertit en degrés
-
-                // Clamp each angle to nearest multiple of 90
-                euler.x = math.round(euler.x / 90f) * 90f;
-                euler.y = math.round(euler.y / 90f) * 90f;
-                euler.z = math.round(euler.z / 90f) * 90f;
-
-                // Reconvert to quaternion
-                return UnityEngine.Quaternion.Euler(euler); // On repasse en radians
+                float3 forward = math.mul(q, new float3(0, 0, 1));
+                float yaw = math.atan2(forward.x, forward.z);
+                float snappedYaw = math.round(yaw / (math.PI / 2f)) * (math.PI / 2f);
+                return quaternion.RotateY(snappedYaw);
             }
 
         }

@@ -1,0 +1,169 @@
+import { ModuleRegistryExtend } from "cs2/modding";
+import { PropsSection, Section } from "../../../game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options";
+import { PropsToolButton, ToolButton, ValueToolButton } from "../../../game-ui/game/components/tool-options/tool-button/tool-button";
+import { bindValue, trigger, useValue } from "cs2/api";
+import { useLocalization } from "cs2/l10n";
+import { Tool, tool } from "cs2/bindings";
+import { Button, FOCUS_AUTO, FOCUS_DISABLED, Tooltip } from "cs2/ui";
+import { kGroupName } from "BindingConst";
+import { Float3, TransformInputs } from "../TransformSection";
+import styles from "./TransformGizmoToolStyle.module.scss";
+import classNames from "classnames";
+import { FOCUS_DISABLED$ } from "../../../game-ui/common/focus/focus-key";
+
+enum Mode {
+	Default = 0,
+	Move = 1,
+	Rotate = 2,
+	Scale = 3,
+}
+
+export const kTransformGizmoToolId = "TransformGizmoTool";
+const toolMode$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.ToolMode`, 0);
+const pos$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Position`, {x: 0, y: 0, z:0});
+const rot$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Rotation`, {x: 0, y: 0, z:0});
+// const scale$ = bindValue<Float3>(kGroupName, `${kToolId}.Scale`, {x: 0, y: 0, z:0});
+const localAxis$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.LocalAxis`, false);
+const moveSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, false);
+const haSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.HasSubBuildings`, false);
+
+export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
+	return (props) => {
+
+		const pos: Float3 = useValue(pos$);
+		const rot: Float3 = useValue(rot$);
+		// const scale: Float3 = useValue(scale$);
+		let activeTool: Tool = useValue(tool.activeTool$);
+		let useLocalAxis : boolean = useValue(localAxis$);
+		let moveSubBuildings : boolean = useValue(moveSubBuildings$);
+		let haSubBuildings : boolean = useValue(haSubBuildings$);
+		let currentMode : Number = useValue(toolMode$);
+
+		const { translate } = useLocalization();
+
+		const setMode = (mode : Number) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.ToolMode`, mode);
+		}
+
+		const LocalAxis = (enable : boolean) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.LocalAxis`, enable);
+		}
+
+		const MoveSubBuildings = (enable : boolean) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, enable);
+		}
+
+		// This defines aspects of the components.
+		const { children, ...otherProps } = props || {};
+
+		var result: JSX.Element = Component();
+
+		const posTransformInputs = TransformInputs(translate, "POS", pos, false)
+		const rotTransformInputs = TransformInputs(translate, "ROT", rot, false)
+		// const scaleTransformInputs = TransformInputs(translate, "SCALE", scale, false)
+
+		if (activeTool.id !== kTransformGizmoToolId) return result;
+
+		result.props.children?.unshift(
+			<>
+			<Section
+				title={"Tool mods:"}
+			>
+				<ValueToolButton<Number>
+					focusKey={FOCUS_DISABLED$}
+					value={Mode.Default}
+					selected={currentMode === Mode.Default}
+					onSelect={(v) => setMode(v)}
+				/>
+
+				<ValueToolButton<Number>
+					focusKey={FOCUS_DISABLED$}
+					value={Mode.Move}
+					selected={currentMode === Mode.Move}
+					onSelect={(v) => setMode(v)}
+				/>
+
+				<ValueToolButton<Number>
+					focusKey={FOCUS_DISABLED$}
+					value={Mode.Rotate}
+					selected={currentMode === Mode.Rotate}
+					onSelect={(v) => setMode(v)}
+				/>
+
+				{/* <ValueToolButton<Number>
+				value={Mode.Scale}
+				selected={currentMode === Mode.Scale}
+				onSelect={(v) => setMode(v)}
+				/> */}
+
+			</Section>
+			<Section
+				title={"Tool settings:"}
+			>
+				
+				<ToolButton
+					focusKey={FOCUS_DISABLED$}
+					tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS")}
+					src="Media/Tools/Snap Options/All.svg"
+					selected={useLocalAxis}
+					onSelect={() => LocalAxis(!useLocalAxis)}
+				/>
+
+				{ haSubBuildings ? 
+					<ToolButton
+						focusKey={FOCUS_DISABLED$}
+						tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip")}
+						src="Media/Tools/Snap Options/All.svg"
+						selected={moveSubBuildings}
+						onSelect={() => MoveSubBuildings(!moveSubBuildings)}
+					/> : <></>
+				}
+				
+			</Section>
+			{/* <Section
+			title={translate("PhotoMode.PROPERTY_TITLE[Position]")}
+			>
+				{posTransformInputs}
+			</Section>
+			<Section
+			title={translate("PhotoMode.PROPERTY_TITLE[Rotation]")}
+			>
+				{rotTransformInputs}
+			</Section> */}
+			{/* <Section
+			title={translate("SelectedInfoPanel.TRANSFORMTOOL.SCALE")}
+			>
+				{scaleTransformInputs}
+			</Section> */}
+			</>
+		)
+
+		return result;
+	};
+}
+
+export const TransformGizmosToolButton = () => 
+{
+	const activeTool: Tool = useValue(tool.activeTool$);
+	const active = activeTool.id == kTransformGizmoToolId
+
+	return <>
+		<Button
+			variant="floating"
+			tooltipLabel={kTransformGizmoToolId}
+			className={classNames(
+				styles.panelButtonUM,
+				(active) && styles.active
+			)}
+			selected={active}
+			onClick={() =>
+				active
+					? tool.selectTool("Default Tool")
+					: trigger("edt", "selectTransformGizmosTool")
+			}
+		/>
+	</>
+}

@@ -3,7 +3,8 @@ import { bindValue, trigger, useValue } from "cs2/api";
 import { SelectedInfoSectionBase } from "cs2/bindings";
 import { useLocalization } from "cs2/l10n";
 import { FOCUS_AUTO, Tooltip } from "cs2/ui";
-import { ChangeEvent, MouseEvent, WheelEvent, useEffect, useState } from "react";
+import { tool } from "cs2/bindings";
+import { ChangeEvent, ChangeEventHandler, MouseEvent, WheelEvent, WheelEventHandler, useEffect, useState } from "react";
 import { EditorItemSCSS } from "../../game-ui/editor/widgets/item/editor-item.module.scss";
 import { ActionButtonSCSS } from "../../game-ui/game/components/selected-info-panel/selected-info-sections/shared-sections/actions-section/action-button.module.scss";
 import { InfoRowSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
@@ -11,6 +12,7 @@ import { InfoSectionFoldout } from "../../game-ui/game/components/selected-info-
 import { InfoSectionSCSS } from "../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
 import { ToolButton } from "../../game-ui/game/components/tool-options/tool-button/tool-button";
 import TransfromSectionSCSS from "./Styles/TransformSection.module.scss";
+import { kTransformGizmoToolId } from "./TransformGizmosTool/TransformGizmoTool";
 
 export interface Float3 {
 	x: number,
@@ -89,7 +91,8 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 		function OnScroll(event: WheelEvent) {
 
 			if (!(event.target instanceof HTMLInputElement)) return;
-				
+
+			event.stopPropagation()
 			event.preventDefault();
 			let posValue: number = - Math.sign(event.deltaY) * PositionIncrement;
 			let rotValue: number = - Math.sign(event.deltaY) * RotationIncrement;
@@ -310,6 +313,11 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 				header={
 					<div className={InfoRowSCSS.infoRow}>
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.uppercase)}>{e.group}</div>
+						<Tooltip tooltip={`Open ${kTransformGizmoToolId}`} className={InfoRowSCSS.right}>
+							<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionTinyButton)} onClick={(e) => { e.preventDefault(); e.stopPropagation(); trigger("edt", "selectTransformGizmosTool"); }}>
+								<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonTinyIcon)} src="Media/Tools/Snap Options/All.svg"></img>
+							</button>
+						</Tooltip>
 					</div>
 				}
                 initialExpanded={PanelOpen}
@@ -324,7 +332,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
 
 
-							{translate("Editor.POSITION")}
+							{translate("PhotoMode.PROPERTY_TITLE[Position]")}
 							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.COPY_POS")}>
 								<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionTinyButton)} onClick={() => { triggerCopy("POS") }}>
 									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonTinyIcon)} src="coui://extralib/Icons/Misc/Copy.svg"></img>
@@ -418,3 +426,80 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 	};
 	return componentList as any;
 };
+
+
+export function TransformInputs(translate: any, id: string, inputValue: Float3, useIncrement: Boolean, increment: number = 0, OnChange : ChangeEventHandler = () => {}, OnScroll : WheelEventHandler = () => {} ): JSX.Element //canPast: boolean = true 
+{
+
+	const [X, setX] = useState(inputValue.x.toString())
+	const [Y, setY] = useState(inputValue.y.toString())
+	const [Z, setZ] = useState(inputValue.z.toString())
+	const [incrementValue, setIncrementValue] = useState(increment)
+
+	function UpdateValue(event: ChangeEvent<HTMLInputElement>, fucntion : any)
+	{
+		let number = parseFloat(event.target.value);
+		let newValue: string = ""
+		if (!Number.isNaN(number)) newValue = number.toString();
+		fucntion(newValue)
+	}
+
+	useEffect(() => {
+
+		setX(inputValue.x.toString())
+		setY(inputValue.y.toString())
+		setZ(inputValue.z.toString())
+		setIncrementValue(increment)
+
+	}, [inputValue, increment])
+
+
+	return <>
+
+		<div className={classNames(InfoRowSCSS.right, TransfromSectionSCSS.TransfromSectionInputs)}>
+			{useIncrement ?
+				<>
+					<span>↕</span>
+					<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_I`)}>
+						<div>
+							<span>{translate(`SelectedInfoPanel.TRANSFORMTOOL.step`)}</span>
+
+							<span>
+								<input id={`${id}I`} value={incrementValue} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => { UpdateValue(event, setIncrementValue); OnChange(event); }} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+							</span>
+
+						</div>
+					</Tooltip>
+				</> : <></>
+			}
+			{/* {canPast ? PastButton(id, "X", canPast) : <></>} */}
+			<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_X`)}>
+				<div>
+					<span>X</span>
+					<span>
+						<input id={`${id}X`} value={X} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => { UpdateValue(event, setX); OnChange(event); }} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+					</span>
+				</div> 
+			</Tooltip>
+			{/* {canPast ? PastButton(id, "Y", canPast) : <></>} */}
+			<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_Y`)}>
+				<div>
+					<span>Y</span>
+					<span>
+						<input id={`${id}Y`} value={Y} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => { UpdateValue(event, setY); OnChange(event); }} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+					</span>
+				</div>
+			</Tooltip>
+			{/* {canPast ? PastButton(id, "Z", canPast) : <></>} */}
+			<Tooltip tooltip={translate(`SelectedInfoPanel.TRANSFORMTOOL.${id}_Z`)}>
+				<div>
+					<span>Z</span>
+					<span>
+						<input id={`${id}Z`} value={Z} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => { UpdateValue(event, setZ); OnChange(event); }} onWheel={OnScroll} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+					</span>
+				</div>
+			</Tooltip>
+		</div>	
+
+	</>;
+}

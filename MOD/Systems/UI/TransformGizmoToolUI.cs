@@ -13,6 +13,7 @@ namespace ExtraDetailingTools.Systems.UI
     {
         private TransformGizmoTool m_TransformGizmoTool;
 
+        private GetterValueBinding<int> m_ToolModeValueGetter;
         private GetterValueBinding<bool> m_LocalAxisValueGetter;
         private GetterValueBinding<bool> m_HasSubBuildingsValueGetter;
         private GetterValueBinding<bool> m_MoveSubBuildingsValueGetter;
@@ -28,27 +29,30 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(m_MoveSubBuildingsValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", () => m_TransformGizmoTool.m_MoveSubBuildings));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", new Action<bool>(SetMoveSubBuildings)));
 
-            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.SelectMode", new Action<int>(SetMode)));
+            AddBinding(m_ToolModeValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.ToolMode", () => m_TransformGizmoTool.uiModeIndex));
+            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.ToolMode", new Action<int>(SetMode)));
 
+        }
+
+        public void SetMode(TransformGizmoTool.Mode mode)
+        {
+            m_TransformGizmoTool.SetMode(mode);
+            m_ToolModeValueGetter.Update();
         }
 
         public void SetMode(int mode)
         {
-            TransformGizmoTool.Mode tMode = (TransformGizmoTool.Mode)mode;
-            EDT.Logger.Info($"Set mode: {tMode}");
-            m_TransformGizmoTool.SetMode(tMode);
+            SetMode((TransformGizmoTool.Mode)mode);
         }
 
         public void SetUseLocalAxis(bool enabled)
         {
-            EDT.Logger.Info($"SetUseLocalAxis: {enabled}");
             m_TransformGizmoTool.m_UseLocalAxis = enabled;
             m_LocalAxisValueGetter.Update();
         }
 
         public void SetMoveSubBuildings(bool enabled)
         {
-            EDT.Logger.Info($"SetMoveSubBuildings: {enabled}");
             m_TransformGizmoTool.m_MoveSubBuildings = enabled;
             m_MoveSubBuildingsValueGetter.Update();
         }
