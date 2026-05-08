@@ -103,7 +103,7 @@ namespace ExtraDetailingTools.Systems.Tools
             public ComponentLookup<Attachment> m_AttachmentData;
 
             [ReadOnly]
-            public ComponentLookup<Game.Buildings.ServiceUpgrade> m_ServiceUpgradeData;
+            public ComponentLookup<ServiceUpgrade> m_ServiceUpgradeData;
 
             [ReadOnly]
             public ComponentLookup<Game.Areas.Lot> m_LotData;
@@ -185,7 +185,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     Entity entity2 = installedUpgrades[i];
                     if (entity2 != m_Entity)
                     {
-                        isParent = (m_BuildingData.HasComponent(entity2) && !m_MoveSubBuildings) || isParent;
+                        isParent = (isParent && m_Entity != entity) || (m_BuildingData.HasComponent(entity2) && !m_MoveSubBuildings);
                         AddEntity(entity2, Entity.Null, ownerDefinition, isParent, attachParentCreated: false);
                     }
                 }
@@ -207,24 +207,6 @@ namespace ExtraDetailingTools.Systems.Tools
                     component.m_Flags |= CreationFlags.Select;
                 }
                 m_CommandBuffer.AddComponent(e, default(Updated));
-
-                // CTD the game : 
-                /*
-                    NullReferenceException
-                    Object reference not set to an instance of an object
-
-                    NullReferenceException: Object reference not set to an instance of an object
-                      at Unity.Entities.DynamicBuffer`1[T].get_Item (System.Int32 index) [0x0000b] in <584d2405b11a499db7a1feb42bd1a655>:0 
-                      at Colossal.Collections.CollectionUtils.RemoveValue[T] (Unity.Entities.DynamicBuffer`1[T] buffer, T value) [0x00004] in <6c6509245040406facd9a0a08b8d0ec1>:0 
-                      at Game.Buildings.ServiceUpgradeReferencesSystem+UpdateUpgradeReferencesJob.Execute (Unity.Entities.ArchetypeChunk& chunk, System.Int32 unfilteredChunkIndex, System.Boolean useEnabledMask, Unity.Burst.Intrinsics.v128& chunkEnabledMask) [0x00124] in <3cd44c6863d94ebd9731e125742a94fc>:0 
-                      at Game.Buildings.ServiceUpgradeReferencesSystem+UpdateUpgradeReferencesJob.Unity.Entities.IJobChunk.Execute (Unity.Entities.ArchetypeChunk& chunk, System.Int32 unfilteredChunkIndex, System.Boolean useEnabledMask, Unity.Burst.Intrinsics.v128& chunkEnabledMask) [0x00000] in <3cd44c6863d94ebd9731e125742a94fc>:0 
-                      at Unity.Entities.JobChunkExtensions+JobChunkProducer`1[T].ExecuteInternal (Unity.Entities.JobChunkExtensions+JobChunkWrapper`1[T]& jobWrapper, System.IntPtr bufferRangePatchData, Unity.Jobs.LowLevel.Unsafe.JobRanges& ranges, System.Int32 jobIndex) [0x000bc] in <584d2405b11a499db7a1feb42bd1a655>:0 
-                      at Unity.Entities.JobChunkExtensions+JobChunkProducer`1[T].Execute (Unity.Entities.JobChunkExtensions+JobChunkWrapper`1[T]& jobWrapper, System.IntPtr additionalPtr, System.IntPtr bufferRangePatchData, Unity.Jobs.LowLevel.Unsafe.JobRanges& ranges, System.Int32 jobIndex) [0x00000] in <584d2405b11a499db7a1feb42bd1a655>:0 
-                      at (wrapper delegate-invoke) Unity.Entities.JobChunkExtensions+JobChunkProducer`1+ExecuteJobFunction[Game.Buildings.ServiceUpgradeReferencesSystem+UpdateUpgradeReferencesJob].invoke_void_JobChunkExtensions/JobChunkWrapper`1<T>&_intptr_intptr_JobRanges&_int(Unity.Entities.JobChunkExtensions/JobChunkWrapper`1<Game.Buildings.ServiceUpgradeReferencesSystem/UpdateUpgradeReferencesJob>&,intptr,intptr,Unity.Jobs.LowLevel.Unsafe.JobRanges&,int)
-                    Colossal.Logging.CustomLogHandler:LogException(Exception, Object)
-                    UnityEngine.Logger:LogException(Exception, Object)
-                    UnityEngine.Debug:CallOverridenDebugHandler(Exception, Object)
-                 */
                 if (ownerDefinition.m_Prefab != Entity.Null)
                 {
                     m_CommandBuffer.AddComponent(e, ownerDefinition);
@@ -639,6 +621,8 @@ namespace ExtraDetailingTools.Systems.Tools
             {
                 if (!m_TransformLookup.TryGetComponent(entity, out Transform transform)) return;
 
+                SetTempFlag(entity);
+
                 position = !position.Equals(default) ? position : transform.m_Position;
                 rotation = !rotation.Equals(default) ? rotation : transform.m_Rotation;
 
@@ -677,15 +661,9 @@ namespace ExtraDetailingTools.Systems.Tools
                 foreach (InstalledUpgrade installedUpgrade in installedUpgrades)
                 {
 
-                    if (m_BuildingLookup.TryGetComponent(installedUpgrade, out Building building))
-                    {
-                        m_CommandBuffer.AddComponent(building.m_RoadEdge, new Updated());
-                        if (!m_MoveSubBuildings) continue;
-                    }
-
                     if (!m_TransformLookup.TryGetComponent(installedUpgrade, out Transform transform)) continue;
 
-                    transform = ApplyTransformOffset(transform, parentTransform.m_Position, positionOffset, rotationOffset);
+                    if(m_MoveSubBuildings || !m_BuildingLookup.HasComponent(installedUpgrade)) transform = ApplyTransformOffset(transform, parentTransform.m_Position, positionOffset, rotationOffset);
 
                     UpdateObject(installedUpgrade, transform.m_Position, transform.m_Rotation);
                 }
@@ -697,6 +675,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     foreach (SubArea subArea in subAreas)
                     {
+                        SetTempFlag(subArea.m_Area);
                         if (m_NodeLookup.TryGetBuffer(subArea.m_Area, out DynamicBuffer<Node> nodes))
                         {
                             for (int i = 0; i < nodes.Length; i++)
@@ -719,6 +698,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         if (m_ServiceUpgradeLookup.HasComponent(subObject.m_SubObject)) continue;
 
+                        SetTempFlag(subObject.m_SubObject);
                         if (m_TransformLookup.TryGetComponent(subObject.m_SubObject, out Transform transform))
                         {
 
@@ -739,6 +719,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
                     foreach (SubNet subNet in subNets)
                     {
+                        SetTempFlag(subNet.m_SubNet);
                         m_CommandBuffer.AddComponent(subNet.m_SubNet, new Updated());
 
                         if (!m_CurveLookup.TryGetComponent(subNet.m_SubNet, out Curve curve)) continue;
@@ -772,6 +753,17 @@ namespace ExtraDetailingTools.Systems.Tools
                 transform.m_Position = parentPos + posOffset + offset;
                 transform.m_Rotation = math.mul(rotOffset, transform.m_Rotation);
                 return transform;
+            }
+
+            private void SetTempFlag(Entity entity)
+            {
+                if (!isTemp) return;
+
+                if(m_TempLookup.TryGetComponent(entity, out Temp temp))
+                {
+                    temp.m_Flags |= TempFlags.Dragging;
+                    m_CommandBuffer.SetComponent(entity, temp);
+                }
             }
         }
 
@@ -1005,95 +997,101 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private JobHandle Update(JobHandle inputDeps)
         {
-            if(m_Mode == Mode.Default)
-            {
-                if (GetRaycastResult(out var entity2, out var hit2, out var forceUpdate) && entity2 == m_LastRaycastEntity && !forceUpdate)
-                {
-                    applyMode = ApplyMode.None;
-                    return inputDeps;
-                }
-                m_LastRaycastEntity = entity2;
-                if (entity2 == Entity.Null) entity2 = m_SelectedEntity;
-                applyMode = ApplyMode.Clear;
-                inputDeps = UpdateDefinitions(inputDeps, entity2, hit2.m_CellIndex.x);
-                return inputDeps;
-            }
-
             float3 newPos = default;
             quaternion newRot = default;
 
-            if (m_State == State.Idle)
+            if (m_Mode == Mode.Default)
             {
-                NativeArray<RaycastResult> raycastResults = m_GimzosRaycastSystem.GetResult(this);
-
-                if (raycastResults.Length > 0)
-                {
-                    RaycastResult raycastResult = raycastResults[0];
-                    m_LastRaycastGizmos = raycastResult.m_Hit.m_HitEntity;
-                }
-
-                applyMode = ApplyMode.Clear;
-                inputDeps = UpdateDefinitions(inputDeps, m_SelectedEntity, m_SelectedIndex);
-            }
-            else if(m_State == State.Dragging)
-            {
-                if (m_Mode == Mode.Move)
+                if (GetRaycastResult(out var entity2, out var hit2, out var forceUpdate)
+                    && entity2 == m_LastRaycastEntity
+                    && !forceUpdate)
                 {
                     applyMode = ApplyMode.None;
-                    float3 axisDir = GetSelectedAxisDirection(m_LastRaycastGizmos);
-                    Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
+                }
+                else
+                {
+                    m_LastRaycastEntity = entity2;
+                    if (entity2 == Entity.Null) entity2 = m_SelectedEntity;
 
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                    if (dragPlane.Raycast(ray, out float enter))
+                    applyMode = ApplyMode.Clear;
+                    inputDeps = UpdateDefinitions(inputDeps, entity2, hit2.m_CellIndex.x);
+                }
+            }
+            else
+            {
+                if (m_State == State.Idle)
+                {
+                    NativeArray<RaycastResult> raycastResults = m_GimzosRaycastSystem.GetResult(this);
+
+                    if (raycastResults.Length > 0)
                     {
-                        float3 hitPos = ray.origin + ray.direction * enter;
-                        float3 mouseDelta = hitPos - m_DragStartMouseHitPos;
-                        float3 projectedDelta = math.dot(mouseDelta, axisDir) * axisDir;
+                        RaycastResult raycastResult = raycastResults[0];
+                        m_LastRaycastGizmos = raycastResult.m_Hit.m_HitEntity;
+                    }
 
-                        newPos = projectedDelta + m_DragStartGizmoPos;
+                    applyMode = ApplyMode.Clear;
+                    inputDeps = UpdateDefinitions(inputDeps, m_SelectedEntity, m_SelectedIndex);
+                }
+                else if (m_State == State.Dragging)
+                {
+                    if (m_Mode == Mode.Move)
+                    {
+                        applyMode = ApplyMode.None;
+                        float3 axisDir = GetSelectedAxisDirection(m_LastRaycastGizmos);
+                        Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
 
-                        if (m_SelectedTempEntity != Entity.Null)
+                        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                        if (dragPlane.Raycast(ray, out float enter))
                         {
-                            inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newPos);
-                        }
-                        else
-                        {
-                            EDT.Logger.Error("m_SelectedTempEntity is null");
+                            float3 hitPos = ray.origin + ray.direction * enter;
+                            float3 mouseDelta = hitPos - m_DragStartMouseHitPos;
+                            float3 projectedDelta = math.dot(mouseDelta, axisDir) * axisDir;
+
+                            newPos = projectedDelta + m_DragStartGizmoPos;
+
+                            if (m_SelectedTempEntity != Entity.Null)
+                            {
+                                inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newPos);
+                            }
+                            else
+                            {
+                                EDT.Logger.Error("m_SelectedTempEntity is null");
+                            }
                         }
                     }
-                }
 
-                else if (m_Mode == Mode.Rotate )
-                {
-                    applyMode = ApplyMode.None;
-
-                    float3 axisDir = GetSelectedAxisDirection(m_LastRaycastGizmos);
-                    Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
-
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-                    if (dragPlane.Raycast(ray, out float enter))
+                    else if (m_Mode == Mode.Rotate)
                     {
-                        float3 hitPos = ray.origin + ray.direction * enter;
-                        float3 currentDir = math.normalize(hitPos - m_DragStartGizmoPos);
-                        float3 startDir = m_DragStartMouseHitPos;
+                        applyMode = ApplyMode.None;
 
-                        float angle = math.atan2(
-                            math.dot(axisDir, math.cross(startDir, currentDir)),
-                            math.dot(startDir, currentDir)
-                        );
+                        float3 axisDir = GetSelectedAxisDirection(m_LastRaycastGizmos);
+                        Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
 
-                        quaternion deltaRot = quaternion.AxisAngle(axisDir, angle);
+                        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-                        newRot = math.mul(deltaRot, m_DragStartGizmoRot);
-
-                        if (m_SelectedTempEntity != Entity.Null)
+                        if (dragPlane.Raycast(ray, out float enter))
                         {
-                            inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newRot);
-                        }
-                        else
-                        {
-                            EDT.Logger.Error("m_SelectedTempEntity is null");
+                            float3 hitPos = ray.origin + ray.direction * enter;
+                            float3 currentDir = math.normalize(hitPos - m_DragStartGizmoPos);
+                            float3 startDir = m_DragStartMouseHitPos;
+
+                            float angle = math.atan2(
+                                math.dot(axisDir, math.cross(startDir, currentDir)),
+                                math.dot(startDir, currentDir)
+                            );
+
+                            quaternion deltaRot = quaternion.AxisAngle(axisDir, angle);
+
+                            newRot = math.mul(deltaRot, m_DragStartGizmoRot);
+
+                            if (m_SelectedTempEntity != Entity.Null)
+                            {
+                                inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newRot);
+                            }
+                            else
+                            {
+                                EDT.Logger.Error("m_SelectedTempEntity is null");
+                            }
                         }
                     }
                 }

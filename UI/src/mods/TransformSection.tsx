@@ -349,7 +349,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 							}
 							<Tooltip tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS")}>
 								<button className={classNames({ [TransfromSectionSCSS.TransfromSectionButtonSelected]: localAxis }, ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionTinyButton)} onClick={() => { trigger("edt", "transformsection_localaxis") }}>
-									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonTinyIcon)} src="Media/Tools/Snap Options/All.svg"></img>
+									<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonTinyIcon)} src="coui://extradetailingtools/Icons/TransformGizmosTool/Axis.svg"></img>
 								</button>
 							</Tooltip>
 
