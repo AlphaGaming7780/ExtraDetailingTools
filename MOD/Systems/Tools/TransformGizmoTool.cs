@@ -185,7 +185,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     Entity entity2 = installedUpgrades[i];
                     if (entity2 != m_Entity)
                     {
-                        isParent = (!m_BuildingData.HasComponent(entity2) && !m_MoveSubBuildings) || isParent;
+                        isParent = (m_BuildingData.HasComponent(entity2) && !m_MoveSubBuildings) || isParent;
                         AddEntity(entity2, Entity.Null, ownerDefinition, isParent, attachParentCreated: false);
                     }
                 }

@@ -77,6 +77,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					value={Mode.Default}
 					selected={currentMode === Mode.Default}
 					onSelect={(v) => setMode(v)}
+					src="coui://extradetailingtools/Icons/TransformGizmosTool/Default.svg"
 				/>
 
 				<ValueToolButton<Number>
@@ -84,6 +85,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					value={Mode.Move}
 					selected={currentMode === Mode.Move}
 					onSelect={(v) => setMode(v)}
+					src="coui://extradetailingtools/Icons/TransformGizmosTool/Move.svg"
 				/>
 
 				<ValueToolButton<Number>
@@ -91,6 +93,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					value={Mode.Rotate}
 					selected={currentMode === Mode.Rotate}
 					onSelect={(v) => setMode(v)}
+					src="coui://extradetailingtools/Icons/TransformGizmosTool/Rotate.svg"
 				/>
 
 				{/* <ValueToolButton<Number>
@@ -107,7 +110,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				<ToolButton
 					focusKey={FOCUS_DISABLED$}
 					tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS")}
-					src="Media/Tools/Snap Options/All.svg"
+					src="coui://extradetailingtools/Icons/TransformGizmosTool/Axis.svg"
 					selected={useLocalAxis}
 					onSelect={() => LocalAxis(!useLocalAxis)}
 				/>
@@ -116,7 +119,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					<ToolButton
 						focusKey={FOCUS_DISABLED$}
 						tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip")}
-						src="Media/Tools/Snap Options/All.svg"
+						src={moveSubBuildings ? "coui://extradetailingtools/Icons/TransformGizmosTool/Building_V.svg" : "coui://extradetailingtools/Icons/TransformGizmosTool/Building_X.svg"}
 						selected={moveSubBuildings}
 						onSelect={() => MoveSubBuildings(!moveSubBuildings)}
 					/> : <></>
@@ -153,6 +156,7 @@ export const TransformGizmosToolButton = () =>
 	return <>
 		<Button
 			variant="floating"
+			src="coui://extradetailingtools/Icons/TransformGizmosTool/Icon.svg"
 			tooltipLabel={kTransformGizmoToolId}
 			className={classNames(
 				styles.panelButtonUM,
