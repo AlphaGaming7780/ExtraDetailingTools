@@ -61,7 +61,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 		const MoveSubBuildingsButton = ToolButton({
 			selected: moveSubBuildings,
 			tooltip: translate("SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip"),
-			src: "Media/Tools/Snap Options/All.svg",
+			src: moveSubBuildings ? "coui://extradetailingtools/Icons/TransformGizmosTool/Building_V.svg" : "coui://extradetailingtools/Icons/TransformGizmosTool/Building_X.svg",
 			onSelect: () => { trigger("edt", "transformsection_movesubbuildings") }
 		})
 
@@ -80,9 +80,9 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 				case "ROTY": triggerRot(0, number - rot.y, 0); break;
 				case "ROTZ": triggerRot(0, 0, number - rot.z); break;
 				case "SCALEI": ScaleIncrement = number; triggerIncScale(); break;
-				case "SCALEX": scale.x = number; triggerScale(); break;
-				case "SCALEY": scale.y = number; triggerScale(); break;
-				case "SCALEZ": scale.z = number; triggerScale(); break;
+				case "SCALEX": scale.x = number; triggerScale(scale); break;
+				case "SCALEY": scale.y = number; triggerScale(scale); break;
+				case "SCALEZ": scale.z = number; triggerScale(scale); break;
 			}
 			trigger("audio", "playSound", "hover-item", 1)
 
@@ -153,15 +153,15 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 					break;
 				case "SCALEX":
 					scale.x += scaleVelue;
-					triggerScale()
+					triggerScale(scale)
 					break;
 				case "SCALEY":
 					scale.y += scaleVelue;
-					triggerScale()
+					triggerScale(scale)
 					break;
 				case "SCALEZ":
 					scale.z += scaleVelue;
-					triggerScale()
+					triggerScale(scale)
 					break;
 			}
 			if (event.deltaY < 0) trigger("audio", "playSound", "increase-elevation", 1);
@@ -186,7 +186,8 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 			trigger("edt", "transformsection_incrot", RotationIncrement)
 		}
 
-		function triggerScale() {
+		function triggerScale(scale : Float3) {
+			console.log(`Trigegr scale: ${scale}`);
 			trigger("edt", "transformsection_scale", scale)
 		}
 
