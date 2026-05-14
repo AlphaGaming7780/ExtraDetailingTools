@@ -314,7 +314,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 				header={
 					<div className={InfoRowSCSS.infoRow}>
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.uppercase)}>{e.group}</div>
-						<Tooltip tooltip={`Open ${kTransformGizmoToolId}`} className={InfoRowSCSS.right}>
+						<Tooltip tooltip={translate("Tool.TransformGizmoTool.Tooltip", "Tool.TransformGizmoTool.Tooltip")} className={InfoRowSCSS.right}>
 							<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionTinyButton)} onClick={(e) => { e.preventDefault(); e.stopPropagation(); trigger("edt", "selectTransformGizmosTool"); }}>
 								<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonTinyIcon)} src="coui://extradetailingtools/Icons/TransformGizmosTool/Icon.svg"></img>
 							</button>
