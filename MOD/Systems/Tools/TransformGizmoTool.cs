@@ -41,7 +41,10 @@ namespace ExtraDetailingTools.Systems.Tools
 {
     internal partial class TransformGizmoTool : ToolBaseSystem
     {
-
+        public enum Handle
+        {
+            X, Y, Z, XZ, Terrain
+        }
         public enum AllowHightlightState
         {
             Default,
@@ -802,6 +805,9 @@ namespace ExtraDetailingTools.Systems.Tools
         private Entity m_SelectedEntity;
         private Entity m_SelectedTempEntity;
 
+        private Handle m_SelectedHandle;
+
+        //Maybe replace with a NativeList<Entity> just to still keep track of them and make sure to delete them when tool is disabled.
         private Entity m_xAxisEntity;
         private Entity m_yAxisEntity;
         private Entity m_zAxisEntity;
