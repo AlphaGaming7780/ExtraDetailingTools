@@ -70,12 +70,12 @@ namespace ExtraDetailingTools
                 updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
                 //updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
                 updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
-#if Extra4
                 updateSystem.UpdateAt<GizmosRenderSystem>(SystemUpdatePhase.Rendering);
                 updateSystem.UpdateAt<GizmosRaycastSystem>(SystemUpdatePhase.Raycast);
                 updateSystem.UpdateAt<TransformGizmoTool>(SystemUpdatePhase.ToolUpdate);
                 updateSystem.UpdateAt<TransformGizmoToolTooltip>(SystemUpdatePhase.UITooltip);
                 updateSystem.UpdateAt<TransformGizmoToolUI>(SystemUpdatePhase.UIUpdate);
+#if Extra4
                 updateSystem.UpdateAfter<TransformObjectSystem>(SystemUpdatePhase.Rendering);
                 updateSystem.UpdateAt<GrassToolSystem>(SystemUpdatePhase.ToolUpdate);
                 updateSystem.UpdateAt<GrassSystem>(SystemUpdatePhase.ModificationEnd);
