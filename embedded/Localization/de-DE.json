@@ -1,6 +1,11 @@
 {
 	"Toolbar.SHOWMARKER": "Marker anzeigen",
 	"ToolOptions.TOOLTIP[ShowMarker]": "Ein-/Ausblenden des Markers.",
+	"Tool.TransformGizmoTool.Tooltip": "Open EDT's Transform Gizmo Tool.",
+	"Tool.TransformGizmoTool.Default.Tooltip": "Enables the default mode of the tool, used to select objects.",
+	"Tool.TransformGizmoTool.Move.Tooltip": "Enables the Move mode, allowing you to move objects using the gizmo arrows, similar to 3D editors.",
+	"Tool.TransformGizmoTool.Rotate.Tooltip": "Enables the Rotate mode, allowing you to rotate objects using the rotation gizmo.",
+	"Tool.TransformGizmoTool.Scale.Tooltip": "Enables the Scale mode, allowing you to resize objects using the scale handles.",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS": "Position kopieren.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PAST_POS": "Position einfügen.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PAST_POS_X": "Position einfügen, nur X-Achse.",
