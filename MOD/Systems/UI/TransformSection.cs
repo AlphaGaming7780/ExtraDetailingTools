@@ -3,7 +3,6 @@ using Colossal;
 using Colossal.Entities;
 using Colossal.Mathematics;
 using Colossal.UI.Binding;
-using ExtraDetailingTools.MonoBehaviours;
 using ExtraDetailingTools.Prefabs;
 using ExtraDetailingTools.Systems.Tools;
 using Game.Buildings;
@@ -33,8 +32,6 @@ namespace ExtraDetailingTools.Systems.UI
 		//	get { return GUIUtility.systemCopyBuffer; }
 		//	set { GUIUtility.systemCopyBuffer = value; }
 		//}
-
-		private MoveHandle _moveHandle;
 
         private float3 _copiedPos;
 		private float3 _copiedRot;
@@ -122,8 +119,6 @@ namespace ExtraDetailingTools.Systems.UI
 
 			AddBinding(new TriggerBinding<bool>("edt", "ontransformsectionopened", new Action<bool>(OnPanelOpned)));
 			AddBinding(new TriggerBinding("edt", "selectTransformGizmosTool", new Action(() => _toolSystem.activeTool = _transformGizmoTool)));
-
-            _moveHandle = new GameObject("MoveHandle").AddComponent<MoveHandle>();
         }
 
         protected override void OnPreUpdate()
@@ -173,13 +168,6 @@ namespace ExtraDetailingTools.Systems.UI
 
                 float3 linesLenght = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
 #if Extra4
-                //linesLenght = new(linesLenght.x + (linesLenght.x / 10f), linesLenght.y + (linesLenght.y / 10f), linesLenght.z + (linesLenght.z / 10f));
-
-                //Quaternion objectRot = (Quaternion)transform.m_Rotation;
-                //quaternion rotation = Quaternion.Euler(0, objectRot.eulerAngles.y, 0);
-                //_moveHandle.Setup(transform.m_Position, useLocalAxis ? rotation : new quaternion(), linesLenght);
-
-
                 RenderAxisWithHandlesJob job = new RenderAxisWithHandlesJob()
 				{
                     m_GizmoBatcher = _gizmosSystem.GetGizmosBatcher(out JobHandle dep),
@@ -207,13 +195,6 @@ namespace ExtraDetailingTools.Systems.UI
 				Dependency = jobHandle;
 #endif
             }
-#if Extra4
-			else
-			{
-				_moveHandle.DestroyAxisHandles();
-			}
-#endif
-
 		}
 
 
