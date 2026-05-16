@@ -123,36 +123,46 @@ namespace ExtraDetailingTools.Gizmos
                 }
             }
 
-            // NEED REWORK
             private bool IntersectSphere(float3 center, float radius, Line3.Segment ray, out RaycastHit hit)
             {
-                float3 oc = ray.a - center;
-                float3 dir = math.normalize(ray.b - ray.a);
 
-                float b = math.dot(oc, dir);
-                float c = math.dot(oc, oc) - radius * radius;
-
-                float h = b * b - c;
-
-                if (h < 0)
+                if (m_Debug)
                 {
-                    hit = default;
-                    return false;
+                    Batcher.DrawWireSphere(center, radius, Color.green);
                 }
 
-                float t = -b - math.sqrt(h);
+                hit = default;
 
-                if (t < 0)
-                {
-                    hit = default;
+                float3 dir = ray.b - ray.a;
+                float rayLength = math.length(dir);
+
+                if (rayLength <= 1e-6f)
                     return false;
-                }
+
+                dir /= rayLength;
+
+                if (!MathUtils.Intersect(new Sphere3(radius, center), ray, out float2 t))
+                    return false;
+
+                float tRay = t.x;
+
+                float3 pRay = ray.a + dir * tRay;
+
+                float3 normal = pRay - center;
+                float normalLen = math.length(normal);
+
+                if (normalLen > 1e-5f)
+                    normal /= normalLen;
+                else
+                    normal = dir;
 
                 hit = new RaycastHit
                 {
-                    m_NormalizedDistance = t,
                     m_Position = center,
-                    m_HitPosition = ray.a + dir * t,
+                    m_HitPosition = pRay,
+                    m_HitDirection = normal,
+                    m_NormalizedDistance = tRay / rayLength,
+                    m_CurvePosition = 0f
                 };
 
                 return true;
@@ -318,10 +328,6 @@ namespace ExtraDetailingTools.Gizmos
                         dir /= length;
 
                         float3 up = dir;
-
-                        // Build a stable orthonormal basis where:
-                        // - local Y maps to 'up' (dir)
-                        // - local Z is some perpendicular "forward"
                         float3 arbitrary = math.abs(up.y) < 0.99f ? new float3(0, 1, 0) : new float3(1, 0, 0);
                         float3 forward = math.normalize(math.cross(arbitrary, up));
                         float3 right = math.normalize(math.cross(up, forward));
