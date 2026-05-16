@@ -808,9 +808,10 @@ namespace ExtraDetailingTools.Systems.Tools
         private Handle m_SelectedHandle;
 
         //Maybe replace with a NativeList<Entity> just to still keep track of them and make sure to delete them when tool is disabled.
-        private Entity m_xAxisEntity;
-        private Entity m_yAxisEntity;
-        private Entity m_zAxisEntity;
+        private NativeList<Entity> m_Handles;
+        //private Entity m_xAxisEntity;
+        //private Entity m_yAxisEntity;
+        //private Entity m_zAxisEntity;
 
         private int m_LastSelectedIndex;
         private int m_SelectedIndex;
@@ -858,9 +859,9 @@ namespace ExtraDetailingTools.Systems.Tools
         protected override void OnStartRunning()
         {
             base.OnStartRunning();
-            m_xAxisEntity = EntityManager.CreateEntity();
-            m_yAxisEntity = EntityManager.CreateEntity();
-            m_zAxisEntity = EntityManager.CreateEntity();
+            //m_xAxisEntity = EntityManager.CreateEntity();
+            //m_yAxisEntity = EntityManager.CreateEntity();
+            //m_zAxisEntity = EntityManager.CreateEntity();
             m_SelectedEntity = m_ToolSystem.selected;
             EnableActions(true);
         }
@@ -868,9 +869,13 @@ namespace ExtraDetailingTools.Systems.Tools
         protected override void OnStopRunning()
         {
             base.OnStopRunning();
-            EntityManager.DestroyEntity(m_xAxisEntity);
-            EntityManager.DestroyEntity(m_yAxisEntity);
-            EntityManager.DestroyEntity(m_zAxisEntity);
+            foreach (Entity e in m_Handles)
+            {
+                EntityManager.DestroyEntity(e);
+            }
+            //EntityManager.DestroyEntity(m_xAxisEntity);
+            //EntityManager.DestroyEntity(m_yAxisEntity);
+            //EntityManager.DestroyEntity(m_zAxisEntity);
             if(m_ToolSystem.selected != Entity.Null)
             {
                 m_ToolSystem.selected = m_SelectedEntity;
@@ -1304,9 +1309,10 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_State = m_State,
                 m_SelectedEntity = m_SelectedEntity,
                 m_GizmosEntity = m_LastRaycastGizmos,
-                m_xAxisEntity = m_xAxisEntity,
-                m_yAxisEntity = m_yAxisEntity,
-                m_zAxisEntity = m_zAxisEntity,
+                m_Handles = m_Handles,
+                //m_xAxisEntity = m_xAxisEntity,
+                //m_yAxisEntity = m_yAxisEntity,
+                //m_zAxisEntity = m_zAxisEntity,
                 m_TransformLookup = SystemAPI.GetComponentLookup<Transform>(true),
                 m_InterpolatedTransformLookup = SystemAPI.GetComponentLookup<InterpolatedTransform>(true),
                 m_GizmosDataLookup = SystemAPI.GetComponentLookup<GizmosData>(true),
