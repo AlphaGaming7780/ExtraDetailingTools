@@ -72,32 +72,35 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			<Section
 				title={"Tool mods:"}
 			>
-				<ValueToolButton<Number>
-					tooltip={translate("Tool.TransformGizmoTool.Default.Tooltip", "Tool.TransformGizmoTool.Default.Tooltip")}
-					focusKey={FOCUS_DISABLED$}
-					value={Mode.Default}
-					selected={currentMode === Mode.Default}
-					onSelect={(v) => setMode(v)}
-					src="coui://extradetailingtools/Icons/TransformGizmosTool/Default.svg"
-				/>
+				<Tooltip tooltip={translate("Tool.TransformGizmoTool.Default.Tooltip", "Tool.TransformGizmoTool.Default.Tooltip")}>
+					<ValueToolButton<Number>
+						focusKey={FOCUS_DISABLED$}
+						value={Mode.Default}
+						selected={currentMode === Mode.Default}
+						onSelect={(v) => setMode(v)}
+						src="coui://extradetailingtools/Icons/TransformGizmosTool/Default.svg"
+					/>
+				</Tooltip>
 
-				<ValueToolButton<Number>
-					tooltip={translate("Tool.TransformGizmoTool.Move.Tooltip", "Tool.TransformGizmoTool.Move.Tooltip")}
-					focusKey={FOCUS_DISABLED$}
-					value={Mode.Move}
-					selected={currentMode === Mode.Move}
-					onSelect={(v) => setMode(v)}
-					src="coui://extradetailingtools/Icons/TransformGizmosTool/Move.svg"
-				/>
+				<Tooltip tooltip={translate("Tool.TransformGizmoTool.Move.Tooltip", "Tool.TransformGizmoTool.Move.Tooltip")}>
+					<ValueToolButton<Number>
+						focusKey={FOCUS_DISABLED$}
+						value={Mode.Move}
+						selected={currentMode === Mode.Move}
+						onSelect={(v) => setMode(v)}
+						src="coui://extradetailingtools/Icons/TransformGizmosTool/Move.svg"
+					/>
+				</Tooltip>
 
-				<ValueToolButton<Number>
-					tooltip={translate("Tool.TransformGizmoTool.Rotate.Tooltip", "Tool.TransformGizmoTool.Rotate.Tooltip")}
-					focusKey={FOCUS_DISABLED$}
-					value={Mode.Rotate}
-					selected={currentMode === Mode.Rotate}
-					onSelect={(v) => setMode(v)}
-					src="coui://extradetailingtools/Icons/TransformGizmosTool/Rotate.svg"
-				/>
+				<Tooltip tooltip={translate("Tool.TransformGizmoTool.Rotate.Tooltip", "Tool.TransformGizmoTool.Rotate.Tooltip")}>
+					<ValueToolButton<Number>
+						focusKey={FOCUS_DISABLED$}
+						value={Mode.Rotate}
+						selected={currentMode === Mode.Rotate}
+						onSelect={(v) => setMode(v)}
+						src="coui://extradetailingtools/Icons/TransformGizmosTool/Rotate.svg"
+					/>
+				</Tooltip>
 
 				{/* <ValueToolButton<Number>
 				value={Mode.Scale}
@@ -159,20 +162,22 @@ export const TransformGizmosToolButton = () =>
 	const { translate } = useLocalization();
 
 	return <>
-		<Button
-			variant="floating"
-			src="coui://extradetailingtools/Icons/TransformGizmosTool/Icon.svg"
-			tooltipLabel={translate("Tool.TransformGizmoTool.Tooltip", "Tool.TransformGizmoTool.Tooltip")}
-			className={classNames(
-				styles.panelButtonUM,
-				(active) && styles.active
-			)}
-			selected={active}
-			onClick={() =>
-				active
-					? tool.selectTool("Default Tool")
-					: trigger("edt", "selectTransformGizmosTool")
-			}
-		/>
+		<Tooltip tooltip={translate("Tool.TransformGizmoTool.Tooltip", "Tool.TransformGizmoTool.Tooltip")}>
+			<Button
+				variant="floating"
+				src="coui://extradetailingtools/Icons/TransformGizmosTool/Icon.svg"
+				tooltipLabel={translate("Tool.TransformGizmoTool.Tooltip", "Tool.TransformGizmoTool.Tooltip")}
+				className={classNames(
+					styles.panelButtonUM,
+					(active) && styles.active
+				)}
+				selected={active}
+				onClick={() =>
+					active
+						? tool.selectTool("Default Tool")
+						: trigger("edt", "selectTransformGizmosTool")
+				}
+			/>
+		</Tooltip>
 	</>
 }

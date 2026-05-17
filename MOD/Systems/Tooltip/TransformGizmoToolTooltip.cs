@@ -4,6 +4,7 @@ using Colossal.Internal.Gizmos;
 using ExtraDetailingTools.Systems.Tools;
 using Game.Areas;
 using Game.Objects;
+using Game.Simulation;
 using Game.Tools;
 using Game.UI.Tooltip;
 using System;
@@ -23,10 +24,13 @@ namespace ExtraDetailingTools.Systems.Tooltip
     {
         private ToolSystem m_ToolSystems;
         private TransformGizmoTool m_TransformGizmoTool;
+        private TerrainSystem m_TerrainSystem;
 
         private GizmosSystem m_GizmosSystem;
 
         private FloatTooltip m_Distance;
+
+        private FloatTooltip m_Height;
 
         private FloatTooltip m_Angle;
 
@@ -37,6 +41,7 @@ namespace ExtraDetailingTools.Systems.Tooltip
             base.OnCreate();
             m_ToolSystems = World.GetOrCreateSystemManaged<ToolSystem>();
             m_TransformGizmoTool = World.GetExistingSystemManaged<TransformGizmoTool>();
+            m_TerrainSystem = World.GetExistingSystemManaged<TerrainSystem>();
 
             m_Distance = new FloatTooltip
             {
@@ -44,10 +49,18 @@ namespace ExtraDetailingTools.Systems.Tooltip
                 unit = "length",
                 signed = false,
             };
+
+            m_Height = new FloatTooltip
+            {
+                icon = "Media/Editor/Height.svg",
+                unit = "length", //"height",
+                signed = true,
+            };
+
             m_Angle = new FloatTooltip
             {
                 icon = "Media/Glyphs/Angle.svg",
-                //unit = "degree",
+                unit = "angle",
                 signed = false
             };
             m_Scale = new FloatTooltip
@@ -70,12 +83,13 @@ namespace ExtraDetailingTools.Systems.Tooltip
             if (!EntityManager.TryGetComponent<Transform>(m_TransformGizmoTool.SelectedEntity, out Transform ogTransform) || !EntityManager.TryGetComponent<Transform>(m_TransformGizmoTool.SelectedTempEntity, out Transform tempTransform))
                 return;
 
-            //CompleteDependency();
-
             if (m_TransformGizmoTool.mode == TransformGizmoTool.Mode.Move)
             {
+                TerrainHeightData terrainHeightData = m_TerrainSystem.GetHeightData();
                 m_Distance.value = math.distance(tempTransform.m_Position, ogTransform.m_Position);
+                m_Height.value = tempTransform.m_Position.y - TerrainUtils.SampleHeight(ref terrainHeightData, tempTransform.m_Position);
                 AddMouseTooltip(m_Distance);
+                AddMouseTooltip(m_Height);
             }
 
             else if (m_TransformGizmoTool.mode == TransformGizmoTool.Mode.Rotate)
