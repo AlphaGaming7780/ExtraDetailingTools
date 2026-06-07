@@ -24,7 +24,6 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using static ExtraDetailingTools.Patches.GameModeExtensionsPatches;
 using static Game.Tools.DefaultToolSystem;
 using Color = UnityEngine.Color;
 using Node = Game.Areas.Node;
@@ -1046,7 +1045,6 @@ namespace ExtraDetailingTools.Systems.Tools
 
             m_State = State.Idle;
             m_TransformGizmoToolUI.SetMode((int)Mode.Default);
-            //m_Mode = Mode.Default;
             return inputDeps;
         }
 
@@ -1222,15 +1220,35 @@ namespace ExtraDetailingTools.Systems.Tools
 
             if (m_State == State.Dragging)
             {
-                float3 pos = default;
-                quaternion rot = default;
-                if (m_SelectedTempEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedTempEntity, out Transform transform))
+                if(GetAllowApply())
                 {
-                    pos = transform.m_Position;
-                    rot = transform.m_Rotation;
+                    applyMode = ApplyMode.Apply;
+                    float3 pos = default;
+                    quaternion rot = default;
+                    if (m_SelectedTempEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedTempEntity, out Transform transform))
+                    {
+                        pos = transform.m_Position;
+                        rot = transform.m_Rotation;
+                    }
+
+                    if (EntityManager.HasComponent<Building>(m_SelectedEntity) || EntityManager.HasComponent<AssetStamp>(m_SelectedEntity))
+                    {
+                        m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_RelocateBuildingSound);
+                    }
+                    else if (EntityManager.HasComponent<Static>(m_SelectedEntity) || m_ToolSystem.actionMode.IsEditor())
+                    {
+                        m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_PlacePropSound);
+                    }
+                    
+                    inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
                 }
+                else
+                {
+                    m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_PlaceBuildingFailSound);
+                }
+
                 StopDragging();
-                inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
+
                 return inputDeps;
             }
 

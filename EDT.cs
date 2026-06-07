@@ -2,8 +2,7 @@
 // Copyright (c) Triton Supreme. All rights reserved.
 // </copyright>
 
-
-
+using Colossal.Core;
 using Colossal.Logging;
 using ExtraDetailingTools.ExtraSnap;
 using ExtraDetailingTools.Gizmos;
@@ -25,9 +24,11 @@ using Game.Tools;
 using Game.UI.InGame;
 using Game.UI.Tooltip;
 using HarmonyLib;
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Unity.Entities;
 
 namespace ExtraDetailingTools
 {
@@ -39,8 +40,6 @@ namespace ExtraDetailingTools
 #else
         internal static Logger Logger = new(log, false);
 #endif
-
-        // internal static EffectControlSystem effectControlSystem;
 
         internal static string ResourcesIcons { get; private set; }
 
@@ -89,6 +88,7 @@ namespace ExtraDetailingTools
 
                 // toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
                 objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
+                ExtraSnapBase.RegisterInstance<ObjectToolSystemExtraSnap>();
 
                 //PrefabsHelper.LoadPrefabsInDirectory(Path.Combine(fileInfo.Directory.FullName, "Prefabs"));
 
@@ -107,7 +107,6 @@ namespace ExtraDetailingTools
                 //uIObject1.m_Icon = Icons.GetIcon(grassPrefabNew);
                 //EL.m_PrefabSystem.AddPrefab(grassPrefabNew);
 #endif
-                ExtraSnapBase.RegisterInstance<ObjectToolSystemExtraSnap>();
                 harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
                 harmony.PatchAll(typeof(EDT).Assembly);
                 var patchedMethods = harmony.GetPatchedMethods().ToArray();
@@ -116,6 +115,9 @@ namespace ExtraDetailingTools
                 {
                     Logger.Info($"Patched method: {patchedMethod.Module.ScopeName}:{patchedMethod.Name}");
                 }
+
+                MainThreadDispatcher.RegisterUpdater(RegisterToolsToAnarchy);
+
             }
             catch (System.Exception ex)
             {
@@ -128,5 +130,45 @@ namespace ExtraDetailingTools
             Logger.Info(nameof(OnDispose));
             harmony.UnpatchAll($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
         }
+
+        private void RegisterToolsToAnarchy()
+        {
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (Assembly assembly in assemblies)
+            {
+                if (!assembly.GetName().FullName.Contains("Anarchy,"))
+                {
+                    continue;
+                }
+
+                Type[] types = assembly.GetTypes();
+
+                Type anarchyBridge = assembly.GetTypes().FirstOrDefault(x => x.FullName.Contains("Anarchy.Bridge.AnarchyBridge"));
+                if (anarchyBridge is null)
+                {
+                    Logger.Warn($"Couldn't locate Anarchy Bridge.");
+                    continue;
+                }
+
+                MethodInfo addToolMethod = anarchyBridge.GetMethod("TryAddToolSystem", BindingFlags.Public | BindingFlags.Static);
+                if (addToolMethod is null)
+                {
+                    Logger.Warn($"Could not find method to add tool.");
+                    break;
+                }
+
+                var results = addToolMethod.Invoke(null, new object[] { World.DefaultGameObjectInjectionWorld.GetOrCreateSystemManaged<TransformGizmoTool>() });
+                if (results is bool v &&
+                    v == true)
+                {
+                    Logger.Info($"Successfully registered with Anarchy!");
+                }
+                else
+                {
+                    Logger.Warn($"Failed to register with Anarchy.");
+                }
+            }
+        }
+
     }
 }
