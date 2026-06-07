@@ -1,5 +1,4 @@
-﻿using Colossal;
-using Colossal.Entities;
+﻿using Colossal.Entities;
 using Colossal.Mathematics;
 using ExtraDetailingTools.Components;
 using ExtraDetailingTools.Gizmos;
@@ -19,6 +18,7 @@ using Game.Routes;
 using Game.Simulation;
 using Game.Tools;
 using Game.Vehicles;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -845,8 +845,9 @@ namespace ExtraDetailingTools.Systems.Tools
         private quaternion m_DragStartGizmoRot;
         private float3 m_DragStartMouseHitPos;
 
-        public bool m_UseLocalAxis { get; set; } = true;
-        public bool m_MoveSubBuildings { get; set; } = true;
+        public bool m_UseLocalAxis { get; internal set; } = true;
+        public bool m_MoveSubBuildings { get; internal set; } = true;
+        public bool m_FollowGround { get; internal set; } = false;
         public bool m_Underground { get; private set; } = false;
         public AllowHightlightState m_AllowHightlight { get; set; } = AllowHightlightState.Default;
 

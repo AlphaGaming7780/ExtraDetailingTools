@@ -17,6 +17,7 @@ namespace ExtraDetailingTools.Systems.UI
         private GetterValueBinding<bool> m_LocalAxisValueGetter;
         private GetterValueBinding<bool> m_HasSubBuildingsValueGetter;
         private GetterValueBinding<bool> m_MoveSubBuildingsValueGetter;
+        private GetterValueBinding<bool> m_FollowGroundValueGetter;
 
         protected override void OnCreate()
         {
@@ -32,6 +33,9 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(m_ToolModeValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.ToolMode", () => m_TransformGizmoTool.uiModeIndex));
             AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.ToolMode", new Action<int>(SetMode)));
 
+            AddBinding(m_FollowGroundValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.FollowGround", () => m_TransformGizmoTool.m_FollowGround));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.FollowGround", new Action<bool>(SetFollowGround)));
+            AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SnapOnGround", new Action(SnapOnGround)));
         }
 
         public void SetMode(TransformGizmoTool.Mode mode)
@@ -55,6 +59,17 @@ namespace ExtraDetailingTools.Systems.UI
         {
             m_TransformGizmoTool.m_MoveSubBuildings = enabled;
             m_MoveSubBuildingsValueGetter.Update();
+        }
+
+        public void SetFollowGround(bool enabled)
+        {
+            m_TransformGizmoTool.m_FollowGround = enabled;
+            m_MoveSubBuildingsValueGetter.Update();
+        }
+
+        public void SnapOnGround()
+        {
+            
         }
 
     }

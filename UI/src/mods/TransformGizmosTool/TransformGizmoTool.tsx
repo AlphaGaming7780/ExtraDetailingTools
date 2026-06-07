@@ -24,6 +24,7 @@ const pos$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Position`, 
 const rot$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Rotation`, {x: 0, y: 0, z:0});
 // const scale$ = bindValue<Float3>(kGroupName, `${kToolId}.Scale`, {x: 0, y: 0, z:0});
 const localAxis$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.LocalAxis`, false);
+const followGround$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.FollowGround`, false);
 const moveSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, false);
 const haSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.HasSubBuildings`, false);
 
@@ -33,11 +34,12 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const pos: Float3 = useValue(pos$);
 		const rot: Float3 = useValue(rot$);
 		// const scale: Float3 = useValue(scale$);
-		let activeTool: Tool = useValue(tool.activeTool$);
-		let useLocalAxis : boolean = useValue(localAxis$);
-		let moveSubBuildings : boolean = useValue(moveSubBuildings$);
-		let haSubBuildings : boolean = useValue(haSubBuildings$);
-		let currentMode : Number = useValue(toolMode$);
+		const activeTool: Tool = useValue(tool.activeTool$);
+		const useLocalAxis : boolean = useValue(localAxis$);
+		const useFollowGround : boolean = useValue(followGround$);
+		const moveSubBuildings : boolean = useValue(moveSubBuildings$);
+		const haSubBuildings : boolean = useValue(haSubBuildings$);
+		const currentMode : Number = useValue(toolMode$);
 
 		const { translate } = useLocalization();
 
@@ -56,6 +58,16 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			trigger(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, enable);
 		}
 
+		const SnapOnGround = () =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.SnapOnGround`);
+		}
+
+		const FollowGround = (enable : boolean) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.FollowGround`, enable);
+		}
+
 		// This defines aspects of the components.
 		const { children, ...otherProps } = props || {};
 
@@ -70,7 +82,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		result.props.children?.unshift(
 			<>
 			<Section
-				title={"Tool mods:"}
+				title={translate("Tool.TransformGizmoTool.Mods", "Mods")}
 			>
 				<Tooltip tooltip={translate("Tool.TransformGizmoTool.Default.Tooltip", "Tool.TransformGizmoTool.Default.Tooltip")}>
 					<ValueToolButton<Number>
@@ -110,7 +122,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 
 			</Section>
 			<Section
-				title={"Tool settings:"}
+				title={translate("Tool.TransformGizmoTool.Settings", "Settings")}
 			>
 				
 				<ToolButton
@@ -119,6 +131,14 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					src="coui://extradetailingtools/Icons/TransformGizmosTool/Axis.svg"
 					selected={useLocalAxis}
 					onSelect={() => LocalAxis(!useLocalAxis)}
+				/>
+
+				<ToolButton
+					focusKey={FOCUS_DISABLED$}
+					tooltip={translate("Tool.TransformGizmoTool.FollowGround.tooltip")}
+					src="coui://extradetailingtools/Icons/TransformGizmosTool/FollowGround.svg"
+					selected={useFollowGround}
+					onSelect={() => FollowGround(!useFollowGround)}
 				/>
 
 				{ haSubBuildings ? 
@@ -132,6 +152,19 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				}
 				
 			</Section>
+
+			<Section
+				title={translate("Tool.TransformGizmoTool.QuickActions", "Quick Actions") }
+			>
+				<ToolButton
+					focusKey={FOCUS_DISABLED$}
+					tooltip={translate("Tool.TransformGizmoTool.SnapOnGround.tooltip")}
+					src="coui://extradetailingtools/Icons/TransformGizmosTool/SnapOnGround.svg"
+					onSelect={() => SnapOnGround()}
+				/>
+				
+			</Section>
+
 			{/* <Section
 			title={translate("PhotoMode.PROPERTY_TITLE[Position]")}
 			>
