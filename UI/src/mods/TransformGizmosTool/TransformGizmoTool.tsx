@@ -25,6 +25,7 @@ const rot$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Rotation`, 
 // const scale$ = bindValue<Float3>(kGroupName, `${kToolId}.Scale`, {x: 0, y: 0, z:0});
 const localAxis$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.LocalAxis`, false);
 const followGround$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.FollowGround`, false);
+const snapToSurface$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.SnapToSurface`, false);
 const moveSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, false);
 const haSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.HasSubBuildings`, false);
 
@@ -37,6 +38,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const activeTool: Tool = useValue(tool.activeTool$);
 		const useLocalAxis : boolean = useValue(localAxis$);
 		const useFollowGround : boolean = useValue(followGround$);
+		const useSnapToSurface : boolean = useValue(snapToSurface$);
 		const moveSubBuildings : boolean = useValue(moveSubBuildings$);
 		const haSubBuildings : boolean = useValue(haSubBuildings$);
 		const currentMode : Number = useValue(toolMode$);
@@ -61,6 +63,11 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const SnapOnGround = () =>
 		{
 			trigger(kGroupName, `${kTransformGizmoToolId}.SnapOnGround`);
+		}
+		
+		const SnapToSurface = (enable : boolean) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.SnapToSurface`, enable);
 		}
 
 		const FollowGround = (enable : boolean) =>
@@ -141,6 +148,14 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					onSelect={() => FollowGround(!useFollowGround)}
 				/>
 
+				<ToolButton
+					focusKey={FOCUS_DISABLED$}
+					tooltip={translate("Tool.TransformGizmoTool.SnapOnGround.tooltip")}
+					src="Media/Tools/Snap Options/ObjectSurface.svg"
+					selected={useSnapToSurface}
+					onSelect={() => SnapToSurface(!useSnapToSurface)}
+				/>
+
 				{ haSubBuildings ? 
 					<ToolButton
 						focusKey={FOCUS_DISABLED$}
@@ -162,7 +177,6 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					src="coui://extradetailingtools/Icons/TransformGizmosTool/SnapOnGround.svg"
 					onSelect={() => SnapOnGround()}
 				/>
-				
 			</Section>
 
 			{/* <Section

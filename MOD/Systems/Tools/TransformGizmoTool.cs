@@ -24,6 +24,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using static ExtraDetailingTools.Patches.GameModeExtensionsPatches;
 using static Game.Tools.DefaultToolSystem;
 using Color = UnityEngine.Color;
 using Node = Game.Areas.Node;
@@ -416,6 +417,8 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public ComponentLookup<ObjectGeometryData> m_ObjectGeometryDataLookup;
 
             [ReadOnly] public bool m_UseLocalAxis;
+            [ReadOnly] public bool m_FollowGround;
+            [ReadOnly] public bool m_SnapToSurface;
             [ReadOnly] public float3 m_Position;
             [ReadOnly] public quaternion m_Rotation;
 
@@ -498,8 +501,13 @@ namespace ExtraDetailingTools.Systems.Tools
                 UpdateMoveArrow(Handle.X, pos, pos + xAxis, Color.red);
                 UpdateMoveArrow(Handle.Y, pos, pos + yAxis, Color.green);
                 UpdateMoveArrow(Handle.Z, pos, pos + zAxis, Color.blue);
-                UpdateMoveSphere(Handle.XZ, pos, radius, Color.yellow);
-                UpdateMoveSphere(Handle.XZTerrain, new float3(pos.x, terrainHeight, pos.z), radius, Color.cyan);
+
+                if(m_FollowGround) 
+                    UpdateMoveSphere(Handle.XZTerrain, new float3(pos.x, terrainHeight, pos.z), radius, Color.cyan);
+                else if(m_SnapToSurface)
+                    UpdateMoveSphere(Handle.XZTerrain, pos, radius, Color.cyan);
+                else
+                    UpdateMoveSphere(Handle.XZ, pos, radius, Color.yellow);
             }
 
             private void UpdateMoveArrow(Handle handle, float3 A, float3 B, Color color)
@@ -844,10 +852,12 @@ namespace ExtraDetailingTools.Systems.Tools
         private float3 m_DragStartGizmoPos;
         private quaternion m_DragStartGizmoRot;
         private float3 m_DragStartMouseHitPos;
+        private bool m_RequestSnapOnGround = false;
 
         public bool m_UseLocalAxis { get; internal set; } = true;
         public bool m_MoveSubBuildings { get; internal set; } = true;
         public bool m_FollowGround { get; internal set; } = false;
+        public bool m_SnapToSurface { get; internal set; } = false;
         public bool m_Underground { get; private set; } = false;
         public AllowHightlightState m_AllowHightlight { get; set; } = AllowHightlightState.Default;
 
@@ -956,6 +966,15 @@ namespace ExtraDetailingTools.Systems.Tools
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);
                 m_ToolRaycastSystem.typeMask = TypeMask.Terrain;
+
+                if (m_SnapToSurface)
+                {
+                    m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
+                    if (m_ToolSystem.actionMode.IsEditor())
+                    {
+                        m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Placeholders;
+                    }
+                }
             }
         }
 
@@ -1035,6 +1054,18 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             float3 newPos = default;
             quaternion newRot = default;
+            if(m_RequestSnapOnGround)
+            {
+                m_RequestSnapOnGround = false;
+                if (m_SelectedEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out Transform snapTransform))
+                {
+                    TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
+                    float terrainHeight = TerrainUtils.SampleHeight(ref heightData, snapTransform.m_Position);
+                    float3 snapPos = snapTransform.m_Position;
+                    snapPos.y = terrainHeight;
+                    inputDeps = UpdateObject(inputDeps, m_SelectedEntity, snapPos);
+                }
+            }
 
             if (m_Mode == Mode.Default)
             {
@@ -1084,7 +1115,13 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         if (GetRaycastResult(out Entity entity, out RaycastHit hit, out bool forceUpdate))
                         {
-                            newPos = m_DragStartGizmoPos + hit.m_HitPosition - m_DragStartMouseHitPos;
+                            if(m_FollowGround)
+                            {
+                                newPos = m_DragStartGizmoPos + hit.m_HitPosition - m_DragStartMouseHitPos;
+                            } else if(m_SnapToSurface)
+                            {
+                                newPos = hit.m_HitPosition;
+                            }
 
                             if (m_SelectedTempEntity != Entity.Null)
                             {
@@ -1355,6 +1392,8 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_PrefabRefLookup = SystemAPI.GetComponentLookup<PrefabRef>(true),
                 m_ObjectGeometryDataLookup = SystemAPI.GetComponentLookup<ObjectGeometryData>(true),
                 m_UseLocalAxis = m_UseLocalAxis,
+                m_FollowGround = m_FollowGround,
+                m_SnapToSurface = m_SnapToSurface,
                 m_Position = position,
                 m_Rotation = rotation,
                 m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
@@ -1409,6 +1448,11 @@ namespace ExtraDetailingTools.Systems.Tools
 
             SetState(State.Idle);
             m_Mode = mode;
+        }
+
+        public void SnapOnGround()
+        {
+            m_RequestSnapOnGround = true;
         }
 
         private void SetState(State state)
