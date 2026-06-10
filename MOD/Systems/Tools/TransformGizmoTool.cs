@@ -910,8 +910,8 @@ namespace ExtraDetailingTools.Systems.Tools
 
             m_TransformGizmoToolUI = World.GetOrCreateSystemManaged<TransformGizmoToolUI>();
             m_TerrainSystem = World.GetOrCreateSystemManaged<TerrainSystem>();
-            m_ToolOutputBarrier = base.World.GetOrCreateSystemManaged<ToolOutputBarrier>();
-            m_AudioManager = base.World.GetOrCreateSystemManaged<AudioManager>();
+            m_ToolOutputBarrier = World.GetOrCreateSystemManaged<ToolOutputBarrier>();
+            m_AudioManager = World.GetOrCreateSystemManaged<AudioManager>();
             m_SoundQuery = GetEntityQuery(ComponentType.ReadOnly<ToolUXSoundSettingsData>());
             m_GimzosRaycastSystem = World.GetOrCreateSystemManaged<GizmosRaycastSystem>();
             m_TempQuery = GetEntityQuery(ComponentType.ReadOnly<Temp>());
@@ -1484,6 +1484,11 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation)
         {
+            return UpdateObject(inputDeps, entity, position, rotation, m_ToolOutputBarrier);
+        }
+
+        public JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation, SafeCommandBufferSystem ecb)
+        {
             if (entity == Entity.Null) return inputDeps;
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateObjectJob
             {
@@ -1501,9 +1506,9 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_MoveSubBuildings = m_MoveSubBuildings,
                 m_Position = position,
                 m_Rotation = rotation,
-                m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer()
+                m_CommandBuffer = ecb.CreateCommandBuffer()
             }, inputDeps);
-            m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
+            ecb.AddJobHandleForProducer(jobHandle);
             return jobHandle;
         }
 
@@ -1513,8 +1518,13 @@ namespace ExtraDetailingTools.Systems.Tools
             {
                 StopDragging();
             }
-
             SetState(State.Idle);
+
+            if(mode != Mode.Default && m_SelectedEntity == Entity.Null)
+            {
+                return;
+            }
+
             m_Mode = mode;
         }
 

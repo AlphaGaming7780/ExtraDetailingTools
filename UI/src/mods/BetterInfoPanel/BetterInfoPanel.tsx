@@ -1,4 +1,5 @@
-import { ExtraPanelType } from "./ExtraPanelType";
+import { ExtraPanelType } from "mods/ExtraPanelType";
+
 
 export const BetterInfoPanel = (ComponentList: { [x: string]: any; }): any => {
 
