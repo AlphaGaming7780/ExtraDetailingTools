@@ -18,7 +18,6 @@ using Game.Routes;
 using Game.Simulation;
 using Game.Tools;
 using Game.Vehicles;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -900,6 +899,15 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             base.OnCreate();
             Enabled = false;
+
+            if(AnarchyBridge.IsAvailable)
+            {
+                if(AnarchyBridge.TryAddToolSystem(this))
+                    EDT.Logger.Info($"Registered {toolID} to Anarchy.");
+                else
+                    EDT.Logger.Warn($"Anarchy available but failed to register {toolID} to Anarchy.");
+            }
+
             m_TransformGizmoToolUI = World.GetOrCreateSystemManaged<TransformGizmoToolUI>();
             m_TerrainSystem = World.GetOrCreateSystemManaged<TerrainSystem>();
             m_ToolOutputBarrier = base.World.GetOrCreateSystemManaged<ToolOutputBarrier>();

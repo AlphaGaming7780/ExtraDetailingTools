@@ -116,8 +116,6 @@ namespace ExtraDetailingTools
                     Logger.Info($"Patched method: {patchedMethod.Module.ScopeName}:{patchedMethod.Name}");
                 }
 
-                MainThreadDispatcher.RegisterUpdater(RegisterToolsToAnarchy);
-
             }
             catch (System.Exception ex)
             {
@@ -130,45 +128,5 @@ namespace ExtraDetailingTools
             Logger.Info(nameof(OnDispose));
             harmony.UnpatchAll($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
         }
-
-        private void RegisterToolsToAnarchy()
-        {
-            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (Assembly assembly in assemblies)
-            {
-                if (!assembly.GetName().FullName.Contains("Anarchy,"))
-                {
-                    continue;
-                }
-
-                Type[] types = assembly.GetTypes();
-
-                Type anarchyBridge = assembly.GetTypes().FirstOrDefault(x => x.FullName.Contains("Anarchy.Bridge.AnarchyBridge"));
-                if (anarchyBridge is null)
-                {
-                    Logger.Warn($"Couldn't locate Anarchy Bridge.");
-                    continue;
-                }
-
-                MethodInfo addToolMethod = anarchyBridge.GetMethod("TryAddToolSystem", BindingFlags.Public | BindingFlags.Static);
-                if (addToolMethod is null)
-                {
-                    Logger.Warn($"Could not find method to add tool.");
-                    break;
-                }
-
-                var results = addToolMethod.Invoke(null, new object[] { World.DefaultGameObjectInjectionWorld.GetOrCreateSystemManaged<TransformGizmoTool>() });
-                if (results is bool v &&
-                    v == true)
-                {
-                    Logger.Info($"Successfully registered with Anarchy!");
-                }
-                else
-                {
-                    Logger.Warn($"Failed to register with Anarchy.");
-                }
-            }
-        }
-
     }
 }
