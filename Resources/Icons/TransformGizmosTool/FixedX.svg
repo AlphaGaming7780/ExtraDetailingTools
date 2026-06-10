@@ -1,0 +1,13 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- Y axis arrow (active) -->
+  <line x1="10" y1="20" x2="10" y2="4" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  <polyline points="8,8 10,4 12,8" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Z axis arrow (active, diagonal) -->
+  <line x1="10" y1="20" x2="28" y2="28" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+  <polyline points="25,25 28,28 24,28" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- X axis (locked, dashed) -->
+  <line x1="10" y1="20" x2="26" y2="20" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2,2" opacity="0.35"/>
+  <!-- X lock cross (centered on 29,20) -->
+  <line x1="27" y1="18" x2="31" y2="22" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="31" y1="18" x2="27" y2="22" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+</svg>

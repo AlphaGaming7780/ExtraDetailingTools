@@ -18,6 +18,7 @@ using Game.Routes;
 using Game.Simulation;
 using Game.Tools;
 using Game.Vehicles;
+using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -42,7 +43,8 @@ namespace ExtraDetailingTools.Systems.Tools
     {
         public enum Handle
         {
-            None, X, Y, Z, XZ, XZTerrain
+            None, X, Y, Z, XZ, 
+            //XZSurface
         }
         public enum AllowHightlightState
         {
@@ -416,8 +418,7 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public ComponentLookup<ObjectGeometryData> m_ObjectGeometryDataLookup;
 
             [ReadOnly] public bool m_UseLocalAxis;
-            [ReadOnly] public bool m_FollowGround;
-            [ReadOnly] public bool m_SnapToSurface;
+            [ReadOnly] public XZHandleMode m_XZHandleMode;
             [ReadOnly] public float3 m_Position;
             [ReadOnly] public quaternion m_Rotation;
 
@@ -501,12 +502,24 @@ namespace ExtraDetailingTools.Systems.Tools
                 UpdateMoveArrow(Handle.Y, pos, pos + yAxis, Color.green);
                 UpdateMoveArrow(Handle.Z, pos, pos + zAxis, Color.blue);
 
-                if(m_FollowGround) 
-                    UpdateMoveSphere(Handle.XZTerrain, new float3(pos.x, terrainHeight, pos.z), radius, Color.cyan);
-                else if(m_SnapToSurface)
-                    UpdateMoveSphere(Handle.XZTerrain, pos, radius, Color.cyan);
-                else
-                    UpdateMoveSphere(Handle.XZ, pos, radius, Color.yellow);
+                switch(m_XZHandleMode)
+                {
+                    case XZHandleMode.FollowSurface:
+                        UpdateMoveSphere(Handle.XZ, pos, radius, Color.cyan);
+                        break;
+
+                    case XZHandleMode.FixedX:
+                        UpdateMoveSphere(Handle.XZ, pos, radius, Color.red);
+                        break;
+
+                    case XZHandleMode.FixedY:
+                        UpdateMoveSphere(Handle.XZ, pos, radius, Color.green);
+                        break;
+
+                    case XZHandleMode.FixedZ:
+                        UpdateMoveSphere(Handle.XZ, pos, radius, Color.blue);
+                        break;
+                }
             }
 
             private void UpdateMoveArrow(Handle handle, float3 A, float3 B, Color color)
@@ -817,6 +830,14 @@ namespace ExtraDetailingTools.Systems.Tools
             Scale
         }
 
+        public enum XZHandleMode
+        {
+            FollowSurface = 0,
+            FixedX,
+            FixedY,
+            FixedZ,
+        }
+
         public enum State
         {
             Idle,
@@ -832,6 +853,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private TransformGizmoToolUI m_TransformGizmoToolUI;
 
         private Mode m_Mode = Mode.Default;
+        private XZHandleMode m_XZHandleMode = XZHandleMode.FollowSurface;
 
         private State m_State = State.Idle;
 
@@ -855,8 +877,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
         public bool m_UseLocalAxis { get; internal set; } = true;
         public bool m_MoveSubBuildings { get; internal set; } = true;
-        public bool m_FollowGround { get; internal set; } = false;
-        public bool m_SnapToSurface { get; internal set; } = false;
+        //public bool m_FollowSurface { get; internal set; } = false;
         public bool m_Underground { get; private set; } = false;
         public AllowHightlightState m_AllowHightlight { get; set; } = AllowHightlightState.Default;
 
@@ -864,6 +885,8 @@ namespace ExtraDetailingTools.Systems.Tools
         public override bool allowUnderground { get => true; protected set { } }
 
         public Mode mode => m_Mode;
+
+        public XZHandleMode xzHandleMode { get { return m_XZHandleMode; } internal set { m_XZHandleMode = value; } }
 
         public Entity SelectedTempEntity => m_SelectedTempEntity;
 
@@ -964,11 +987,23 @@ namespace ExtraDetailingTools.Systems.Tools
                     m_Debug = false
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);
-                m_ToolRaycastSystem.typeMask = TypeMask.Terrain;
 
-                if (m_SnapToSurface)
+                if (m_XZHandleMode == XZHandleMode.FollowSurface)
                 {
-                    m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
+                    if (m_Underground)
+                    {
+                        m_ToolRaycastSystem.collisionMask = CollisionMask.Underground;
+                    }
+                    else
+                    {
+                        m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground;
+                        m_ToolRaycastSystem.typeMask |= TypeMask.Terrain;
+                    }
+
+                    m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects | TypeMask.MovingObjects | TypeMask.Net | TypeMask.Lanes;
+                    m_ToolRaycastSystem.netLayerMask = Layer.Road | Layer.Fence | Layer.TrainTrack | Layer.SubwayTrack | Layer.TrainTrack;
+                    //m_ToolRaycastSystem.utilityTypeMask = UtilityTypes.Fence;
+                    //m_ToolRaycastSystem.raycastFlags = RaycastFlags.SubElements | RaycastFlags.Markers | RaycastFlags.EditorContainers;
                     if (m_ToolSystem.actionMode.IsEditor())
                     {
                         m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Placeholders;
@@ -1109,21 +1144,28 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     applyMode = ApplyMode.None;
 
-                    if (m_SelectedHandle == Handle.XZTerrain && m_Mode == Mode.Move)
+                    if (m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ)
                     {
                         if (GetRaycastResult(out Entity entity, out RaycastHit hit, out bool forceUpdate))
                         {
-                            if(m_FollowGround)
+                            newPos = hit.m_HitPosition;
+
+                            if(!EntityManager.HasComponent<Game.Common.Terrain>(entity))
                             {
-                                newPos = m_DragStartGizmoPos + hit.m_HitPosition - m_DragStartMouseHitPos;
-                            } else if(m_SnapToSurface)
+                                float3 up = math.normalize(hit.m_HitDirection);
+                                float3 r = math.abs(up.y) < 0.99f ? math.up() : math.forward();
+                                float3 right = math.normalize(math.cross(up, r));
+                                float3 fwd = math.cross(right, up);
+                                newRot = quaternion.LookRotationSafe(fwd, up);
+                            }
+                            else
                             {
-                                newPos = hit.m_HitPosition;
+                                newRot = Quaternion.LookRotation(math.forward(), math.up());
                             }
 
                             if (m_SelectedTempEntity != Entity.Null)
                             {
-                                inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newPos);
+                                inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newPos, newRot);
                             }
                             else
                             {
@@ -1143,10 +1185,10 @@ namespace ExtraDetailingTools.Systems.Tools
                             {
                                 float3 mouseDelta = hitPos - m_DragStartMouseHitPos;
 
-                                if (m_SelectedHandle == Handle.XZ || m_SelectedHandle == Handle.XZTerrain)
+                                if (m_SelectedHandle == Handle.XZ)
                                 {
                                     newPos = m_DragStartGizmoPos + mouseDelta;
-                                    newPos.y = m_DragStartGizmoPos.y;
+                                    //newPos.y = m_DragStartGizmoPos.y;
                                 }
                                 else
                                 {
@@ -1241,6 +1283,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     }
                     
                     inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
+                    EntityManager.HasComponent<Applied>(m_SelectedEntity);
                 }
                 else
                 {
@@ -1410,8 +1453,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_PrefabRefLookup = SystemAPI.GetComponentLookup<PrefabRef>(true),
                 m_ObjectGeometryDataLookup = SystemAPI.GetComponentLookup<ObjectGeometryData>(true),
                 m_UseLocalAxis = m_UseLocalAxis,
-                m_FollowGround = m_FollowGround,
-                m_SnapToSurface = m_SnapToSurface,
+                m_XZHandleMode = m_XZHandleMode,
                 m_Position = position,
                 m_Rotation = rotation,
                 m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
@@ -1538,12 +1580,12 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_DragStartGizmoPos = transform.m_Position;
                 m_DragStartGizmoRot = transform.m_Rotation;
 
-                if(m_SelectedHandle == Handle.XZTerrain)
+                if(m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ)
                 {
-                    if (GetRaycastResult(out Entity entity, out RaycastHit hit, out bool forceUpdate))
-                    {
-                        m_DragStartMouseHitPos = hit.m_HitPosition;
-                    }
+                    //if (GetRaycastResult(out Entity entity, out RaycastHit hit, out bool forceUpdate))
+                    //{
+                    //    m_DragStartMouseHitPos = hit.m_HitPosition;
+                    //}
                 }
                 else
                 {
@@ -1595,13 +1637,8 @@ namespace ExtraDetailingTools.Systems.Tools
 
         public Plane CreateDragPlane(float3 axisDir, float3 gizmoCenter)
         {
-            if(m_Mode == Mode.Rotate)
+            if(m_Mode == Mode.Rotate || m_SelectedHandle == Handle.XZ)
                 return new Plane(axisDir, gizmoCenter);
-
-            if (m_SelectedHandle == Handle.XZ || m_SelectedHandle == Handle.XZTerrain)
-            {
-                return new Plane(axisDir, gizmoCenter);
-            }
 
             // Camera vectors
             float3 camForward = Camera.main.transform.forward;
@@ -1638,9 +1675,22 @@ namespace ExtraDetailingTools.Systems.Tools
             if (handle == Handle.Z)
                 return m_UseLocalAxis ? math.rotate(rot, new float3(0, 0, 1)) : new float3(0, 0, 1);
 
-            if (handle == Handle.XZ || handle == Handle.XZTerrain)
-                return new float3(0, 1, 0);
+            if (handle == Handle.XZ)
+            {
+                switch(m_XZHandleMode)
+                {
+                    case XZHandleMode.FollowSurface:
+                    case XZHandleMode.FixedY:
+                        return new float3(0, 1, 0);
 
+                    case XZHandleMode.FixedX:
+                        return m_UseLocalAxis ? math.rotate(rot, new float3(1, 0, 0)) : new float3(1, 0, 0);
+
+                    case XZHandleMode.FixedZ:
+                        return m_UseLocalAxis ? math.rotate(rot, new float3(0, 0, 1)) : new float3(0, 0, 1);
+                }
+            }
+                
             return float3.zero;
         }
     
