@@ -6,10 +6,11 @@ import { useLocalization } from "cs2/l10n";
 import { Tool, tool } from "cs2/bindings";
 import { Button, FOCUS_AUTO, FOCUS_DISABLED, Tooltip } from "cs2/ui";
 import { kGroupName } from "BindingConst";
-import { Float3, TransformInputs } from "../TransformSection";
+import { Float3, TransformInputs } from "../TransformPanel/TransformPanel";
 import styles from "./TransformGizmoToolStyle.module.scss";
 import classNames from "classnames";
 import { FOCUS_DISABLED$ } from "../../../game-ui/common/focus/focus-key";
+import { kTransformSection$ } from "mods/TransformSection";
 
 enum Mode {
 	Default = 0,
@@ -254,7 +255,7 @@ export const TransformGizmosToolButton = () =>
 				onClick={() =>
 					active
 						? tool.selectTool("Default Tool")
-						: trigger("edt", "selectTransformGizmosTool")
+						: trigger("EDT",  `${kTransformGizmoToolId}.SelectTransformGizmosTool`)
 				}
 			/>
 		</Tooltip>

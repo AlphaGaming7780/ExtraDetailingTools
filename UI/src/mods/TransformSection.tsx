@@ -25,6 +25,8 @@ interface TransformSectionProps extends SelectedInfoSectionBase {
     AllowScaling?: boolean
 }
 
+export const kTransformSection$ = "TransformSection";
+
 export const pos$ = bindValue<Float3>("edt", 'transformsection_pos');
 export const rot$ = bindValue<Float3>("edt", 'transformsection_rot');
 export const scale$ = bindValue<Float3>("edt", 'transformsection_scale');
@@ -315,7 +317,7 @@ export const TransformSection = (componentList: {[x: string]: any; }): any => {
 					<div className={InfoRowSCSS.infoRow}>
 						<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.uppercase)}>{e.group}</div>
 						<Tooltip tooltip={translate("Tool.TransformGizmoTool.Tooltip", "Tool.TransformGizmoTool.Tooltip")} className={InfoRowSCSS.right}>
-							<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionTinyButton)} onClick={(e) => { e.preventDefault(); e.stopPropagation(); trigger("edt", "selectTransformGizmosTool"); }}>
+							<button className={classNames(ActionButtonSCSS.button, TransfromSectionSCSS.TransfromSectionTinyButton)} onClick={(e) => { e.preventDefault(); e.stopPropagation(); trigger("EDT",  `${kTransformGizmoToolId}.SelectTransformGizmosTool`); }}>
 								<img className={classNames(ActionButtonSCSS.icon, TransfromSectionSCSS.TransfromSectionButtonTinyIcon)} src="coui://extradetailingtools/Icons/TransformGizmosTool/Icon.svg"></img>
 							</button>
 						</Tooltip>

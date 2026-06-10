@@ -1,10 +1,7 @@
-﻿using ExtraLib.Systems.UI.ExtraPanels;
+﻿using ExtraDetailingTools.Systems.Tools;
+using ExtraLib.Systems.UI.ExtraPanels;
 using Game;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Game.Tools;
 
 namespace ExtraDetailingTools.Systems.UI.TransformPanel
 {
@@ -14,17 +11,45 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
 
         public override string Icon => "coui://extradetailingtools/Icons/TransformGizmosTool/Icon.svg";
 
+        protected override bool m_ShowInSelector => false;
         protected override bool m_CanFullScreen => false;
+
+        private ToolSystem m_ToolSystem;
+        private TransformGizmoTool m_TransformGizmoTool;
+        private TransformGizmoToolUI m_TransformGizmoToolUI;
+        private TransformUISystem m_TransformUISystem;
 
         protected override void OnCreate()
         {
             base.OnCreate();
             EDT.Logger.Info("TransformPanel OnCreate");
+            m_ToolSystem = World.GetExistingSystemManaged<ToolSystem>();
+            m_TransformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
+            m_TransformGizmoToolUI = World.GetOrCreateSystemManaged<TransformGizmoToolUI>();
+            m_TransformUISystem = World.GetOrCreateSystemManaged<TransformUISystem>();
+        }
+
+        protected override void OnUpdate()
+        {
+            base.OnUpdate();
+            SetVisible(m_TransformGizmoTool == m_ToolSystem.activeTool);
+        }
+
+        protected override void OnPreProcess()
+        {
+            base.OnPreProcess();
+            if (m_TransformGizmoTool.SelectedEntity != m_TransformUISystem.SelectedEntity)
+            {
+                m_TransformUISystem.SetSelectedEntity(m_TransformGizmoTool.SelectedEntity);
+                RequestUpdate();
+            }
+            else if (m_TransformUISystem.NeedUpdate()) 
+                RequestUpdate();
         }
 
         protected override void OnProcess()
         {
-
+            m_TransformUISystem.Process();
         }
     }
 }
