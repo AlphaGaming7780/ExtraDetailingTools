@@ -1,43 +1,24 @@
 .TransfromSection {
     display: flex;
     flex-direction: column;
-}
-
-.FrontRowSection {
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 1;
-    flex-grow: 1;
-    margin-right: 5rem;
-
-    > span {
-
-    }
-
-    > div {
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
-        flex-wrap: nowrap;
-        flex-direction: row;
-    }
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .TransfromSectionInputs {
     width: 100%;
     display: flex;
     flex-direction: row;
-    flex-basis: auto;
-    flex-grow: 1;
-    flex-shrink: 1;
-    //align-content: center;
-    justify-content: space-around;
+    flex-wrap: wrap;
+    justify-content: flex-start;
     align-items: flex-end;
-    flex-wrap: nowrap;
+    gap: clamp(2rem, 2%, 8rem);
+    box-sizing: border-box;
 
     > button {
         width: 22.5rem;
         height: 22.5rem;
+        flex-shrink: 0;
 
         > img {
             width: 22.5rem;
@@ -48,24 +29,35 @@
     > div {
         display: flex;
         flex-direction: column;
-        align-content: center;
         align-items: center;
-        flex-grow: 1;
-        flex-shrink: 1;
+        flex: 1 1 40rem;
+        min-width: 35rem;
 
         > span {
             display: flex;
-            flex-grow: 1;
-            flex-shrink: 1;
+            justify-content: center;
+            width: 100%;
             overflow: hidden;
-            padding: 0 5px;
+
+            > input {
+                width: 100%;
+                min-width: 0;
+                text-align: center;
+            }
         }
     }
+}
+
+.draggableLabel {
+    cursor: ew-resize;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .TransfromSectionTinyButton {
     width: 20rem;
     height: 20rem;
+    flex-shrink: 0;
 }
 
 .TransfromSectionButtonTinyIcon {
@@ -76,6 +68,7 @@
 .TransfromSectionButton {
     width: 30rem;
     height: 30rem;
+    flex-shrink: 0;
 }
 
 .TransfromSectionButtonIcon {
@@ -91,6 +84,6 @@
     display: flex;
     flex-direction: row;
     width: 100%;
-    //padding-right: 5rem;
     justify-content: flex-end;
+    flex-wrap: wrap;
 }

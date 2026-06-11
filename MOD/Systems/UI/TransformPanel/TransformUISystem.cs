@@ -48,8 +48,12 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
         private TransformObject transformObject;
         private bool UseLocalAxis => m_TransformGizmoTool.m_UseLocalAxis;
 
+        private float3 m_EulerAngles;
+        private quaternion m_LastSetRotation;
+
         private Entity m_SelectedEntity;
         private bool m_AsSubBuilding = false;
+        private bool m_LastUseLocalAxis = false;
 
 #if Extra4
         private bool m_AllowScaling = true;
@@ -69,9 +73,11 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
 
             AddBinding(transformGetPos = new GetterValueBinding<float3>("EDT", "TransformPanel.pos", GetPosition));
             AddBinding(new TriggerBinding<float3>("EDT", "TransformPanel.pos", new Action<float3>(SetPosition)));
+            AddBinding(new TriggerBinding<float3>("EDT", "TransformPanel.abspos", new Action<float3>(SetAbsolutePosition)));
 
             AddBinding(transformGetRot = new GetterValueBinding<float3>("EDT", "TransformPanel.rot", GetRotation));
             AddBinding(new TriggerBinding<float3>("EDT", "TransformPanel.rot", new Action<float3>(SetRotation)));
+            AddBinding(new TriggerBinding<float3>("EDT", "TransformPanel.absrot", new Action<float3>(SetAbsoluteRotation)));
 
             AddBinding(transformGetScale = new GetterValueBinding<float3>("EDT", "TransformPanel.scale", GetScale));
             AddBinding(new TriggerBinding<float3>("EDT", "TransformPanel.scale", new Action<float3>(SetScale)));
@@ -100,6 +106,13 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
         {
             m_SelectedEntity = entity;
 
+            if (EntityManager.HasComponent<Transform>(m_SelectedEntity))
+            {
+                var t = EntityManager.GetComponentData<Transform>(m_SelectedEntity);
+                m_EulerAngles = ((UnityEngine.Quaternion)t.m_Rotation).eulerAngles;
+                m_LastSetRotation = t.m_Rotation;
+            }
+
             m_AsSubBuilding = false;
 
             if (EntityManager.HasComponent<Building>(m_SelectedEntity) && EntityManager.TryGetBuffer<InstalledUpgrade>(m_SelectedEntity, true, out DynamicBuffer<InstalledUpgrade> installedUpgrades))
@@ -119,6 +132,11 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
 
         public bool NeedUpdate()
         {
+            if (UseLocalAxis != m_LastUseLocalAxis)
+            {
+                m_LastUseLocalAxis = UseLocalAxis;
+                return true;
+            }
             return EntityManager.HasComponent<InterpolatedTransform>(m_SelectedEntity);
         }
 
@@ -131,6 +149,12 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             transformObject = EntityManager.HasComponent<TransformObject>(m_SelectedEntity) ?
                               EntityManager.GetComponentData<TransformObject>(m_SelectedEntity) :
                               default;
+
+            if (math.abs(math.dot(transform.m_Rotation.value, m_LastSetRotation.value)) < 0.9999f)
+            {
+                m_EulerAngles = ((UnityEngine.Quaternion)transform.m_Rotation).eulerAngles;
+                m_LastSetRotation = transform.m_Rotation;
+            }
 
             transformGetPos.Update();
             transformGetRot.Update();
@@ -153,8 +177,7 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
 
         private float3 GetRotation()
         {
-            UnityEngine.Quaternion q = transform.m_Rotation;
-            return q.eulerAngles;
+            return m_EulerAngles;
         }
 
         private void SetPosition(float3 positionOffset)
@@ -169,9 +192,27 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             transformGetPos.Update();
         }
 
+        private void SetAbsolutePosition(float3 targetPosition)
+        {
+            float3 offset = targetPosition - GetPosition();
+            SetPosition(offset);
+        }
+
         private void SetRotation(float3 rotationOffset)
         {
-            quaternion newRotation = Quaternion.Euler(rotationOffset + GetRotation());
+            m_EulerAngles += rotationOffset;
+            quaternion newRotation = Quaternion.Euler(m_EulerAngles);
+            m_LastSetRotation = newRotation;
+            UpdateObject(transform.m_Position, newRotation);
+            transform.m_Rotation = newRotation;
+            transformGetRot.Update();
+        }
+
+        private void SetAbsoluteRotation(float3 targetEuler)
+        {
+            m_EulerAngles = targetEuler;
+            quaternion newRotation = Quaternion.Euler(m_EulerAngles);
+            m_LastSetRotation = newRotation;
             UpdateObject(transform.m_Position, newRotation);
             transform.m_Rotation = newRotation;
             transformGetRot.Update();

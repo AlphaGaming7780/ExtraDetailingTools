@@ -1,0 +1,21 @@
+.headerRow {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+}
+
+.headerButton {
+    width: 20rem;
+    height: 20rem;
+    flex-shrink: 0;
+}
+
+.headerButtonIcon {
+    width: 18rem;
+    height: 18rem;
+}
+
+.contentWrapper {
+    padding: 0;
+}

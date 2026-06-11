@@ -130,6 +130,7 @@ namespace ExtraDetailingTools.Systems.UI
                 m_GizmoBatcher = _gizmosSystem.GetGizmosBatcher(out JobHandle dep),
                 linesLenght = linesLenght,
                 transform = transform,
+                m_UseLocalAxis = _transformGizmoTool.m_UseLocalAxis,
             };
             JobHandle jobHandle = job.Schedule(JobHandle.CombineDependencies(Dependency, dep));
             _gizmosSystem.AddGizmosBatcherWriter(jobHandle);
@@ -144,7 +145,7 @@ namespace ExtraDetailingTools.Systems.UI
             public GizmoBatcher m_GizmoBatcher;
             public Transform transform;
             public float3 linesLenght;
-
+            public bool m_UseLocalAxis;
             public void Execute()
             {
                 quaternion rot = transform.m_Rotation;
@@ -154,9 +155,12 @@ namespace ExtraDetailingTools.Systems.UI
                 float3 yAxis = new float3(0, 1, 0);
                 float3 zAxis = new float3(0, 0, 1);
 
-                xAxis = math.rotate(rot, xAxis);
-                yAxis = math.rotate(rot, yAxis);
-                zAxis = math.rotate(rot, zAxis);
+                if (m_UseLocalAxis)
+                {
+                    xAxis = math.rotate(rot, xAxis);
+                    yAxis = math.rotate(rot, yAxis);
+                    zAxis = math.rotate(rot, zAxis);
+                }
 
                 xAxis *= linesLenght.x;
                 yAxis *= linesLenght.y;
