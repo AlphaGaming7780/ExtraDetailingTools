@@ -133,7 +133,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				
 				<ToolButton
 					focusKey={FOCUS_DISABLED$}
-					tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.LOCALAXIS")}
+					tooltip={translate("TransformPanel.LOCALAXIS")}
 					src="coui://extradetailingtools/Icons/TransformGizmosTool/Axis.svg"
 					selected={useLocalAxis}
 					onSelect={() => LocalAxis(!useLocalAxis)}
@@ -142,7 +142,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				{ haSubBuildings ? 
 					<ToolButton
 						focusKey={FOCUS_DISABLED$}
-						tooltip={translate("SelectedInfoPanel.TRANSFORMTOOL.MoveSubBuildings.tooltip")}
+						tooltip={translate("TransformPanel.MoveSubBuildings.tooltip")}
 						src={moveSubBuildings ? "coui://extradetailingtools/Icons/TransformGizmosTool/Building_V.svg" : "coui://extradetailingtools/Icons/TransformGizmosTool/Building_X.svg"}
 						selected={moveSubBuildings}
 						onSelect={() => MoveSubBuildings(!moveSubBuildings)}
