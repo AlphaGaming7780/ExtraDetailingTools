@@ -1,5 +1,5 @@
-import { ExtraPanelType } from "mods/ExtraPanelType";
-import { TransformPanel } from "mods/TransformPanel/TransformPanel";
+import { ExtraPanelType } from "../ExtraPanelType";
+import { TransformPanel } from "../TransformPanel/TransformPanel";
 import styles from "./TransformExtraPanel.module.scss";
 
 

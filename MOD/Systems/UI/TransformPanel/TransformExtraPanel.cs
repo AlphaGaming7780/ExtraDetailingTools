@@ -2,6 +2,7 @@
 using ExtraLib.Systems.UI.ExtraPanels;
 using Game;
 using Game.Tools;
+using Unity.Mathematics;
 
 namespace ExtraDetailingTools.Systems.UI.TransformPanel
 {
@@ -13,6 +14,8 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
 
         protected override bool m_ShowInSelector => false;
         protected override bool m_CanFullScreen => false;
+
+        public override float2 PanelMinSize => new float2(400, 165);
 
         private ToolSystem m_ToolSystem;
         private TransformGizmoTool m_TransformGizmoTool;
@@ -27,6 +30,7 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             m_TransformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
             m_TransformGizmoToolUI = World.GetOrCreateSystemManaged<TransformGizmoToolUI>();
             m_TransformUISystem = World.GetOrCreateSystemManaged<TransformUISystem>();
+            SetPanelSize( new float2(400, 165+48) );
         }
 
         protected override void OnUpdate()

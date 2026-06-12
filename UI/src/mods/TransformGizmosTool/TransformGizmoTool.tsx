@@ -5,12 +5,12 @@ import { bindValue, trigger, useValue } from "cs2/api";
 import { useLocalization } from "cs2/l10n";
 import { Tool, tool } from "cs2/bindings";
 import { Button, FOCUS_AUTO, FOCUS_DISABLED, Tooltip } from "cs2/ui";
-import { kGroupName } from "BindingConst";
+import { kGroupName } from "../../BindingConst";
 import { Float3 } from "../TransformPanel/TransformPanel";
 import styles from "./TransformGizmoToolStyle.module.scss";
 import classNames from "classnames";
 import { FOCUS_DISABLED$ } from "../../../game-ui/common/focus/focus-key";
-import { kTransformSection$ } from "mods/TransformSection/TransformSection";
+import { kTransformSection$ } from "../TransformSection/TransformSection";
 
 enum Mode {
 	Default = 0,

@@ -900,12 +900,16 @@ namespace ExtraDetailingTools.Systems.Tools
             base.OnCreate();
             Enabled = false;
 
-            if(AnarchyBridge.IsAvailable)
+            if(AnarchyBridge.Initialize(true))
             {
                 if(AnarchyBridge.TryAddToolSystem(this))
                     EDT.Logger.Info($"Registered {toolID} to Anarchy.");
                 else
                     EDT.Logger.Warn($"Anarchy available but failed to register {toolID} to Anarchy.");
+            }
+            else
+            {
+                EDT.Logger.Warn($"Anarchy not available. {toolID} will not be registered to Anarchy and may not work properly.");
             }
 
             m_TransformGizmoToolUI = World.GetOrCreateSystemManaged<TransformGizmoToolUI>();
@@ -1166,9 +1170,13 @@ namespace ExtraDetailingTools.Systems.Tools
                                 float3 fwd = math.cross(right, up);
                                 newRot = quaternion.LookRotationSafe(fwd, up);
                             }
+                            else if(EntityManager.TryGetComponent<Transform>(m_SelectedEntity, out var transformComponent))
+                            {
+                                newRot = transformComponent.m_Rotation;
+                            } 
                             else
                             {
-                                newRot = Quaternion.LookRotation(math.forward(), math.up());
+                                newRot = quaternion.LookRotationSafe(math.forward(), math.up());
                             }
 
                             if (m_SelectedTempEntity != Entity.Null)
@@ -1292,6 +1300,10 @@ namespace ExtraDetailingTools.Systems.Tools
                     
                     inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
                     EntityManager.HasComponent<Applied>(m_SelectedEntity);
+                    if(AnarchyBridge.IsEnabled())
+                    {
+                        AnarchyBridge.TryAddAnarchyComponent(m_SelectedEntity);
+                    }
                 }
                 else
                 {

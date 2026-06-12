@@ -2,10 +2,10 @@
     transition: transform 0.15s ease;
 }
 
-    .panelButtonUM:hover {
-        transform: scale(1.08); 
-    }
+.panelButtonUM:hover {
+    transform: scale(1.08); 
+}
 
-    .panelButtonUM.active {
-        transform: scale(1.12);
-    }    
+.panelButtonUM.active {
+    transform: scale(1.12);
+}

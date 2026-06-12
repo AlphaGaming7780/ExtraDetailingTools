@@ -67,12 +67,14 @@ namespace ExtraDetailingTools.Systems.UI
         public void SetUseLocalAxis(bool enabled)
         {
             m_TransformGizmoTool.m_UseLocalAxis = enabled;
+            m_TransformExtraPanel.RequestUpdate();
             m_LocalAxisValueGetter.Update();
         }
 
         public void SetMoveSubBuildings(bool enabled)
         {
             m_TransformGizmoTool.m_MoveSubBuildings = enabled;
+            m_TransformExtraPanel.RequestUpdate();
             m_MoveSubBuildingsValueGetter.Update();
         }
 

@@ -30,6 +30,13 @@ namespace ExtraDetailingTools
 
         public static bool IsAvailable => GetBridgeType() != null;
 
+        public static bool Initialize(bool force = false)
+        {
+            if (_initialized && !force) return GetBridgeType() != null;
+            _initialized = false; // Reset initialization to allow re-attempt
+            return GetBridgeType() != null;
+        }
+
         private static Type GetBridgeType()
         {
             if (_bridgeType != null) return _bridgeType;
@@ -116,6 +123,14 @@ namespace ExtraDetailingTools
             {
                 EDT.Logger.Error($"AnarchyBridge.{name} failed: {ex.InnerException?.Message ?? ex.Message}");
             }
+        }
+
+        // ── Misc ──
+
+        public static bool IsEnabled()
+        {
+            if (GetBridgeType() == null) return false;
+            return true; // Placeholder for potential future functionality, currently just checks for bridge presence
         }
 
         // ── Tool Registration ──
