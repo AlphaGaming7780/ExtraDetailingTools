@@ -1,6 +1,6 @@
 ﻿<Publish>
 	<!--Id must be set in order to update existed mod. it is not required for publishing mod for the first time-->
-	<ModId Value="" />
+	<ModId Value="147736" />
 	<!--Name of the mod to display to players-->
 	<DisplayName Value="[BETA] ExtraDetailingTools" />
 	<!--Short description of the mod-->
@@ -8,7 +8,7 @@
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<!--LongDescription Value="This is a long description" /-->
 	<LongDescription>
-#[BETA] ExtraDetailingTools
+# [BETA] ExtraDetailingTools
 This mod is the BETA version of [ExtraDetailingTools](https://mods.paradoxplaza.com/mods/80528/Windows).
 
 ### I recommend reading this page on the website not in game, the game doesn't support all the formatting the web page does.
