@@ -1,50 +1,51 @@
 ﻿<Publish>
-	<!--Supported values Public, Private, Unlisted-->
-	<AccessLevel Value="Public" />
 	<!--Id must be set in order to update existed mod. it is not required for publishing mod for the first time-->
-	<ModId Value="80528" />
+	<ModId Value="" />
 	<!--Name of the mod to display to players-->
-	<DisplayName Value="ExtraDetailingTools" />
+	<DisplayName Value="[BETA] ExtraDetailingTools" />
 	<!--Short description of the mod-->
 	<ShortDescription Value="This mod gives you access to a bunch of useful tools and assets for detailing your city." />
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<!--LongDescription Value="This is a long description" /-->
 	<LongDescription>
-# ExtraDetailingTools
+#[BETA] ExtraDetailingTools
+This mod is the BETA version of [ExtraDetailingTools](https://mods.paradoxplaza.com/mods/80528/Windows).
 
-### I'm recommending you to read this page on the website not in game, the game doesn't support all the formatting the web page does.
+### I recommend reading this page on the website not in game, the game doesn't support all the formatting the web page does.
 
 You can see the trailer video made by Sully in the "MORE ABOUT THIS MOD" section.
 
 If you want example of builds that use this mod, you can check the about screenshots section lower in the description.
 
 # Features:
-* Transform Tool
-* More Snapping Option
-* NetLanes
-* Surfaces
-* Decals
+* Transform Tool (Gizmoz and in SIP)
+* More Snapping Options
+* ExtraAssetsMenu (Surfaces, NetLane and Decals)
+ * NetLanes
+ * Surfaces
+ * Decals
 
 ## Transform Tool
-The Transform UI appears when you select a compatible asset. This allows you to change the positioning and rotation of the object along the XYZ axis. You are also able to change the increment (↕) value. This can provide a lot more precision for positioning and rotation.
+* The Transform Gizmos tool lets you move and rotate object using handles like in common 3D software like Unity, Blender, ...
+* The Transform UI appears when you select a compatible asset. This allows you to change the positioning and rotation of the object along the XYZ axis. You are also able to change the increment (↕) value. This can provide a lot more precision for positioning and rotation.
 
 This menu also has a new 'delete' button, for all objects.
 
+## Snap to surface toggle
+This is a feature found in the editor, now in game. This will allow you to place decals like graffiti and posters, on vertical walls. This can also be used to snap any object to any surface. From placing props on rooftops, right up to placing trees horizontally on walls.
+
 ## ExtraAssetsMenu
 
-In the games main navigation, you’ll find the ExtraAssetsMenu. In here you’ll find three different tabs:
+In the game's main navigation, you’ll find the ExtraAssetsMenu. In here you’ll find three different tabs:
 
 ### NetLanes
-Netlanes (NetTool) use the same functionality as road networks, it can be used to create network fencing, or road markings to any length. This tool is more versatile than using prop line tool with fence props.
+Netlanes (NetTool) use the same functionality as road networks. It can be used to create network fencing, or road markings to any length. This tool is more versatile than using prop line tool with fence props.
 
 ### Surfaces
 There are many vanilla surfaces found in this tab. They are separated into categories such as ground, grass, tiles,...
 
 ### Decals
 Here you’ll find vanilla decals. There are decals to place on the ground, like road markings and stains, and decals you can place on vertical walls.
-
-## Snap to surface toggle
-This is a feature found in the editor, now in game. This will allow you to place decals like graffiti and posters, on vertical walls. This can also be used to snap any object to any surface. From placing props on rooftops, right up to placing trees horizontally on walls.
 
 You’ll find this alongside the other snapping options in the games UI.
 
@@ -53,7 +54,7 @@ You’ll find this alongside the other snapping options in the games UI.
 - CloverPie's abandoned rail yard, you can find the full video of this build [here](https://www.youtube.com/watch?v=gOj35sN7DI8).
 
 # Translation
-⚠️ This mod uses crowdin so there maybe inconsistencies with translations due to translations from different translators ⚠️
+⚠️ This mod uses Crowdin so there may be inconsistencies with translations due to translations from different translators ⚠️
 - ✔️French 100% : aricoseco, Morgan Touverey Quilling (mtouverey)
 - ✔️Chinese Simplified 100% : RilkeXS(无手文) (RilkeXS), 一叶杳舟 (Yao_Zhou)
 - ⚠️Chinese Traditional 48% : Tiger Zhang (tiger42231), boan51204, Source Design (source_design)
@@ -74,13 +75,13 @@ I must particularly thank all the people who helped me in this major project whi
 * Yenyang : Without you, this mod wouldn't exist, thank you for all.
 * T. D. W. : Your help was precious, on various aspects of this mod.
 * Konsi (Mimonsi/kosch104) : Testing since EDT 3.0, feedback and good idea. I'm glad to see that your mods are appreciated.
-* Tigon Ologdring : Testing since EDT 3.0, feedback, and is good build idea that help to have faith in this project
+* Tigon Ologdring : Testing since EDT 3.0, feedback, and his good build ideas that helped to have faith in this project
 * Dome : Testing since EDT 3.0, feedback, you did a great job finding how to create custom station and other stuff to link to the pathfinding.
-* CanadianMoosePlays : Thanks for playing with EDT 3.0, even it never see the light at least somebody use it.
+* CanadianMoosePlays : Thanks for playing with EDT 3.0, even though it never saw the light at least somebody used it.
 * CodiakTheKodiak : Thanks for your streams that I watched while I was coding, you are a great streamer.
 * Jay : You destroyed my mod, I've never seen anyone use a mod so much, I'm glad I had you as a tester.
 
-I have also have to thanks all the content creator who try the mod and build amazing stuff, you can find them under with the link to their channel.
+I also have to thank all the content creators who tried the mod and build amazing stuff, you can find them below with the link to their channel.
 - [Sully](https://www.youtube.com/@sully_skylines)
 - [Biffa Plays Indie Games](https://www.youtube.com/@BiffaPlaysCitiesSkylines)
 - [CanadianMoosePlays](https://www.twitch.tv/canadianmooseplays)
@@ -98,20 +99,21 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<!--Tag, can be set multiple times-->
 	<Tag Value="Code Mod" />
 	<!--Link to the forum post where the mod can be discussed-->
-	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/extradetailingtools.1675592/" />
+	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.2.5.2" />
+	<ModVersion Value="1.3.0.0" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.5.*" />
 	<!--Dependency for the mod, can be set multiple times-->
 	<Dependency Id="75724" />
 	<Dependency Id="75250" />
 	<Dependency Id="74604" />
+	<!-- Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture" -->
+	<RequiredDLC Value=""/>
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
 	<ChangeLog>
-### Fixes:
-- UI issue
+### First release.
 	</ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
@@ -119,4 +121,6 @@ I have also have to thanks all the content creator who try the mod and build ama
 	<ExternalLink Type="discord" Url="https://discord.gg/HTav7ARPs2" />
 	<ExternalLink Type="github" Url="https://github.com/AlphaGaming7780/ExtraDetailingTools" />
 	<ExternalLink Type="paypal" Url="https://www.paypal.com/paypalme/TritonSupreme" />
+	<!--Supported values Public, Private, Unlisted-->
+	<AccessLevel Value="Unlisted" />
 </Publish>
