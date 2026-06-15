@@ -20,7 +20,6 @@ namespace ExtraDetailingTools.Systems.UI
         private GetterValueBinding<bool> m_HasSubBuildingsValueGetter;
         private GetterValueBinding<bool> m_MoveSubBuildingsValueGetter;
         private GetterValueBinding<int> m_XZHandleModeValueGetter;
-        private GetterValueBinding<bool> m_SnapToSurfaceValueGetter;
 
         protected override void OnCreate()
         {
