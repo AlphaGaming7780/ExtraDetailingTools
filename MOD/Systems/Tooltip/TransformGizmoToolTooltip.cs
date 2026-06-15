@@ -26,8 +26,6 @@ namespace ExtraDetailingTools.Systems.Tooltip
         private TransformGizmoTool m_TransformGizmoTool;
         private TerrainSystem m_TerrainSystem;
 
-        private GizmosSystem m_GizmosSystem;
-
         private FloatTooltip m_Distance;
 
         private FloatTooltip m_Height;

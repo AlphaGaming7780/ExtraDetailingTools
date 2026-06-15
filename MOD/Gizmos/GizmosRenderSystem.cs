@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace ExtraDetailingTools.Gizmos
 {
-    internal partial class GizmosRenderSystem : GameSystemBase
+    public partial class GizmosRenderSystem : GameSystemBase
     {
 
         private GizmosSystem m_GizmosSystem;
@@ -35,6 +35,7 @@ namespace ExtraDetailingTools.Gizmos
             JobHandle jobHandle = new RenderGizmos()
             {
                 Batcher = m_GizmosSystem.GetGizmosBatcher(out JobHandle dep),
+                EntityHandle = GetEntityTypeHandle(),
                 GizmoHandle = GetComponentTypeHandle<GizmosData>(true),
                 HighlightedLookup = GetComponentLookup<Highlighted>(true),
             }.Schedule(m_GizmosDataQuery, JobHandle.CombineDependencies(Dependency, dep));
