@@ -45,10 +45,9 @@ namespace ExtraDetailingTools.Patches
         class ObjectToolSystem_GetAvailableSnapMask
         {
             static bool first = true;
-            private static void Postfix(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, ObjectToolSystem.Mode mode, ref Snap onMask, ref Snap offMask) //, object[] __args, 
+            private static void Postfix(PlaceableObjectData prefabPlaceableData, bool editorMode, bool isBuilding, bool isAssetStamp, ObjectToolSystem.Mode mode, ref Snap onMask, ref Snap offMask)
             {
                 if (EDT.objectToolSystem.actualMode != ObjectToolSystem.Mode.Create) return;
-
 
                 if((prefabPlaceableData.m_Flags & PlacementFlags.OwnerSide) == PlacementFlags.None)
                 {
