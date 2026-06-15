@@ -11,10 +11,9 @@
 		<!--<CustomManagedPath>E:\SteamLibrary\steamapps\common\Cities Skylines II\Cities2_Data\Managed</CustomManagedPath>-->
 
 		<AdditionalFilesDirectory>Resources</AdditionalFilesDirectory>
-
 		<PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
 	</PropertyGroup>
-
+	
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug+Extra4|AnyCPU'">
