@@ -1257,6 +1257,10 @@ namespace ExtraDetailingTools.Systems.Tools
                                 quaternion deltaRot = quaternion.AxisAngle(axisDir, angle);
 
                                 newRot = math.mul(deltaRot, m_DragStartGizmoRot);
+                            } 
+                            else
+                            {
+                                EDT.Logger.Warn($"Try to update in State.Dragging but the tool mode wasn't move or rotate, current tool mode: {m_Mode}");
                             }
 
                             if (m_SelectedTempEntity != Entity.Null)
@@ -1309,36 +1313,43 @@ namespace ExtraDetailingTools.Systems.Tools
 
             if (m_State == State.Dragging)
             {
-                if(GetAllowApply())
+                if(m_SelectedEntity != Entity.Null)
                 {
-                    applyMode = ApplyMode.Apply;
-                    float3 pos = default;
-                    quaternion rot = default;
-                    if (m_SelectedTempEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedTempEntity, out Transform transform))
+                    if (GetAllowApply())
                     {
-                        pos = transform.m_Position;
-                        rot = transform.m_Rotation;
-                    }
+                        applyMode = ApplyMode.Apply;
+                        float3 pos = default;
+                        quaternion rot = default;
+                        if (m_SelectedTempEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedTempEntity, out Transform transform))
+                        {
+                            pos = transform.m_Position;
+                            rot = transform.m_Rotation;
+                        }
 
-                    if (EntityManager.HasComponent<Building>(m_SelectedEntity) || EntityManager.HasComponent<AssetStamp>(m_SelectedEntity))
-                    {
-                        m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_RelocateBuildingSound);
+                        if (EntityManager.HasComponent<Building>(m_SelectedEntity) || EntityManager.HasComponent<AssetStamp>(m_SelectedEntity))
+                        {
+                            m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_RelocateBuildingSound);
+                        }
+                        else //if (EntityManager.HasComponent<Static>(m_SelectedEntity) || m_ToolSystem.actionMode.IsEditor())
+                        {
+                            m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_PlacePropSound);
+                        }
+
+                        inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
+                        EntityManager.HasComponent<Applied>(m_SelectedEntity);
+                        if (AnarchyBridge.IsEnabled())
+                        {
+                            AnarchyBridge.TryAddAnarchyComponent(m_SelectedEntity);
+                        }
                     }
-                    else if (EntityManager.HasComponent<Static>(m_SelectedEntity) || m_ToolSystem.actionMode.IsEditor())
+                    else
                     {
-                        m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_PlacePropSound);
-                    }
-                    
-                    inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
-                    EntityManager.HasComponent<Applied>(m_SelectedEntity);
-                    if(AnarchyBridge.IsEnabled())
-                    {
-                        AnarchyBridge.TryAddAnarchyComponent(m_SelectedEntity);
+                        m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_PlaceBuildingFailSound);
                     }
                 }
                 else
                 {
-                    m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_PlaceBuildingFailSound);
+                    EDT.Logger.Warn("Try to Apply but m_SelectedEntity was null");
                 }
 
                 StopDragging();
