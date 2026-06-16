@@ -8,6 +8,7 @@ import { ActionButtonSCSS } from "../../../game-ui/game/components/selected-info
 import { InfoRowSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
 import { ToolButton } from "../../../game-ui/game/components/tool-options/tool-button/tool-button";
 import TransformPanelSCSS from "./TransformPanel.module.scss";
+import { remToPx } from "../RemHelper";
 
 export interface Float3 {
 	x: number,
@@ -242,7 +243,7 @@ export const TransformPanel = () => {
 			let lastX = e.clientX;
 			const startValue = axis === "X" ? inputValue.x : axis === "Y" ? inputValue.y : inputValue.z;
 			let accumulatedDelta = 0;
-			const pixelsPerStep = 50;
+			const pixelsPerStep = remToPx(50);
 			let lastSoundTime = 0;
 			const soundThrottleMs = 80;
 
@@ -288,9 +289,9 @@ export const TransformPanel = () => {
 		function onIncrementLabelMouseDown(e: ReactMouseEvent) {
 			e.preventDefault();
 			let lastX = e.clientX;
-			const pixelsPerStep = 15;
+			const pixelsPerStep = remToPx(15);
 			let accumulated = 0;
-			let currentValue = incrementValue as number;
+			let currentValue = incrementValue;
 			let lastSoundTime = 0;
 			const soundThrottleMs = 80;
 
