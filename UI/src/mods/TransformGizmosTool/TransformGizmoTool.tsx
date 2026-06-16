@@ -26,6 +26,14 @@ enum XZHandleMode {
 	FixedZ,
 }
 
+enum RaycastFilter {
+	None = 0,
+	StaticObject = 1,
+	Decals = 2,
+	Buildings = 4,
+	MovingObject = 8,
+}
+
 export const kTransformGizmoToolId = "TransformGizmoTool";
 const toolMode$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.ToolMode`, 0);
 const pos$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Position`, {x: 0, y: 0, z:0});
@@ -36,6 +44,7 @@ const xzHandleMode$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.XZ
 const snapToSurface$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.SnapToSurface`, false);
 const moveSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, false);
 const haSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.HasSubBuildings`, false);
+const raycastFilter$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.RaycastFilter`, 0xFFFFFFFF);
 
 export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 	return (props) => {
@@ -50,8 +59,17 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const haSubBuildings : boolean = useValue(haSubBuildings$);
 		const currentMode : Number = useValue(toolMode$);
 		const currentXZHandleMode : Number = useValue(xzHandleMode$);
+		const raycastFilter : Number = useValue(raycastFilter$);
 
 		const { translate } = useLocalization();
+
+		const hasFlag = (flag: RaycastFilter) => ((raycastFilter as number) & flag) !== 0;
+
+		const toggleFlag = (flag: RaycastFilter) => {
+			let current = raycastFilter as number;
+			current = (current & flag) !== 0 ? current & ~flag : current | flag;
+			trigger(kGroupName, `${kTransformGizmoToolId}.RaycastFilter`, current);
+		};
 
 		const setMode = (mode : Number) =>
 		{
@@ -150,6 +168,46 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				}
 				
 			</Section>
+
+			{ currentMode === Mode.Default &&
+				<Section
+					title={translate("Tool.TransformGizmoTool.RaycastFilter", "Raycast Filter")}
+				>
+					<ToolButton
+						focusKey={FOCUS_DISABLED$}
+						tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.StaticObject.Tooltip", "Static Objects")}
+						src="Media/Game/Icons/Props.svg"
+						selected={hasFlag(RaycastFilter.StaticObject)}
+						onSelect={() => toggleFlag(RaycastFilter.StaticObject)}
+					/>
+
+					<ToolButton
+						focusKey={FOCUS_DISABLED$}
+						tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.Decals.Tooltip", "Decals")}
+						src="Media/Game/Icons/PropsDecals.svg"
+						selected={hasFlag(RaycastFilter.StaticObject) && hasFlag(RaycastFilter.Decals)}
+						disabled={!hasFlag(RaycastFilter.StaticObject)}
+						onSelect={() => toggleFlag(RaycastFilter.Decals)}
+					/>
+
+					{/* <ToolButton
+						focusKey={FOCUS_DISABLED$}
+						tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.Buildings.Tooltip", "Buildings")}
+						src="Media/Editor/Thumbnails/Fallback_BuildingPrefab.svg"
+						selected={hasFlag(RaycastFilter.StaticObject) && hasFlag(RaycastFilter.Buildings)}
+						disabled={!hasFlag(RaycastFilter.StaticObject)}
+						onSelect={() => toggleFlag(RaycastFilter.Buildings)}
+					/> */}
+
+					<ToolButton
+						focusKey={FOCUS_DISABLED$}
+						tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.MovingObject.Tooltip", "Moving Objects")}
+						src="Media/Game/Icons/Traffic.svg"
+						selected={hasFlag(RaycastFilter.MovingObject)}
+						onSelect={() => toggleFlag(RaycastFilter.MovingObject)}
+					/>
+				</Section>
+			}
 
 			{ currentMode === Mode.Move &&
 				<Section

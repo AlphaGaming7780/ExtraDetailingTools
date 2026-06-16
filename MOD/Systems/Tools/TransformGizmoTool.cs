@@ -18,6 +18,7 @@ using Game.Routes;
 using Game.Simulation;
 using Game.Tools;
 using Game.Vehicles;
+using System;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -40,17 +41,6 @@ namespace ExtraDetailingTools.Systems.Tools
 {
     public partial class TransformGizmoTool : ToolBaseSystem
     {
-        public enum Handle
-        {
-            None, X, Y, Z, XZ, 
-            //XZSurface
-        }
-        public enum AllowHightlightState
-        {
-            Default,
-            Enabled,
-            Disabled,
-        }
 
 #if RELEASE
         [BurstCompile]
@@ -821,6 +811,18 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
+        public enum Handle
+        {
+            None, X, Y, Z, XZ,
+        }
+
+        public enum AllowHightlightState
+        {
+            Default,
+            Enabled,
+            Disabled,
+        }
+
         public enum Mode
         {
             Default = 0,
@@ -843,6 +845,17 @@ namespace ExtraDetailingTools.Systems.Tools
             Dragging
         }
 
+        [Flags]
+        public enum RaycastFilter : uint
+        {
+            None = 0,
+            StaticObject = 1,
+            Decals = 2,
+            Buildings = 4,
+            MovingObject = 8,
+            All = uint.MaxValue,
+        }
+
         public override string toolID => "TransformGizmoTool";
 
         private AudioManager m_AudioManager;
@@ -855,6 +868,8 @@ namespace ExtraDetailingTools.Systems.Tools
         private XZHandleMode m_XZHandleMode = XZHandleMode.FollowSurface;
 
         private State m_State = State.Idle;
+
+        private RaycastFilter m_RaycastFilter = RaycastFilter.All;
 
         private EntityQuery m_SoundQuery;
         private EntityQuery m_DefinitionQuery;
@@ -876,7 +891,6 @@ namespace ExtraDetailingTools.Systems.Tools
 
         public bool m_UseLocalAxis { get; internal set; } = true;
         public bool m_MoveSubBuildings { get; internal set; } = true;
-        //public bool m_FollowSurface { get; internal set; } = false;
         public bool m_Underground { get; private set; } = false;
         public AllowHightlightState m_AllowHightlight { get; set; } = AllowHightlightState.Default;
 
@@ -886,6 +900,7 @@ namespace ExtraDetailingTools.Systems.Tools
         public Mode mode => m_Mode;
 
         public XZHandleMode xzHandleMode { get { return m_XZHandleMode; } internal set { m_XZHandleMode = value; } }
+        public RaycastFilter raycastFilter { get { return m_RaycastFilter; } internal set { m_RaycastFilter = value; } }
 
         public Entity SelectedTempEntity => m_SelectedTempEntity;
 
@@ -971,24 +986,40 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground;
                 }
-                m_ToolRaycastSystem.typeMask = TypeMask.StaticObjects | TypeMask.MovingObjects | TypeMask.Labels | TypeMask.Icons;
-                m_ToolRaycastSystem.raycastFlags |= RaycastFlags.OutsideConnections | RaycastFlags.Decals | RaycastFlags.BuildingLots;
-                m_ToolRaycastSystem.netLayerMask = Layer.None;
-                m_ToolRaycastSystem.areaTypeMask = AreaTypeMask.None;
-                m_ToolRaycastSystem.iconLayerMask = IconLayerMask.Default;
-                if (!m_Underground)
+
+                if(m_RaycastFilter.HasFlag(RaycastFilter.StaticObject))
                 {
-                    m_ToolRaycastSystem.typeMask |= TypeMask.Areas;
-                    m_ToolRaycastSystem.areaTypeMask |= AreaTypeMask.Lots;
+                    m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
+
+                    if (m_RaycastFilter.HasFlag(RaycastFilter.Decals))
+                        m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Decals;
+
+                    if (m_RaycastFilter.HasFlag(RaycastFilter.Buildings))
+                        m_ToolRaycastSystem.raycastFlags |= RaycastFlags.BuildingLots | RaycastFlags.SubBuildings;
                 }
+
+                if(m_RaycastFilter.HasFlag(RaycastFilter.MovingObject))
+                    m_ToolRaycastSystem.typeMask |= TypeMask.MovingObjects;
+
+                //m_ToolRaycastSystem.typeMask = TypeMask.StaticObjects | TypeMask.MovingObjects | TypeMask.Labels | TypeMask.Icons;
+                //m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Decals | RaycastFlags.BuildingLots;
+                //m_ToolRaycastSystem.netLayerMask = Layer.None;
+                //m_ToolRaycastSystem.areaTypeMask = AreaTypeMask.None;
+                //m_ToolRaycastSystem.iconLayerMask = IconLayerMask.Default;
+                //if (!m_Underground)
+                //{
+                //    m_ToolRaycastSystem.typeMask |= TypeMask.Areas;
+                //    m_ToolRaycastSystem.areaTypeMask |= AreaTypeMask.Lots;
+                //}
                 if (m_ToolSystem.actionMode.IsEditor())
                 {
+                    m_ToolRaycastSystem.raycastFlags &= ~RaycastFlags.SubBuildings;
                     m_ToolRaycastSystem.raycastFlags |= RaycastFlags.SubElements | RaycastFlags.Placeholders | RaycastFlags.Markers | RaycastFlags.UpgradeIsMain | RaycastFlags.EditorContainers;
                 }
-                else
-                {
-                    m_ToolRaycastSystem.raycastFlags |= RaycastFlags.SubBuildings;
-                }
+                //else
+                //{
+                //    m_ToolRaycastSystem.raycastFlags |= RaycastFlags.SubBuildings;
+                //}
             } else
             {
                 GizmosRaycastInput input = new GizmosRaycastInput()
