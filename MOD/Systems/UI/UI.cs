@@ -1,4 +1,5 @@
 ﻿using Colossal.UI.Binding;
+using Game.Input;
 using Game.Rendering;
 using Game.Tools;
 using Game.UI;
@@ -13,6 +14,8 @@ namespace ExtraDetailingTools.Systems.UI
         private static GetterValueBinding<bool> showMarker;
         static RenderingSystem renderingSystem;
 
+        private ProxyAction m_ToggleMarkerAction;
+
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -20,10 +23,23 @@ namespace ExtraDetailingTools.Systems.UI
             renderingSystem = World.GetOrCreateSystemManaged<RenderingSystem>();
 
             AddBinding(showMarker = new GetterValueBinding<bool>("edt", "markersvisible", () => renderingSystem.markersVisible));
-            AddBinding(new TriggerBinding("edt", "togglemarkers", new Action(ShowMarker)));
+            AddBinding(new TriggerBinding("edt", "togglemarkers", new Action(ToggleMarker)));
             AddBinding(new TriggerBinding<bool>("edt", "forceshowmarkers", new Action<bool>(ShowMarker)));
 
             AddBinding(new TriggerBinding("edt", "updatemarkersvisible", () => { showMarker.Update(); }));
+
+            m_ToggleMarkerAction = EDT.m_Settings.GetAction(EDT.m_Settings.ToggleShowMarker.actionName);
+            m_ToggleMarkerAction.shouldBeEnabled = true;
+        }
+
+        protected override void OnUpdate()
+        {
+            base.OnUpdate();
+
+            if(m_ToggleMarkerAction.WasPressedThisFrame())
+            {
+                ToggleMarker();
+            }
 
         }
 
@@ -33,7 +49,7 @@ namespace ExtraDetailingTools.Systems.UI
             showMarker.Update();
         }
 
-        private static void ShowMarker()
+        private static void ToggleMarker()
         {
             renderingSystem.markersVisible = !renderingSystem.markersVisible;
             showMarker.Update();

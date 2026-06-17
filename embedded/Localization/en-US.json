@@ -1,4 +1,18 @@
 {
+	"Options.SECTION[ExtraDetailingTools.ExtraDetailingTools.EDT]": "ExtraDetailingTools",
+
+	"Options.TAB[ExtraDetailingTools.ExtraDetailingTools.EDT.Main]": "Main",
+	"Options.TAB[ExtraDetailingTools.ExtraDetailingTools.EDT.TransformTool]": "Transform Tool",
+
+	"Options.GROUP[ExtraDetailingTools.ExtraDetailingTools.EDT.QOL]": "Quality Of Life",
+	"Options.GROUP[ExtraDetailingTools.ExtraDetailingTools.EDT.KeyBinding]": "Key Bindings",
+
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.ToggleShowMarker]": "Toggle Show Marker",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.EnterMoveBinding]": "Enter Move Mode",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.EnterRotateBinding]": "Enter Rotate Mode",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.UndoBinding]": "Undo",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.RedoBinding]": "Redo",
+
 	"Toolbar.SHOWMARKER": "Show Marker",
 	"ToolOptions.TOOLTIP[ShowMarker]": "Show/hide the markers.",
 

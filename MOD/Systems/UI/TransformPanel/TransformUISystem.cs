@@ -53,7 +53,6 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
 
         private Entity m_SelectedEntity;
         private bool m_AsSubBuilding = false;
-        //private bool m_LastUseLocalAxis = false;
 
 #if Extra4
         private bool m_AllowScaling = true;
@@ -132,11 +131,6 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
 
         public bool NeedUpdate()
         {
-            //if (UseLocalAxis != m_LastUseLocalAxis)
-            //{
-            //    m_LastUseLocalAxis = UseLocalAxis;
-            //    return true;
-            //}
             return EntityManager.HasComponent<InterpolatedTransform>(m_SelectedEntity) || EntityManager.HasComponent<Updated>(m_SelectedEntity);
         }
 

@@ -9,6 +9,7 @@ using Game.Audio;
 using Game.Buildings;
 using Game.Citizens;
 using Game.Common;
+using Game.Input;
 using Game.Net;
 using Game.Notifications;
 using Game.Objects;
@@ -19,12 +20,14 @@ using Game.Simulation;
 using Game.Tools;
 using Game.Vehicles;
 using System;
+using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using static Game.Input.UIBaseInputAction;
 using static Game.Tools.DefaultToolSystem;
 using Color = UnityEngine.Color;
 using Node = Game.Areas.Node;
@@ -442,14 +445,24 @@ namespace ExtraDetailingTools.Systems.Tools
                 float3 pos =     !m_Position.Equals(default) ? m_Position : transform.m_Position;
                 quaternion rot = !m_Rotation.Equals(default) ? m_Rotation : transform.m_Rotation;
 
-                Bounds3 bounds3 = new(new(0, 0, 0), new(10, 10, 10));
+                float3 size = new(1,1,1);
 
                 if (m_PrefabRefLookup.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef) && m_ObjectGeometryDataLookup.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
                 {
-                    bounds3 = m_UseLocalAxis ? geometryData.m_Bounds : ObjectUtils.CalculateBounds(pos, rot, geometryData);
+                    if (m_UseLocalAxis || m_Mode == Mode.Rotate)
+                    {
+                        size = geometryData.m_Size;
+                    }
+                    else
+                    {
+                        Bounds3 bounds3 = ObjectUtils.CalculateBounds(pos, rot, geometryData);
+                        size = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
+                    }
                 }
 
-                float3 size = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
+                if(size.x < 1) size.x = 1;
+                if(size.y < 1) size.y = 1;
+                if(size.z < 1) size.z = 1;
 
                 switch (m_Mode)
                 {
@@ -811,6 +824,33 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
+        private struct ActionHistory
+        {
+            public Mode ActionType;
+            public Entity Entity;
+            public float3 Position;
+            public quaternion Rotation;
+
+            public ActionHistory(Mode actionType, Entity entity, float3 position, quaternion rotation)
+            {
+                ActionType = actionType;
+                Entity = entity;
+                Position = position;
+                Rotation = rotation;
+            }
+
+            public static ActionHistory NewMove(Entity entity, float3 position)
+            {
+                return new ActionHistory(Mode.Move, entity, position, default);
+            }
+
+            public static ActionHistory NewRotation(Entity entity, quaternion rotation)
+            {
+                return new ActionHistory(Mode.Rotate, entity, default, rotation);
+            }
+
+        }
+
         public enum Handle
         {
             None, X, Y, Z, XZ,
@@ -887,7 +927,28 @@ namespace ExtraDetailingTools.Systems.Tools
         private float3 m_DragStartGizmoPos;
         private quaternion m_DragStartGizmoRot;
         private float3 m_DragStartMouseHitPos;
+
+        // Bindings
+        private ProxyAction m_UndoAction;
+        private ProxyAction m_RedoAction;
+        private ProxyAction m_MoveAction;
+        private ProxyAction m_RotateAction;
+
+        // Undo / Redo
+        private Stack<ActionHistory> m_UndoHistory;
+        private Stack<ActionHistory> m_RedoHistory;
+
+        // Quick Actions
         private bool m_RequestSnapOnGround = false;
+        private bool m_RequestUndo = false;
+        private bool m_RequestRedo = false;
+
+        // SIP Support
+        private bool m_WasAnEntitySelected = false;
+
+        // Anarchy Support
+        private bool m_AddPreventOverride = false;
+        private bool m_AddTransformLock = false;
 
         public bool m_UseLocalAxis { get; internal set; } = true;
         public bool m_MoveSubBuildings { get; internal set; } = true;
@@ -936,6 +997,12 @@ namespace ExtraDetailingTools.Systems.Tools
             m_TempQuery = GetEntityQuery(ComponentType.ReadOnly<Temp>());
             m_HandleQuery = GetEntityQuery(ComponentType.ReadOnly<TransformGizmosHandle>());
             m_DefinitionQuery = GetDefinitionQuery();
+            m_UndoHistory = new();
+            m_RedoHistory = new();
+            m_UndoAction = EDT.m_Settings.GetAction(EDT.m_Settings.UndoBinding.actionName);
+            m_RedoAction = EDT.m_Settings.GetAction(EDT.m_Settings.RedoBinding.actionName);
+            m_MoveAction = EDT.m_Settings.GetAction(EDT.m_Settings.EnterMoveBinding.actionName);
+            m_RotateAction = EDT.m_Settings.GetAction(EDT.m_Settings.EnterRotateBinding.actionName);
         }
 
         protected override void OnDestroy()
@@ -946,23 +1013,35 @@ namespace ExtraDetailingTools.Systems.Tools
         protected override void OnStartRunning()
         {
             base.OnStartRunning();
+            m_UndoAction.shouldBeEnabled = true;
+            m_RedoAction.shouldBeEnabled = true;
+            m_MoveAction.shouldBeEnabled = true;
+            m_RotateAction.shouldBeEnabled = true;
             m_SelectedEntity = m_ToolSystem.selected;
+            m_WasAnEntitySelected = m_SelectedEntity != Entity.Null;
+            m_ToolSystem.selected = Entity.Null;
             EnableActions(true);
         }
 
         protected override void OnStopRunning()
         {
             base.OnStopRunning();
+            m_UndoAction.shouldBeEnabled = false;
+            m_RedoAction.shouldBeEnabled = false;
+            m_MoveAction.shouldBeEnabled = false;
+            m_RotateAction.shouldBeEnabled = false;
             var es = m_HandleQuery.ToEntityArray(Allocator.Temp);
             foreach (Entity e in es)
             {
                 EntityManager.DestroyEntity(e);
             }
             es.Dispose();
-            if (m_ToolSystem.selected != Entity.Null)
+            if (m_WasAnEntitySelected)
             {
                 m_ToolSystem.selected = m_SelectedEntity;
             }
+            m_UndoHistory.Clear();
+            m_RedoHistory.Clear();
             EnableActions(false);
         }
 
@@ -1130,18 +1209,94 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             float3 newPos = default;
             quaternion newRot = default;
+
             if(m_RequestSnapOnGround)
             {
                 m_RequestSnapOnGround = false;
-                if (m_SelectedEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out Transform snapTransform))
+                if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out Transform snapTransform))
                 {
                     TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
                     float terrainHeight = TerrainUtils.SampleHeight(ref heightData, snapTransform.m_Position);
                     float3 snapPos = snapTransform.m_Position;
                     snapPos.y = terrainHeight;
                     inputDeps = UpdateObject(inputDeps, m_SelectedEntity, snapPos);
+                    m_UndoHistory.Push(ActionHistory.NewMove(m_SelectedEntity, snapTransform.m_Position));
                 }
             }
+
+            if (m_RequestUndo || m_UndoAction.WasPressedThisFrame())
+            {
+                m_RequestUndo = false;
+                if(m_State == State.Idle && m_UndoHistory.Count > 0)
+                {
+                    ActionHistory actionHistory = m_UndoHistory.Pop();
+                    Entity entity = actionHistory.Entity;
+                    while (m_UndoHistory.Count > 0 && (
+                        entity == Entity.Null ||
+                        !EntityManager.Exists(entity) ||
+                        !EntityManager.TryGetComponent<Transform>(entity, out _)))
+                    {
+                        actionHistory = m_UndoHistory.Pop();
+                        entity = actionHistory.Entity;
+                    }
+
+                    if (entity != Entity.Null && EntityManager.Exists(entity) && EntityManager.TryGetComponent<Transform>(entity, out Transform currentTransform))
+                    {
+                        Mode actionType = actionHistory.ActionType;
+                        if (actionType == Mode.Move)
+                        {
+                            m_RedoHistory.Push(ActionHistory.NewMove(entity, currentTransform.m_Position));
+                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Position);
+                        }
+                        else if (actionType == Mode.Rotate)
+                        {
+                            m_RedoHistory.Push(ActionHistory.NewRotation(entity, currentTransform.m_Rotation));
+                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Rotation);
+                        }
+                        else
+                        {
+                            EDT.Logger.Warn($"Undo: unhandled action type {actionType}");
+                        }
+                    }
+                }
+            }
+            else if(m_RequestRedo || m_RedoAction.WasPressedThisFrame())
+            {
+                m_RequestRedo = false;
+                if (m_State == State.Idle && m_RedoHistory.Count > 0)
+                {
+                    ActionHistory actionHistory = m_RedoHistory.Pop();
+                    Entity entity = actionHistory.Entity;
+                    while (m_RedoHistory.Count > 0 && (
+                        entity == Entity.Null ||
+                        !EntityManager.Exists(entity) ||
+                        !EntityManager.TryGetComponent<Transform>(entity, out _)))
+                    {
+                        actionHistory = m_RedoHistory.Pop();
+                        entity = actionHistory.Entity;
+                    }
+
+                    if (entity != Entity.Null && EntityManager.Exists(entity) && EntityManager.TryGetComponent<Transform>(entity, out Transform currentTransform))
+                    {
+                        Mode actionType = actionHistory.ActionType;
+                        if (actionType == Mode.Move)
+                        {
+                            m_UndoHistory.Push(ActionHistory.NewMove(entity, currentTransform.m_Position));
+                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Position);
+                        }
+                        else if (actionType == Mode.Rotate)
+                        {
+                            m_UndoHistory.Push(ActionHistory.NewRotation(entity, currentTransform.m_Rotation));
+                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Rotation);
+                        }
+                        else
+                        {
+                            EDT.Logger.Warn($"Redo: unhandled action type {actionType}");
+                        }
+                    }
+                }
+            }
+
 
             if (m_Mode == Mode.Default)
             {
@@ -1291,6 +1446,8 @@ namespace ExtraDetailingTools.Systems.Tools
                 if (m_SelectedEntity != Entity.Null)
                 {
                     m_TransformGizmoToolUI.SetMode((int)Mode.Move);
+                    m_UndoHistory.Clear();
+                    m_RedoHistory.Clear();
                 }
                 return jobHandle;
             }
@@ -1335,12 +1492,24 @@ namespace ExtraDetailingTools.Systems.Tools
                             m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_PlacePropSound);
                         }
 
-                        inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
-                        EntityManager.HasComponent<Applied>(m_SelectedEntity);
-                        if (AnarchyBridge.IsEnabled())
+                        if (m_Mode == Mode.Move)
                         {
-                            AnarchyBridge.TryAddAnarchyComponent(m_SelectedEntity);
+                            m_UndoHistory.Push(ActionHistory.NewMove(m_SelectedEntity, m_DragStartGizmoPos));
+                            m_RedoHistory.Clear();
                         }
+                        else if (m_Mode == Mode.Rotate)
+                        {
+                            m_UndoHistory.Push(ActionHistory.NewRotation(m_SelectedEntity, m_DragStartGizmoRot));
+                            m_RedoHistory.Clear();
+                        }
+
+                        inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
+                        EntityManager.AddComponent<Applied>(m_SelectedEntity);
+                        //if (CanAddAnarchyComponents(m_SelectedEntity))
+                        //{
+                        //    AnarchyBridge.TryAddAnarchyComponent(m_SelectedEntity);
+                        //    AnarchyBridge.TryAddTransformLockComponent(m_SelectedEntity, transform);
+                        //}
                     }
                     else
                     {
@@ -1519,7 +1688,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_Position = position,
                 m_Rotation = rotation,
                 m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
-                m_TerrainHeightData = m_TerrainSystem.GetHeightData(),
+                m_TerrainHeightData = m_TerrainSystem.GetHeightData()
             }, JobHandle.CombineDependencies(inputDeps, dep));
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
             jobHandle = c.Dispose(jobHandle);
@@ -1544,6 +1713,7 @@ namespace ExtraDetailingTools.Systems.Tools
         public JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation, SafeCommandBufferSystem ecb)
         {
             if (entity == Entity.Null) return inputDeps;
+            bool canAdd = CanAddAnarchyComponents(entity);
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateObjectJob
             {
                 m_SelectedEntity = entity,
@@ -1560,7 +1730,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_MoveSubBuildings = m_MoveSubBuildings,
                 m_Position = position,
                 m_Rotation = rotation,
-                m_CommandBuffer = ecb.CreateCommandBuffer()
+                m_CommandBuffer = ecb.CreateCommandBuffer(),
             }, inputDeps);
             ecb.AddJobHandleForProducer(jobHandle);
             return jobHandle;
@@ -1779,6 +1949,23 @@ namespace ExtraDetailingTools.Systems.Tools
                 return true;
 
             return false;
+        }
+
+        public bool CanAddAnarchyComponents(Entity entity)
+        {
+            if(entity == null || !AnarchyBridge.IsAvailable) 
+                return false;
+
+            if (EntityManager.HasComponent<Temp>(entity))
+                return false;
+
+            if (!EntityManager.HasComponent<Static>(entity))
+                return false;
+
+            if (!EntityManager.HasComponent<Building>(entity))
+                return false;
+
+            return true;
         }
 
     }
