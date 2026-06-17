@@ -101,7 +101,7 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.3.0.1" />
+	<ModVersion Value="1.3.0.2" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.5.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -113,10 +113,8 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
 	<ChangeLog>
-### v1.3.0.1
-- Added Raycast Filter UI to the Transform Gizmo Tool (Default mode): toggle which object types can be selected (Static Objects, Decals, Moving Objects)
-- Decals filter is disabled when Static Objects filter is off
-- Fixed TransformPanel scaling: use rem-to-px conversion for consistent UI sizing
+### v1.3.0.2
+- Added more logs for debuging.
 	</ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
