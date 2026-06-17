@@ -2,10 +2,10 @@
 	"Toolbar.SHOWMARKER": "Mostrar marcador",
 	"ToolOptions.TOOLTIP[ShowMarker]": "Mostrar/ocultar los marcadores.",
 	"Tool.TransformGizmoTool.Tooltip": "Abre la herramienta Gizmo de Transformación de EDT.",
-	"Tool.TransformGizmoTool.Default.Tooltip": "Activa el modo por defecto de la herramienta, usado para seleccionar objetos.",
-	"Tool.TransformGizmoTool.Move.Tooltip": "Activa el modo Mover, permitiéndole mover objetos usando los agarres del gizmo.",
-	"Tool.TransformGizmoTool.Rotate.Tooltip": "Activa el modo Rotar, permitiéndole rotar objetos usando los agarres del gizmo.",
-	"Tool.TransformGizmoTool.Scale.Tooltip": "Activa el modo Escalar, permitiéndole agrandar o achicar objetos usando los agarres del gizmo.",
+	"Tool.TransformGizmoTool.Default.Tooltip": "Activa el modo predeterminado de la herramienta, usado para seleccionar objetos.",
+	"Tool.TransformGizmoTool.Move.Tooltip": "Activa el modo Mover, permitiéndote mover objetos usando los agarres del gizmo.",
+	"Tool.TransformGizmoTool.Rotate.Tooltip": "Activa el modo Rotar, permitiéndote rotar objetos usando los agarres del gizmo.",
+	"Tool.TransformGizmoTool.Scale.Tooltip": "Activa el modo Escalar, permitiéndote modificar el tamaño de los objetos usando los agarres del gizmo.",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS": "Copiar la posición.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PAST_POS": "Pegar la posición.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PAST_POS_X": "Pegar la posición, solo el eje X.",
@@ -41,5 +41,5 @@
 	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT": "Copiar posición y rotación",
 	"SelectedInfoPanel.TRANSFORMTOOL.COPY_POS_ROT.tooltip": "Copia la posición y la rotación del asset.",
 	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT": "Pegar posición y rotación",
-	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT.tooltip": "Pega la posición y la rotación del asset previamente copiada."
+	"SelectedInfoPanel.TRANSFORMTOOL.PASTE_POS_ROT.tooltip": "Pega la posición y la rotación del asset."
 }
