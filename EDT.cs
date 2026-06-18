@@ -2,33 +2,25 @@
 // Copyright (c) Triton Supreme. All rights reserved.
 // </copyright>
 
-using Colossal.Core;
+using Colossal.IO.AssetDatabase;
 using Colossal.Logging;
 using ExtraDetailingTools.ExtraSnap;
 using ExtraDetailingTools.Gizmos;
-using ExtraDetailingTools.Prefabs;
 using ExtraDetailingTools.Systems;
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.Tooltip;
 using ExtraDetailingTools.Systems.UI;
-using ExtraDetailingTools.Systems.UI.BetterInfoPanel;
-using ExtraLib;
 using ExtraLib.Debugger;
 using ExtraLib.Helpers;
-using ExtraLib.Systems.UI.ExtraPanels;
 using Game;
 using Game.Modding;
-using Game.Prefabs;
 using Game.SceneFlow;
 using Game.Tools;
 using Game.UI.InGame;
-using Game.UI.Tooltip;
 using HarmonyLib;
-using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Unity.Entities;
 
 namespace ExtraDetailingTools
 {
@@ -40,7 +32,7 @@ namespace ExtraDetailingTools
 #else
         internal static Logger Logger = new(log, false);
 #endif
-
+        internal static Settings m_Settings;
         internal static string ResourcesIcons { get; private set; }
 
         private Harmony harmony;
@@ -62,6 +54,11 @@ namespace ExtraDetailingTools
 
                 ResourcesIcons = Path.Combine(fileInfo.DirectoryName, "Icons");
                 Icons.LoadIcons(fileInfo.DirectoryName);
+
+                m_Settings = new(this);
+                m_Settings.RegisterInOptionsUI();
+                m_Settings.RegisterKeyBindings();
+                AssetDatabase.global.LoadSettings(nameof(ExtraDetailingTools), m_Settings, new Settings(this));
 
                 ExtraLocalization.LoadLocalization(Logger, Assembly.GetExecutingAssembly());
                 EditEntities.SetupEditEntities();

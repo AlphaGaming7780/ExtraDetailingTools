@@ -2,6 +2,7 @@
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI.TransformPanel;
 using ExtraLib.Systems.UI.ExtraPanels;
+using Game.Input;
 using Game.Tools;
 using Game.UI;
 using System;
@@ -14,6 +15,8 @@ namespace ExtraDetailingTools.Systems.UI
         private TransformGizmoTool m_TransformGizmoTool;
         private ExtraPanelsUISystem m_ExtraPanelsUISystem;
         private TransformExtraPanel m_TransformExtraPanel;
+
+        private ProxyAction m_OpenTransformToolAction;
 
         private GetterValueBinding<int> m_ToolModeValueGetter;
         private GetterValueBinding<bool> m_LocalAxisValueGetter;
@@ -29,6 +32,9 @@ namespace ExtraDetailingTools.Systems.UI
             m_ToolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
             m_ExtraPanelsUISystem = World.GetOrCreateSystemManaged<ExtraPanelsUISystem>();
             m_TransformExtraPanel = m_ExtraPanelsUISystem.AddExtraPanel<TransformExtraPanel>();
+
+            m_OpenTransformToolAction = EDT.m_Settings.GetAction(EDT.m_Settings.OpenTransformTool.actionName);
+            m_OpenTransformToolAction.shouldBeEnabled = true;
 
             AddBinding(m_LocalAxisValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", () => m_TransformGizmoTool.m_UseLocalAxis));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", new Action<bool>(SetUseLocalAxis)));
@@ -49,6 +55,15 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SnapOnGround", new Action(SnapOnGround)));
 
             AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SelectTransformGizmosTool", EnableTransformGizmoTool));
+        }
+
+        protected override void OnUpdate()
+        {
+            base.OnUpdate();
+            if(m_OpenTransformToolAction.WasPressedThisFrame())
+            {
+                EnableTransformGizmoTool();
+            }
         }
 
         public void EnableTransformGizmoTool()

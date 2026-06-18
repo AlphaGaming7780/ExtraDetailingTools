@@ -320,14 +320,14 @@ namespace ExtraDetailingTools.Gizmos
             {
                 if (m_Debug)
                 {
-                    float3 dir = b - a;
-                    float length = math.length(dir);
+                    float3 dbgDir = b - a;
+                    float dbgLen = math.length(dbgDir);
 
-                    if (length > 1e-5f)
+                    if (dbgLen > 1e-5f)
                     {
-                        dir /= length;
+                        dbgDir /= dbgLen;
 
-                        float3 up = dir;
+                        float3 up = dbgDir;
                         float3 arbitrary = math.abs(up.y) < 0.99f ? new float3(0, 1, 0) : new float3(1, 0, 0);
                         float3 forward = math.normalize(math.cross(arbitrary, up));
                         float3 right = math.normalize(math.cross(up, forward));
@@ -347,7 +347,7 @@ namespace ExtraDetailingTools.Gizmos
                             trs,
                             float3.zero,
                             radius,
-                            length + radius * 2f,
+                            dbgLen + radius * 2f,
                             Color.green
                         );
                     }
@@ -364,37 +364,109 @@ namespace ExtraDetailingTools.Gizmos
 
                 rayDir /= rayLength;
 
-                float dist = MathUtils.Distance(new Line3.Segment(a, b), ray, out float2 t);
+                float3 ab = b - a;
+                float abLen = math.length(ab);
 
-                if (dist > radius)
+                if (abLen <= 1e-6f)
+                    return IntersectSphere(a, radius, ray, out hit);
+
+                float3 abDir = ab / abLen;
+
+                // Ray-infinite-cylinder intersection
+                // Project ray onto the plane perpendicular to the capsule axis
+                float3 dp = ray.a - a;
+                float3 rayDirPerp = rayDir - abDir * math.dot(rayDir, abDir);
+                float3 dpPerp = dp - abDir * math.dot(dp, abDir);
+
+                float A2 = math.dot(rayDirPerp, rayDirPerp);
+                float B2 = 2f * math.dot(rayDirPerp, dpPerp);
+                float C2 = math.dot(dpPerp, dpPerp) - radius * radius;
+
+                float bestT = float.MaxValue;
+                float3 bestPos = default;
+                float3 bestNormal = default;
+                float bestTSeg = 0f;
+                bool found = false;
+
+                float discriminant = B2 * B2 - 4f * A2 * C2;
+
+                if (A2 > 1e-10f && discriminant >= 0f)
+                {
+                    float sqrtDisc = math.sqrt(discriminant);
+                    float inv2A = 1f / (2f * A2);
+
+                    for (int i = 0; i < 2; i++)
+                    {
+                        float tHit = (i == 0) ? (-B2 - sqrtDisc) * inv2A : (-B2 + sqrtDisc) * inv2A;
+
+                        if (tHit < 0f || tHit > rayLength) continue;
+
+                        float3 p = ray.a + rayDir * tHit;
+                        float s = math.dot(p - a, abDir);
+
+                        if (s >= 0f && s <= abLen)
+                        {
+                            float3 axisPoint = a + abDir * s;
+                            float3 n = math.normalize(p - axisPoint);
+
+                            if (tHit < bestT)
+                            {
+                                bestT = tHit;
+                                bestPos = p;
+                                bestNormal = n;
+                                bestTSeg = s / abLen;
+                                found = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // Hemisphere at endpoint A
+                if (IntersectSphere(a, radius, ray, out RaycastHit hitA))
+                {
+                    float3 pA = hitA.m_HitPosition;
+                    float sA = math.dot(pA - a, abDir);
+                    float tA = hitA.m_NormalizedDistance * rayLength;
+                    if (sA <= 0f && tA < bestT)
+                    {
+                        bestT = tA;
+                        bestPos = pA;
+                        bestNormal = hitA.m_HitDirection;
+                        bestTSeg = 0f;
+                        found = true;
+                    }
+                }
+
+                // Hemisphere at endpoint B
+                if (IntersectSphere(b, radius, ray, out RaycastHit hitB))
+                {
+                    float3 pB = hitB.m_HitPosition;
+                    float sB = math.dot(pB - b, abDir);
+                    float tB = hitB.m_NormalizedDistance * rayLength;
+                    if (sB >= 0f && tB < bestT)
+                    {
+                        bestT = tB;
+                        bestPos = pB;
+                        bestNormal = hitB.m_HitDirection;
+                        bestTSeg = 1f;
+                        found = true;
+                    }
+                }
+
+                if (!found)
                 {
                     hit = default;
                     return false;
                 }
 
-                float tSeg = t.x;
-                float tRay = t.y;
-
-                // points les plus proches
-                float3 pRay = ray.a + rayDir * tRay;
-                float3 pSeg = math.lerp(a, b, tSeg);
-
-                float3 normal = pRay - pSeg;
-                float normalLen = math.length(normal);
-
-                // éviter NaN si pile au centre
-                if (normalLen > 1e-5f)
-                    normal /= normalLen;
-                else
-                    normal = math.normalize(rayDir); // fallback
-
                 hit = new RaycastHit
                 {
                     m_Position = a,
-                    m_HitPosition = pSeg,
-                    m_HitDirection = normal,
-                    m_NormalizedDistance = tRay / rayLength,
-                    m_CurvePosition = tSeg
+                    m_HitPosition = bestPos,
+                    m_HitDirection = bestNormal,
+                    m_NormalizedDistance = bestT / rayLength,
+                    m_CurvePosition = bestTSeg
                 };
 
                 return true;

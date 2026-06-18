@@ -1,4 +1,39 @@
 {
+	"Options.SECTION[ExtraDetailingTools.ExtraDetailingTools.EDT]": "Extra Detailing Tools",
+
+	"Options.TAB[ExtraDetailingTools.ExtraDetailingTools.EDT.Main]": "Main",
+	"Options.TAB[ExtraDetailingTools.ExtraDetailingTools.EDT.TransformTool]": "Transform Tool",
+
+	"Options.GROUP[ExtraDetailingTools.ExtraDetailingTools.EDT.QOL]": "Quality Of Life",
+	"Options.GROUP[ExtraDetailingTools.ExtraDetailingTools.EDT.KeyBinding]": "Key Bindings",
+	"Options.GROUP[ExtraDetailingTools.ExtraDetailingTools.EDT.QuickActions]": "Quick Actions",
+
+	"Options.INPUT_MAP[ExtraDetailingTools.ExtraDetailingTools.EDT]": "Extra Detailing Tools",
+
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.ToggleShowMarker]": "Toggle Show Marker",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.ToggleShowMarker]": "Toggle the visibility of markers in the scene.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/ToggleShowMarker/binding]": "Toggle Show Marker",
+
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.OpenTransformTool]": "Open Transform Tool",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.OpenTransformTool]": "Open the Transform Gizmo Tool.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/OpenTransformTool/binding]": "Open Transform Tool",
+
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.EnterMoveBinding]": "Enter Move Mode",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.EnterMoveBinding]": "Switch the Transform Tool to Move mode.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/EnterMoveBinding/binding]": "Enter Move Mode",
+
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.EnterRotateBinding]": "Enter Rotate Mode",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.EnterRotateBinding]": "Switch the Transform Tool to Rotate mode.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/EnterRotateBinding/binding]": "Enter Rotate Mode",
+
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.UndoBinding]": "Undo",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.UndoBinding]": "Undo the last transform action.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/UndoBinding/binding]": "Undo",
+
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.RedoBinding]": "Redo",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.RedoBinding]": "Redo the last undone transform action.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/RedoBinding/binding]": "Redo",
+
 	"Toolbar.SHOWMARKER": "Show Marker",
 	"ToolOptions.TOOLTIP[ShowMarker]": "Show/hide the markers.",
 

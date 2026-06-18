@@ -243,7 +243,7 @@ export const TransformPanel = () => {
 			let lastX = e.clientX;
 			const startValue = axis === "X" ? inputValue.x : axis === "Y" ? inputValue.y : inputValue.z;
 			let accumulatedDelta = 0;
-			const pixelsPerStep = remToPx(50);
+			const pixelsPerStep = remToPx(100);
 			let lastSoundTime = 0;
 			const soundThrottleMs = 80;
 

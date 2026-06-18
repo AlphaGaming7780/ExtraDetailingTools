@@ -5,6 +5,7 @@ import { ToolOption } from "./mods/ToolOption";
 import { GrassToolUI } from "./mods/GrassToolUI";
 import { TransformGizmosToolButton, TransformGizmoTool } from "mods/TransformGizmosTool/TransformGizmoTool";
 import { TransformExtraPanel } from "mods/TransformExtraPanel/TransformExtraPanel";
+import { RegisterTransformPanel } from "mods/TransformPanel/RegisterTransformPanel";
 
 export var registry: ModuleRegistry;
 
@@ -18,7 +19,9 @@ const register: ModRegistrar = (moduleRegistry) => {
     moduleRegistry.extend("game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.tsx", 'MouseToolOptions', GrassToolUI);
 
     moduleRegistry.append('UniversalModMenu', TransformGizmosToolButton);
-    moduleRegistry.append('Menu', HelloWorldComponent);
+    // moduleRegistry.append('Menu', HelloWorldComponent);
+    moduleRegistry.append('Game', RegisterTransformPanel);
+    moduleRegistry.append('Editor', RegisterTransformPanel);
     console.log("Extra Detailing Tools UI Mod loaded.");
 }
 

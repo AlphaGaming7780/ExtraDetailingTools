@@ -36,6 +36,10 @@
   </ItemGroup>
 
   <ItemGroup>
+	<Reference Include="System">
+		<Private>false</Private>
+		<HintPath>$(ManagedPath)\System.dll</HintPath>
+	</Reference>
     <Reference Include="$(CustomManagedPath)\Colossal.*.dll" Private="False" />
     <Reference Include="$(CustomManagedPath)\Game*.dll" Private="False" />
     <Reference Include="$(CustomManagedPath)\Unity*.dll" Private="False" />
