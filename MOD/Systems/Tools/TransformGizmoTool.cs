@@ -21,6 +21,7 @@ using Game.Tools;
 using Game.Vehicles;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -483,8 +484,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private void UpdateMoveHandle(float3 pos, quaternion rot, float3 size)
             {
-                float radius = math.cmin(size) * 0.2f;
-                float terrainHeight = TerrainUtils.SampleHeight(ref m_TerrainHeightData, pos);
+                float radius = (math.csum(size) / 3f) * 0.115f;
                 float3 xAxis = new float3(1, 0, 0);
                 float3 yAxis = new float3(0, 1, 0);
                 float3 zAxis = new float3(0, 0, 1);
@@ -527,7 +527,7 @@ namespace ExtraDetailingTools.Systems.Tools
             private void UpdateMoveArrow(Handle handle, float3 A, float3 B, Color color)
             {
                 Entity gizmos = GetOrCreateEntity();
-                GizmosData data = GizmosUtils.DrawArrow(A, B, color);
+                GizmosData data = GizmosUtils.DrawArrow(A, B, color); //math.distance(A, B) * 0.4f
                 m_CommandBuffer.AddComponent(gizmos, data);
 
                 AddHandleComponent(handle, gizmos);
@@ -1729,7 +1729,8 @@ namespace ExtraDetailingTools.Systems.Tools
         public JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation, SafeCommandBufferSystem ecb)
         {
             if (entity == Entity.Null) return inputDeps;
-            bool canAdd = CanAddAnarchyComponents(entity);
+            if (EntityManager.HasComponent<Building>(entity)) m_TerrainSystem.OnBuildingMoved(m_SelectedEntity);
+
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateObjectJob
             {
                 m_SelectedEntity = entity,
@@ -1983,6 +1984,5 @@ namespace ExtraDetailingTools.Systems.Tools
 
             return true;
         }
-
     }
 }

@@ -10,6 +10,12 @@ using System.Threading.Tasks;
 
 namespace ExtraDetailingTools
 {
+    [SettingsUIKeyboardAction(nameof(OpenTransformTool), Usages.kDefaultUsage, Usages.kEditorUsage, Usages.kToolUsage)]
+    [SettingsUIKeyboardAction(nameof(ToggleShowMarker), Usages.kDefaultUsage, Usages.kEditorUsage)]
+    [SettingsUIKeyboardAction(nameof(EnterMoveBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
+    [SettingsUIKeyboardAction(nameof(EnterRotateBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
+    [SettingsUIKeyboardAction(nameof(UndoBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
+    [SettingsUIKeyboardAction(nameof(RedoBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
     internal class Settings : ModSetting
     {
 
@@ -25,18 +31,18 @@ namespace ExtraDetailingTools
         }
 
         [SettingsUIKeyboardBinding(BindingKeyboard.M, nameof(ToggleShowMarker), ctrl: true)]
-        [SettingsUISection(null, kQOLGroup)]
+        [SettingsUISection(kMainSection, kQOLGroup)]
         public ProxyBinding ToggleShowMarker { get; set; }
 
-        [SettingsUIKeyboardBinding(BindingKeyboard.T, nameof(OpenTransformTool))]
+        [SettingsUIKeyboardBinding(BindingKeyboard.L, nameof(OpenTransformTool))]
         [SettingsUISection(kTTTSection, kKeybindingGroup)]
         public ProxyBinding OpenTransformTool { get; set; }
 
-        [SettingsUIKeyboardBinding(BindingKeyboard.G, nameof(EnterMoveBinding))]
+        [SettingsUIKeyboardBinding(BindingKeyboard.K, nameof(EnterMoveBinding))]
         [SettingsUISection(kTTTSection, kKeybindingGroup)]
         public ProxyBinding EnterMoveBinding { get; set; }
 
-        [SettingsUIKeyboardBinding(BindingKeyboard.R,actionName: nameof(EnterRotateBinding))]
+        [SettingsUIKeyboardBinding(BindingKeyboard.J,actionName: nameof(EnterRotateBinding))]
         [SettingsUISection(kTTTSection, kKeybindingGroup)]
         public ProxyBinding EnterRotateBinding { get; set; }
 

@@ -8,6 +8,8 @@
 	"Options.GROUP[ExtraDetailingTools.ExtraDetailingTools.EDT.KeyBinding]": "Key Bindings",
 	"Options.GROUP[ExtraDetailingTools.ExtraDetailingTools.EDT.QuickActions]": "Quick Actions",
 
+	"Options.INPUT_MAP[ExtraDetailingTools.ExtraDetailingTools.EDT]": "Extra Detailing Tools",
+
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.ToggleShowMarker]": "Toggle Show Marker",
 	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.ToggleShowMarker]": "Toggle the visibility of markers in the scene.",
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/ToggleShowMarker/binding]": "Toggle Show Marker",
