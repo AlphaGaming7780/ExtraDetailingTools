@@ -101,7 +101,7 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.3.0.2" />
+	<ModVersion Value="1.3.0.3" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.5.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -113,8 +113,23 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
 	<ChangeLog>
-### v1.3.0.2
-- Added more logs for debuging.
+## v1.3.0.3
+### New Features
+- Added Undo/Redo support for Transform Tool (Ctrl+Z / Ctrl+Y)
+- Added Open Transform Tool keybinding (T)
+- Added Move mode keybinding (G)
+- Added Rotate mode keybinding (R)
+- Added settings page with keybinding configuration
+- Added Transform Panel registration for Game and Editor modes
+- Moving a building properly updates the terrain now (this can cause objects to fall on ground if they don't have the transform lock) (there is still an issue with sub-buildings)
+
+### Fixes
+- Fixed gizmo raycast capsule intersection (consistent hit radius between cylinder and hemisphere parts)
+- Fixed Transform Panel registration as a proper React component
+
+### Changes
+- Added localization entries for all new keybindings and settings
+- Added input map label for key reassignment panel
 	</ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
