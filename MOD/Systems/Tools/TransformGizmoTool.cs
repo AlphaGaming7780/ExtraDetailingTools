@@ -1210,7 +1210,23 @@ namespace ExtraDetailingTools.Systems.Tools
             float3 newPos = default;
             quaternion newRot = default;
 
-            if(m_RequestSnapOnGround)
+            if(m_MoveAction.WasPressedThisFrame())
+            {
+                if(m_Mode != Mode.Move)
+                    m_TransformGizmoToolUI.SetMode(Mode.Move);
+                else
+                    m_TransformGizmoToolUI.SetMode(Mode.Default);
+            }
+
+            if (m_RotateAction.WasPressedThisFrame())
+            {
+                if (m_Mode != Mode.Rotate)
+                    m_TransformGizmoToolUI.SetMode(Mode.Rotate);
+                else
+                    m_TransformGizmoToolUI.SetMode(Mode.Default);
+            }
+
+            if (m_RequestSnapOnGround)
             {
                 m_RequestSnapOnGround = false;
                 if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out Transform snapTransform))

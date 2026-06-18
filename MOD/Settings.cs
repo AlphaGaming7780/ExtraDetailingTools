@@ -18,29 +18,34 @@ namespace ExtraDetailingTools
 
         public const string kQOLGroup = "QOL";
         public const string kKeybindingGroup = "KeyBinding";
+        public const string kQuickActionsGroup = "QuickActions";
 
         public Settings(IMod mod) : base(mod)
         {
         }
 
         [SettingsUIKeyboardBinding(BindingKeyboard.M, nameof(ToggleShowMarker), ctrl: true)]
-        [SettingsUISection(kMainSection, kQOLGroup)]
+        [SettingsUISection(null, kQOLGroup)]
         public ProxyBinding ToggleShowMarker { get; set; }
 
-        [SettingsUIKeyboardBinding(BindingKeyboard.W, nameof(EnterMoveBinding))]
+        [SettingsUIKeyboardBinding(BindingKeyboard.T, nameof(OpenTransformTool))]
+        [SettingsUISection(kTTTSection, kKeybindingGroup)]
+        public ProxyBinding OpenTransformTool { get; set; }
+
+        [SettingsUIKeyboardBinding(BindingKeyboard.G, nameof(EnterMoveBinding))]
         [SettingsUISection(kTTTSection, kKeybindingGroup)]
         public ProxyBinding EnterMoveBinding { get; set; }
 
-        [SettingsUIKeyboardBinding(BindingKeyboard.X,actionName: nameof(EnterRotateBinding))]
+        [SettingsUIKeyboardBinding(BindingKeyboard.R,actionName: nameof(EnterRotateBinding))]
         [SettingsUISection(kTTTSection, kKeybindingGroup)]
         public ProxyBinding EnterRotateBinding { get; set; }
 
         [SettingsUIKeyboardBinding(BindingKeyboard.Z, nameof(UndoBinding), ctrl: true)]
-        [SettingsUISection(kTTTSection, kKeybindingGroup)]
+        [SettingsUISection(kTTTSection, kKeybindingGroup, kQuickActionsGroup)]
         public ProxyBinding UndoBinding { get; set; }
 
         [SettingsUIKeyboardBinding(BindingKeyboard.Y, nameof(RedoBinding), ctrl: true)]
-        [SettingsUISection(kTTTSection, kKeybindingGroup)]
+        [SettingsUISection(kTTTSection, kKeybindingGroup, kQuickActionsGroup)]
         public ProxyBinding RedoBinding { get; set; }
 
         public override void SetDefaults()
