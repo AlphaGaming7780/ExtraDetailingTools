@@ -1013,6 +1013,24 @@ namespace ExtraDetailingTools.Systems.Tools
         protected override void OnStartRunning()
         {
             base.OnStartRunning();
+
+#if DEBUG
+            if (!AnarchyBridge.IsAvailable)
+            {
+                if (AnarchyBridge.Initialize(true))
+                {
+                    if (AnarchyBridge.TryAddToolSystem(this))
+                        EDT.Logger.Info($"Registered {toolID} to Anarchy.");
+                    else
+                        EDT.Logger.Warn($"Anarchy available but failed to register {toolID} to Anarchy.");
+                }
+                else
+                {
+                    EDT.Logger.Warn($"Anarchy not available. {toolID} will not be registered to Anarchy and may not work properly.");
+                }
+            }
+#endif
+
             m_UndoAction.shouldBeEnabled = true;
             m_RedoAction.shouldBeEnabled = true;
             m_MoveAction.shouldBeEnabled = true;
@@ -1520,12 +1538,6 @@ namespace ExtraDetailingTools.Systems.Tools
                         }
 
                         inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
-                        EntityManager.AddComponent<Applied>(m_SelectedEntity);
-                        //if (CanAddAnarchyComponents(m_SelectedEntity))
-                        //{
-                        //    AnarchyBridge.TryAddAnarchyComponent(m_SelectedEntity);
-                        //    AnarchyBridge.TryAddTransformLockComponent(m_SelectedEntity, transform);
-                        //}
                     }
                     else
                     {
@@ -1729,7 +1741,37 @@ namespace ExtraDetailingTools.Systems.Tools
         public JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation, SafeCommandBufferSystem ecb)
         {
             if (entity == Entity.Null) return inputDeps;
-            if (EntityManager.HasComponent<Building>(entity)) m_TerrainSystem.OnBuildingMoved(m_SelectedEntity);
+
+            // TODO: Maybe move this code in is own function and only call it when needed (End move or End Rotate)
+            if (!EntityManager.HasComponent<Temp>(entity))
+            {
+                // TODO: Also update sub-buildings if m_MoveSubBuildings is true
+                if (EntityManager.HasComponent<Building>(entity)) m_TerrainSystem.OnBuildingMoved(m_SelectedEntity);
+
+                // Maybe move that code in the UpdateObjectJob instead of doing it here
+                if (AnarchyBridge.IsAvailable && EntityManager.TryGetComponent(entity, out Transform transform))
+                {
+                    ComponentType transformLock = AnarchyBridge.GetTransformLockComponentType();
+
+                    Transform newTransform = new(
+                        position.Equals(default) ? transform.m_Position : position,
+                        rotation.Equals(default) ? transform.m_Rotation : rotation
+                    );
+
+                    bool isStaticAndNotBuilding = EntityManager.HasComponent<Static>(entity) && !EntityManager.HasComponent<Building>(entity);
+
+                    if(m_AddPreventOverride && isStaticAndNotBuilding)
+                    {
+                        AnarchyBridge.TryAddAnarchyComponent(entity);
+                    }
+
+                    if ( (m_AddTransformLock && isStaticAndNotBuilding) || transformLock != default && EntityManager.HasComponent(entity, transformLock))
+                    {
+                        AnarchyBridge.RemoveTransformLockComponent(entity);
+                        AnarchyBridge.TryAddTransformLockComponent(entity, newTransform);
+                    }
+                }
+            }
 
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateObjectJob
             {
