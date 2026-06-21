@@ -25,6 +25,7 @@ namespace ExtraDetailingTools
         private static MethodInfo _removeTransformLockComponent_Single;
         private static MethodInfo _removeTransformLockComponent_Entities;
         private static MethodInfo _removeTransformLockComponent_Query;
+        private static MethodInfo _tryUpdateTransformLockComponent;
         private static MethodInfo _getAnarchyComponentType;
         private static MethodInfo _getTransformLockComponentType;
 
@@ -80,6 +81,7 @@ namespace ExtraDetailingTools
             _removeAnarchyComponent_Single         = _bridgeType.GetMethod("RemoveAnarchyComponent",       flags, null, new[] { typeof(Entity) }, null);
             _removeAnarchyComponent_Entities       = _bridgeType.GetMethod("RemoveAnarchyComponent",       flags, null, new[] { typeof(NativeArray<Entity>) }, null);
             _removeAnarchyComponent_Query          = _bridgeType.GetMethod("RemoveAnarchyComponent",       flags, null, new[] { typeof(EntityQuery) }, null);
+            _tryUpdateTransformLockComponent       = _bridgeType.GetMethod("TryUpdateTransformLockComponent", flags, null, new[] { typeof(Entity), typeof(Game.Objects.Transform) }, null);
             _removeTransformLockComponent_Single   = _bridgeType.GetMethod("RemoveTransformLockComponent", flags, null, new[] { typeof(Entity) }, null);
             _removeTransformLockComponent_Entities = _bridgeType.GetMethod("RemoveTransformLockComponent", flags, null, new[] { typeof(NativeArray<Entity>) }, null);
             _removeTransformLockComponent_Query    = _bridgeType.GetMethod("RemoveTransformLockComponent", flags, null, new[] { typeof(EntityQuery) }, null);
@@ -185,6 +187,12 @@ namespace ExtraDetailingTools
         {
             if (GetBridgeType() == null) return false;
             return InvokeBool(_tryAddTransformLockComponent, nameof(TryAddTransformLockComponent), entity, transform);
+        }
+
+        public static bool TryUpdateTransformLockComponent(Entity entity, Game.Objects.Transform transform)
+        {
+            if (GetBridgeType() == null) return false;
+            return InvokeBool(_tryUpdateTransformLockComponent, nameof(TryUpdateTransformLockComponent), entity, transform);
         }
 
         public static void AddTransformLockComponent(NativeArray<Entity> entities)

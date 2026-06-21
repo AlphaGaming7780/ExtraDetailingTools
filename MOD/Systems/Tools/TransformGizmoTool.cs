@@ -1745,13 +1745,24 @@ namespace ExtraDetailingTools.Systems.Tools
             // TODO: Maybe move this code in is own function and only call it when needed (End move or End Rotate)
             if (!EntityManager.HasComponent<Temp>(entity))
             {
-                // TODO: Also update sub-buildings if m_MoveSubBuildings is true
-                if (EntityManager.HasComponent<Building>(entity)) m_TerrainSystem.OnBuildingMoved(m_SelectedEntity);
 
-                // Maybe move that code in the UpdateObjectJob instead of doing it here
+                if (EntityManager.HasComponent<Building>(entity))
+                {
+                    m_TerrainSystem.OnBuildingMoved(m_SelectedEntity);
+
+                    if(EntityManager.TryGetBuffer<InstalledUpgrade>(SelectedEntity, true, out DynamicBuffer<InstalledUpgrade> buffer))
+                    {
+                        foreach (var upgrade in buffer)
+                        {
+                            if(EntityManager.HasComponent<Building>(upgrade.m_Upgrade)) m_TerrainSystem.OnBuildingMoved(m_SelectedEntity);
+                        }
+                    }
+                }
+
                 if (AnarchyBridge.IsAvailable && EntityManager.TryGetComponent(entity, out Transform transform))
                 {
                     ComponentType transformLock = AnarchyBridge.GetTransformLockComponentType();
+                    ComponentType preventOverride = AnarchyBridge.GetAnarchyComponentType();
 
                     Transform newTransform = new(
                         position.Equals(default) ? transform.m_Position : position,
@@ -1760,16 +1771,15 @@ namespace ExtraDetailingTools.Systems.Tools
 
                     bool isStaticAndNotBuilding = EntityManager.HasComponent<Static>(entity) && !EntityManager.HasComponent<Building>(entity);
 
-                    if(m_AddPreventOverride && isStaticAndNotBuilding)
+                    if (m_AddPreventOverride && isStaticAndNotBuilding && preventOverride != default && !EntityManager.HasComponent(m_SelectedEntity, preventOverride))
                     {
                         AnarchyBridge.TryAddAnarchyComponent(entity);
                     }
 
-                    if ( (m_AddTransformLock && isStaticAndNotBuilding) || transformLock != default && EntityManager.HasComponent(entity, transformLock))
-                    {
-                        AnarchyBridge.RemoveTransformLockComponent(entity);
-                        AnarchyBridge.TryAddTransformLockComponent(entity, newTransform);
-                    }
+                    if (transformLock != default && EntityManager.HasComponent(entity, transformLock))
+                        AnarchyBridge.TryUpdateTransformLockComponent(m_SelectedEntity, newTransform);
+                    else if ((m_AddTransformLock && isStaticAndNotBuilding))
+                        AnarchyBridge.TryAddTransformLockComponent(m_SelectedEntity, newTransform);
                 }
             }
 
