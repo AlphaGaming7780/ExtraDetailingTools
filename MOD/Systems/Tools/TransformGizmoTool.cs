@@ -1017,7 +1017,7 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             base.OnStartRunning();
 
-//#if DEBUG
+#if DEBUG
             if (!AnarchyBridge.IsAvailable)
             {
                 if (AnarchyBridge.Initialize(true))
@@ -1032,7 +1032,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     EDT.Logger.Warn($"Anarchy not available. {toolID} will not be registered to Anarchy and may not work properly.");
                 }
             }
-//#endif
+#endif
 
             m_UndoAction.shouldBeEnabled = true;
             m_RedoAction.shouldBeEnabled = true;
@@ -1041,6 +1041,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_SelectedEntity = m_ToolSystem.selected;
             m_WasAnEntitySelected = m_SelectedEntity != Entity.Null;
             m_ToolSystem.selected = Entity.Null;
+            m_TransformGizmoToolUI.SetMode(Mode.Default);
             EnableActions(true);
         }
 
@@ -1063,6 +1064,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
             m_UndoHistory.Clear();
             m_RedoHistory.Clear();
+            m_TransformGizmoToolUI.SetMode(Mode.Default);
             EnableActions(false);
         }
 
@@ -1900,6 +1902,16 @@ namespace ExtraDetailingTools.Systems.Tools
                 temp.m_Flags |= TempFlags.Dragging;
                 entityCommandBuffer.SetComponent(m_SelectedTempEntity, temp);
                 entityCommandBuffer.AddComponent(m_SelectedTempEntity, default(Updated));
+
+                if(AnarchyBridge.IsAvailable)
+                {
+                    ComponentType preventOverride = AnarchyBridge.GetAnarchyComponentType();
+                    if (preventOverride != default && EntityManager.HasComponent(m_SelectedEntity, preventOverride))
+                    {
+                        entityCommandBuffer.RemoveComponent(m_SelectedEntity, preventOverride);
+                    }
+                }
+
                 entityCommandBuffer.AddComponent<Overridden>(m_SelectedEntity);
                 SetState(State.Dragging);
             }

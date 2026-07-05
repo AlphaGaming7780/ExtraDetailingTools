@@ -2,6 +2,7 @@
 // Copyright (c) Triton Supreme. All rights reserved.
 // </copyright>
 
+using Colossal.Core;
 using Colossal.IO.AssetDatabase;
 using Colossal.Logging;
 using ExtraDetailingTools.ExtraSnap;
@@ -89,6 +90,8 @@ namespace ExtraDetailingTools
 
                 //PrefabsHelper.LoadPrefabsInDirectory(Path.Combine(fileInfo.Directory.FullName, "Prefabs"));
 
+                MainThreadDispatcher.RegisterUpdater(() => { AnarchyBridge.Initialize(true); });
+
 #if Extra4
                 GameGrassPrefab gameGrassPrefab = UnityEngine.ScriptableObject.CreateInstance<GameGrassPrefab>();
                 gameGrassPrefab.name = "GameGrassPrefab";
@@ -104,6 +107,7 @@ namespace ExtraDetailingTools
                 //uIObject1.m_Icon = Icons.GetIcon(grassPrefabNew);
                 //EL.m_PrefabSystem.AddPrefab(grassPrefabNew);
 #endif
+
                 harmony = new($"{nameof(ExtraDetailingTools)}.{nameof(EDT)}");
                 harmony.PatchAll(typeof(EDT).Assembly);
                 var patchedMethods = harmony.GetPatchedMethods().ToArray();
