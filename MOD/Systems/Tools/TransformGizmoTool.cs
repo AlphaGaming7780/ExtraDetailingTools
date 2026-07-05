@@ -947,8 +947,8 @@ namespace ExtraDetailingTools.Systems.Tools
         private bool m_WasAnEntitySelected = false;
 
         // Anarchy Support
-        internal bool m_AddPreventOverride = false;
-        internal bool m_AddTransformLock = false;
+        internal bool m_AddPreventOverride = true;
+        internal bool m_AddTransformLock = true;
 
         public bool m_UseLocalAxis { get; internal set; } = true;
         public bool m_MoveSubBuildings { get; internal set; } = true;
@@ -1101,25 +1101,11 @@ namespace ExtraDetailingTools.Systems.Tools
                 if(!m_RaycastFilter.HasFlag(RaycastFilter.MovingObject))
                     m_ToolRaycastSystem.typeMask |= TypeMask.MovingObjects;
 
-                //m_ToolRaycastSystem.typeMask = TypeMask.StaticObjects | TypeMask.MovingObjects | TypeMask.Labels | TypeMask.Icons;
-                //m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Decals | RaycastFlags.BuildingLots;
-                //m_ToolRaycastSystem.netLayerMask = Layer.None;
-                //m_ToolRaycastSystem.areaTypeMask = AreaTypeMask.None;
-                //m_ToolRaycastSystem.iconLayerMask = IconLayerMask.Default;
-                //if (!m_Underground)
-                //{
-                //    m_ToolRaycastSystem.typeMask |= TypeMask.Areas;
-                //    m_ToolRaycastSystem.areaTypeMask |= AreaTypeMask.Lots;
-                //}
                 if (m_ToolSystem.actionMode.IsEditor())
                 {
                     m_ToolRaycastSystem.raycastFlags &= ~RaycastFlags.SubBuildings;
                     m_ToolRaycastSystem.raycastFlags |= RaycastFlags.SubElements | RaycastFlags.Placeholders | RaycastFlags.Markers | RaycastFlags.UpgradeIsMain | RaycastFlags.EditorContainers;
                 }
-                //else
-                //{
-                //    m_ToolRaycastSystem.raycastFlags |= RaycastFlags.SubBuildings;
-                //}
             } else
             {
                 GizmosRaycastInput input = new GizmosRaycastInput()
@@ -1145,8 +1131,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
                     m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects | TypeMask.MovingObjects | TypeMask.Net | TypeMask.Lanes;
                     m_ToolRaycastSystem.netLayerMask = Layer.Road | Layer.Fence | Layer.TrainTrack | Layer.SubwayTrack | Layer.TrainTrack;
-                    //m_ToolRaycastSystem.utilityTypeMask = UtilityTypes.Fence;
-                    //m_ToolRaycastSystem.raycastFlags = RaycastFlags.SubElements | RaycastFlags.Markers | RaycastFlags.EditorContainers;
+
                     if (m_ToolSystem.actionMode.IsEditor())
                     {
                         m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Placeholders;
@@ -1427,7 +1412,6 @@ namespace ExtraDetailingTools.Systems.Tools
                                 if (m_SelectedHandle == Handle.XZ)
                                 {
                                     newPos = m_DragStartGizmoPos + mouseDelta;
-                                    //newPos.y = m_DragStartGizmoPos.y;
                                 }
                                 else
                                 {
@@ -1524,7 +1508,7 @@ namespace ExtraDetailingTools.Systems.Tools
                         {
                             m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_RelocateBuildingSound);
                         }
-                        else //if (EntityManager.HasComponent<Static>(m_SelectedEntity) || m_ToolSystem.actionMode.IsEditor())
+                        else
                         {
                             m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_PlacePropSound);
                         }
@@ -1892,14 +1876,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_DragStartGizmoPos = transform.m_Position;
                 m_DragStartGizmoRot = transform.m_Rotation;
 
-                if(m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ)
-                {
-                    //if (GetRaycastResult(out Entity entity, out RaycastHit hit, out bool forceUpdate))
-                    //{
-                    //    m_DragStartMouseHitPos = hit.m_HitPosition;
-                    //}
-                }
-                else
+                if(m_XZHandleMode != XZHandleMode.FollowSurface || m_SelectedHandle != Handle.XZ)
                 {
                     float3 axisDir = GetSelectedAxisDirection(m_SelectedHandle);
                     Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
