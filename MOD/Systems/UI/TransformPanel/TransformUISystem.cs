@@ -157,7 +157,10 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
 
         private void UpdateObject(float3 position, quaternion rotation)
         {
+            bool addTL = m_TransformGizmoTool.m_AddTransformLock;
+            m_TransformGizmoTool.m_AddTransformLock = false;
             m_TransformGizmoTool.UpdateObject(Dependency, m_SelectedEntity, position, rotation, m_EndFrameBarrier);
+            m_TransformGizmoTool.m_AddTransformLock = addTL;
         }
 
         private float3 GetPosition()

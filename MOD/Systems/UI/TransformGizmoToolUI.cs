@@ -24,6 +24,9 @@ namespace ExtraDetailingTools.Systems.UI
         private GetterValueBinding<bool> m_MoveSubBuildingsValueGetter;
         private GetterValueBinding<int> m_XZHandleModeValueGetter;
         private GetterValueBinding<int> m_RaycastFilterValueGetter;
+        private GetterValueBinding<bool> m_AnarchyAvailableValueGetter;
+        private GetterValueBinding<bool> m_AddPreventOverrideValueGetter;
+        private GetterValueBinding<bool> m_AddTransformLockValueGetter;
 
         protected override void OnCreate()
         {
@@ -54,6 +57,12 @@ namespace ExtraDetailingTools.Systems.UI
 
             AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SnapOnGround", new Action(SnapOnGround)));
 
+            AddBinding(m_AnarchyAvailableValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AnarchyAvailable", () => AnarchyBridge.IsAvailable));
+            AddBinding(m_AddPreventOverrideValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddPreventOverride", () => m_TransformGizmoTool.m_AddPreventOverride));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddPreventOverride", new Action<bool>(SetAddPreventOverride)));
+            AddBinding(m_AddTransformLockValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddTransformLock", () => m_TransformGizmoTool.m_AddTransformLock));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddTransformLock", new Action<bool>(SetAddTransformLock)));
+
             AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SelectTransformGizmosTool", EnableTransformGizmoTool));
         }
 
@@ -68,6 +77,7 @@ namespace ExtraDetailingTools.Systems.UI
 
         public void EnableTransformGizmoTool()
         {
+            m_AnarchyAvailableValueGetter.Update();
             m_ToolSystem.activeTool = m_TransformGizmoTool;
         }
 
@@ -121,6 +131,18 @@ namespace ExtraDetailingTools.Systems.UI
         public void SnapOnGround()
         {
             m_TransformGizmoTool.SnapOnGround();
+        }
+
+        public void SetAddPreventOverride(bool enabled)
+        {
+            m_TransformGizmoTool.m_AddPreventOverride = enabled;
+            m_AddPreventOverrideValueGetter.Update();
+        }
+
+        public void SetAddTransformLock(bool enabled)
+        {
+            m_TransformGizmoTool.m_AddTransformLock = enabled;
+            m_AddTransformLockValueGetter.Update();
         }
 
     }

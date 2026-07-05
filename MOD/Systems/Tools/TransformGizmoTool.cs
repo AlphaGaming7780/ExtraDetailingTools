@@ -909,7 +909,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private State m_State = State.Idle;
 
-        private RaycastFilter m_RaycastFilter = RaycastFilter.All;
+        private RaycastFilter m_RaycastFilter = RaycastFilter.None;
 
         private EntityQuery m_SoundQuery;
         private EntityQuery m_DefinitionQuery;
@@ -947,8 +947,8 @@ namespace ExtraDetailingTools.Systems.Tools
         private bool m_WasAnEntitySelected = false;
 
         // Anarchy Support
-        private bool m_AddPreventOverride = false;
-        private bool m_AddTransformLock = false;
+        internal bool m_AddPreventOverride = false;
+        internal bool m_AddTransformLock = false;
 
         public bool m_UseLocalAxis { get; internal set; } = true;
         public bool m_MoveSubBuildings { get; internal set; } = true;
@@ -992,13 +992,16 @@ namespace ExtraDetailingTools.Systems.Tools
             m_TerrainSystem = World.GetOrCreateSystemManaged<TerrainSystem>();
             m_ToolOutputBarrier = World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_AudioManager = World.GetOrCreateSystemManaged<AudioManager>();
-            m_SoundQuery = GetEntityQuery(ComponentType.ReadOnly<ToolUXSoundSettingsData>());
             m_GimzosRaycastSystem = World.GetOrCreateSystemManaged<GizmosRaycastSystem>();
+
+            m_SoundQuery = GetEntityQuery(ComponentType.ReadOnly<ToolUXSoundSettingsData>());
             m_TempQuery = GetEntityQuery(ComponentType.ReadOnly<Temp>());
             m_HandleQuery = GetEntityQuery(ComponentType.ReadOnly<TransformGizmosHandle>());
             m_DefinitionQuery = GetDefinitionQuery();
+
             m_UndoHistory = new();
             m_RedoHistory = new();
+
             m_UndoAction = EDT.m_Settings.GetAction(EDT.m_Settings.UndoBinding.actionName);
             m_RedoAction = EDT.m_Settings.GetAction(EDT.m_Settings.RedoBinding.actionName);
             m_MoveAction = EDT.m_Settings.GetAction(EDT.m_Settings.EnterMoveBinding.actionName);
@@ -1014,7 +1017,7 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             base.OnStartRunning();
 
-#if DEBUG
+//#if DEBUG
             if (!AnarchyBridge.IsAvailable)
             {
                 if (AnarchyBridge.Initialize(true))
@@ -1029,7 +1032,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     EDT.Logger.Warn($"Anarchy not available. {toolID} will not be registered to Anarchy and may not work properly.");
                 }
             }
-#endif
+//#endif
 
             m_UndoAction.shouldBeEnabled = true;
             m_RedoAction.shouldBeEnabled = true;
@@ -1084,18 +1087,18 @@ namespace ExtraDetailingTools.Systems.Tools
                     m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground;
                 }
 
-                if(m_RaycastFilter.HasFlag(RaycastFilter.StaticObject))
+                if(!m_RaycastFilter.HasFlag(RaycastFilter.StaticObject))
                 {
                     m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
 
-                    if (m_RaycastFilter.HasFlag(RaycastFilter.Decals))
+                    if (!m_RaycastFilter.HasFlag(RaycastFilter.Decals))
                         m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Decals;
 
-                    if (m_RaycastFilter.HasFlag(RaycastFilter.Buildings))
+                    if (!m_RaycastFilter.HasFlag(RaycastFilter.Buildings))
                         m_ToolRaycastSystem.raycastFlags |= RaycastFlags.BuildingLots | RaycastFlags.SubBuildings;
                 }
 
-                if(m_RaycastFilter.HasFlag(RaycastFilter.MovingObject))
+                if(!m_RaycastFilter.HasFlag(RaycastFilter.MovingObject))
                     m_ToolRaycastSystem.typeMask |= TypeMask.MovingObjects;
 
                 //m_ToolRaycastSystem.typeMask = TypeMask.StaticObjects | TypeMask.MovingObjects | TypeMask.Labels | TypeMask.Icons;
@@ -1378,7 +1381,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
                     if (m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ)
                     {
-                        if (GetRaycastResult(out Entity entity, out RaycastHit hit, out bool forceUpdate))
+                        if (GetRaycastResult(out Entity entity, out RaycastHit hit))
                         {
                             newPos = hit.m_HitPosition;
 
@@ -1742,10 +1745,8 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             if (entity == Entity.Null) return inputDeps;
 
-            // TODO: Maybe move this code in is own function and only call it when needed (End move or End Rotate)
             if (!EntityManager.HasComponent<Temp>(entity))
             {
-
                 if (EntityManager.HasComponent<Building>(entity))
                 {
                     m_TerrainSystem.OnBuildingMoved(m_SelectedEntity);
@@ -1922,6 +1923,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 temp.m_Flags |= TempFlags.Dragging;
                 entityCommandBuffer.SetComponent(m_SelectedTempEntity, temp);
                 entityCommandBuffer.AddComponent(m_SelectedTempEntity, default(Updated));
+                entityCommandBuffer.AddComponent<Overridden>(m_SelectedEntity);
                 SetState(State.Dragging);
             }
             else
@@ -1940,6 +1942,11 @@ namespace ExtraDetailingTools.Systems.Tools
                 temp.m_Flags &= ~TempFlags.Dragging;
                 entityCommandBuffer.SetComponent(m_SelectedTempEntity, temp);
                 entityCommandBuffer.AddComponent(m_SelectedTempEntity, default(Updated));
+                entityCommandBuffer.RemoveComponent<Overridden>(m_SelectedEntity);
+            }
+            else
+            {
+                EDT.Logger.Warn("Try to stop dragging but m_SelectedTempEntity was null.");
             }
             m_SelectedTempEntity = Entity.Null;
             m_SelectedHandle = Handle.None;
@@ -2018,23 +2025,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 return true;
 
             return false;
-        }
-
-        public bool CanAddAnarchyComponents(Entity entity)
-        {
-            if(entity == null || !AnarchyBridge.IsAvailable) 
-                return false;
-
-            if (EntityManager.HasComponent<Temp>(entity))
-                return false;
-
-            if (!EntityManager.HasComponent<Static>(entity))
-                return false;
-
-            if (!EntityManager.HasComponent<Building>(entity))
-                return false;
-
-            return true;
         }
     }
 }
