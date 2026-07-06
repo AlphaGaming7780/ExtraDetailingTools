@@ -8,9 +8,9 @@ import { ActionButtonSCSS } from "../../../game-ui/game/components/selected-info
 import { InfoRowSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
 import { InfoSectionFoldout } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section-foldout";
 import { InfoSectionSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
-import { kTransformGizmoToolId } from "../TransformGizmosTool/TransformGizmoTool";
 import { TransformPanel } from "../TransformPanel/TransformPanel";
 import styles from "./TransformSection.module.scss";
+import { kTransformGizmoToolId } from "BindingConst";
 
 export const kTransformSection$ = "TransformSection";
 

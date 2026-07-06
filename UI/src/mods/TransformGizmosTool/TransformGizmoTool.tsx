@@ -11,6 +11,8 @@ import styles from "./TransformGizmoToolStyle.module.scss";
 import classNames from "classnames";
 import { FOCUS_DISABLED$ } from "../../../game-ui/common/focus/focus-key";
 import { kTransformSection$ } from "../TransformSection/TransformSection";
+import { AnarchyButtons } from "../AnarchyButtons/AnarchyButtons";
+import { kTransformGizmoToolId } from "../../BindingConst";
 
 enum Mode {
 	Default = 0,
@@ -34,7 +36,6 @@ enum RaycastFilter {
 	MovingObject = 8,
 }
 
-export const kTransformGizmoToolId = "TransformGizmoTool";
 const toolMode$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.ToolMode`, 0);
 const pos$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Position`, {x: 0, y: 0, z:0});
 const rot$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Rotation`, {x: 0, y: 0, z:0});
@@ -44,7 +45,7 @@ const xzHandleMode$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.XZ
 const snapToSurface$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.SnapToSurface`, false);
 const moveSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, false);
 const haSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.HasSubBuildings`, false);
-const raycastFilter$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.RaycastFilter`, 0xFFFFFFFF);
+const raycastFilter$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.RaycastFilter`, 0);
 
 export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 	return (props) => {
@@ -157,7 +158,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					onSelect={() => LocalAxis(!useLocalAxis)}
 				/>
 
-				{ haSubBuildings ? 
+				{ haSubBuildings ?
 					<ToolButton
 						focusKey={FOCUS_DISABLED$}
 						tooltip={translate("TransformPanel.MoveSubBuildings.tooltip")}
@@ -166,7 +167,9 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						onSelect={() => MoveSubBuildings(!moveSubBuildings)}
 					/> : <></>
 				}
-				
+
+				<AnarchyButtons />
+
 			</Section>
 
 			{ currentMode === Mode.Default &&
@@ -177,7 +180,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						focusKey={FOCUS_DISABLED$}
 						tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.StaticObject.Tooltip", "Static Objects")}
 						src="Media/Game/Icons/Props.svg"
-						selected={hasFlag(RaycastFilter.StaticObject)}
+						selected={!hasFlag(RaycastFilter.StaticObject)}
 						onSelect={() => toggleFlag(RaycastFilter.StaticObject)}
 					/>
 
@@ -185,8 +188,8 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						focusKey={FOCUS_DISABLED$}
 						tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.Decals.Tooltip", "Decals")}
 						src="Media/Game/Icons/PropsDecals.svg"
-						selected={hasFlag(RaycastFilter.StaticObject) && hasFlag(RaycastFilter.Decals)}
-						disabled={!hasFlag(RaycastFilter.StaticObject)}
+						selected={!hasFlag(RaycastFilter.StaticObject) && !hasFlag(RaycastFilter.Decals)}
+						disabled={hasFlag(RaycastFilter.StaticObject)}
 						onSelect={() => toggleFlag(RaycastFilter.Decals)}
 					/>
 
@@ -203,7 +206,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						focusKey={FOCUS_DISABLED$}
 						tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.MovingObject.Tooltip", "Moving Objects")}
 						src="Media/Game/Icons/Traffic.svg"
-						selected={hasFlag(RaycastFilter.MovingObject)}
+						selected={!hasFlag(RaycastFilter.MovingObject)}
 						onSelect={() => toggleFlag(RaycastFilter.MovingObject)}
 					/>
 				</Section>

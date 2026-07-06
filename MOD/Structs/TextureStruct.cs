@@ -92,7 +92,7 @@ namespace ExtraDetailingTools.Structs
             return GetValue(int2.x, int2.y);
         }
 
-        public float2 Size()
+        public readonly float2 Size()
         {
             return new float2(width, height);
         }

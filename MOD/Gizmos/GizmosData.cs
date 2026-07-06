@@ -9,12 +9,13 @@ using UnityEngine;
 
 namespace ExtraDetailingTools.Gizmos
 {
+    // Order must match GizmosRaycastType's bit order (GizmosRaycastSystem.MatchType shifts by (int)Type).
     public enum GizmoType
     {
         Line,
         Bezier,
-        ArrowHead,
         Arrow,
+        ArrowHead,
         Sphere,
         Cube,
         WireArc,
@@ -22,6 +23,7 @@ namespace ExtraDetailingTools.Gizmos
         Cone,
         Capsule,
         Frustum,
+        CapsuleConic,
     }
 
     public struct GizmosData : IComponentData
