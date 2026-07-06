@@ -1,15 +1,11 @@
-﻿using Colossal.AssetPipeline.Importers;
-using Game.Input;
+﻿using Game.Input;
 using Game.Modding;
 using Game.Settings;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ExtraDetailingTools
 {
+    [SettingsUIGroupOrder(kQOLGroup, kKeybindingGroup, kQuickActionsGroup)]
+    [SettingsUIShowGroupName(kQOLGroup, kKeybindingGroup, kQuickActionsGroup)]
     [SettingsUIKeyboardAction(nameof(OpenTransformTool), Usages.kDefaultUsage, Usages.kEditorUsage, Usages.kToolUsage)]
     [SettingsUIKeyboardAction(nameof(ToggleShowMarker), Usages.kDefaultUsage, Usages.kEditorUsage)]
     [SettingsUIKeyboardAction(nameof(EnterMoveBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
@@ -17,7 +13,7 @@ namespace ExtraDetailingTools
     [SettingsUIKeyboardAction(nameof(UndoBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
     [SettingsUIKeyboardAction(nameof(RedoBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
     internal class Settings : ModSetting
-    {
+    {   
 
         public const string kMainSection = "Main";
         public const string kTTTSection = "TransformTool";
@@ -54,9 +50,13 @@ namespace ExtraDetailingTools
         [SettingsUISection(kTTTSection, kKeybindingGroup, kQuickActionsGroup)]
         public ProxyBinding RedoBinding { get; set; }
 
+        [SettingsUISection(kTTTSection, kQOLGroup)]
+        [SettingsUISlider(min = 50f, max = 500f, step = 10f, unit = "integer")]
+        public int HandleScreenSize { get; set; } = 150;
+
         public override void SetDefaults()
         {
-            //throw new NotImplementedException();
+            HandleScreenSize = 150;
         }
     }
 }

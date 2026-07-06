@@ -34,6 +34,9 @@
 	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.RedoBinding]": "Redo the last undone transform action.",
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/RedoBinding/binding]": "Redo",
 
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Gizmo Handle Size",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Screen size, in pixels, of the Transform Gizmo Tool's handles.",
+
 	"Toolbar.SHOWMARKER": "Show Marker",
 	"ToolOptions.TOOLTIP[ShowMarker]": "Show/hide the markers.",
 

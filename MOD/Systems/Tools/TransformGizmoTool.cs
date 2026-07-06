@@ -407,8 +407,6 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public ComponentLookup<InterpolatedTransform> m_InterpolatedTransformLookup;
             [ReadOnly] public ComponentLookup<GizmosData> m_GizmosDataLookup;
             [ReadOnly] public ComponentLookup<Highlighted> m_HighlightedLookup;
-            [ReadOnly] public ComponentLookup<PrefabRef> m_PrefabRefLookup;
-            [ReadOnly] public ComponentLookup<ObjectGeometryData> m_ObjectGeometryDataLookup;
 
             [ReadOnly] public bool m_UseLocalAxis;
             [ReadOnly] public XZHandleMode m_XZHandleMode;
@@ -420,6 +418,14 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public TerrainHeightData m_TerrainHeightData;
 
             [ReadOnly] public NativeList<Entity> m_Handles;
+
+            // Screen-proportional handle sizing: the handle keeps the same size relative to the vertical
+            // field of view, so it looks the same size on screen at any resolution (not a fixed pixel count).
+            [ReadOnly] public float3 m_CameraPosition;
+            [ReadOnly] public float m_TanFOV;
+            [ReadOnly] public float m_HandleScreenSize; // desired handle size, in pixels, at kReferenceScreenHeight (user setting)
+
+            private const float kReferenceScreenHeight = 1080f;
 
             private int m_ReuseIndex;
 
@@ -446,24 +452,13 @@ namespace ExtraDetailingTools.Systems.Tools
                 float3 pos =     !m_Position.Equals(default) ? m_Position : transform.m_Position;
                 quaternion rot = !m_Rotation.Equals(default) ? m_Rotation : transform.m_Rotation;
 
-                float3 size = new(1,1,1);
-
-                if (m_PrefabRefLookup.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef) && m_ObjectGeometryDataLookup.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
-                {
-                    if (m_UseLocalAxis || m_Mode == Mode.Rotate)
-                    {
-                        size = geometryData.m_Size;
-                    }
-                    else
-                    {
-                        Bounds3 bounds3 = ObjectUtils.CalculateBounds(pos, rot, geometryData);
-                        size = new(bounds3.x.max - bounds3.x.min, bounds3.y.max - bounds3.y.min, bounds3.z.max - bounds3.z.min);
-                    }
-                }
-
-                if(size.x < 1) size.x = 1;
-                if(size.y < 1) size.y = 1;
-                if(size.z < 1) size.z = 1;
+                // Keep the handle at a constant screen-space size (relative to the vertical FOV, not a fixed
+                // pixel count), regardless of the selected object's size, its distance to the camera, or the
+                // render resolution — pixelHeight cancels out entirely when sizing by a fraction of the screen.
+                float distance = math.distance(pos, m_CameraPosition);
+                float targetFraction = m_HandleScreenSize / kReferenceScreenHeight;
+                float handleSize = math.max(distance * m_TanFOV * 2f * targetFraction, 0.01f);
+                float3 size = new(handleSize, handleSize, handleSize);
 
                 switch (m_Mode)
                 {
@@ -484,7 +479,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private void UpdateMoveHandle(float3 pos, quaternion rot, float3 size)
             {
-                float radius = (math.csum(size) / 3f) * 0.115f;
+                float radius = math.cmax(size) * 0.1f; //(math.csum(size) / 3f) * 0.115f;
                 float3 xAxis = new float3(1, 0, 0);
                 float3 yAxis = new float3(0, 1, 0);
                 float3 zAxis = new float3(0, 0, 1);
@@ -527,7 +522,7 @@ namespace ExtraDetailingTools.Systems.Tools
             private void UpdateMoveArrow(Handle handle, float3 A, float3 B, Color color)
             {
                 Entity gizmos = GetOrCreateEntity();
-                GizmosData data = GizmosUtils.DrawArrow(A, B, color); //math.distance(A, B) * 0.4f
+                GizmosData data = GizmosUtils.DrawArrow(A, B, color, math.distance(A, B) * 0.2f);
                 m_CommandBuffer.AddComponent(gizmos, data);
 
                 AddHandleComponent(handle, gizmos);
@@ -546,7 +541,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private void UpdateRotateHandle(float3 pos, quaternion rot, float3 size)
             {
-                float radius = math.cmax(size) / 2;
+                float radius = math.cmax(size);
 
                 float3 xAxis = new float3(1, 0, 0);
                 float3 yAxis = new float3(0, 1, 0);
@@ -1687,6 +1682,10 @@ namespace ExtraDetailingTools.Systems.Tools
         private JobHandle UpdateGizmos(JobHandle inputDeps, float3 position, quaternion rotation)
         {
             var c = m_HandleQuery.ToEntityListAsync(Allocator.TempJob, out JobHandle dep);
+
+            Camera cam = Camera.main;
+            float tanFOV = math.tan(math.radians(cam.fieldOfView) * 0.5f);
+
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateGizmosJob
             {
                 m_Mode = m_Mode,
@@ -1698,14 +1697,15 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_InterpolatedTransformLookup = SystemAPI.GetComponentLookup<InterpolatedTransform>(true),
                 m_GizmosDataLookup = SystemAPI.GetComponentLookup<GizmosData>(true),
                 m_HighlightedLookup = SystemAPI.GetComponentLookup<Highlighted>(true),
-                m_PrefabRefLookup = SystemAPI.GetComponentLookup<PrefabRef>(true),
-                m_ObjectGeometryDataLookup = SystemAPI.GetComponentLookup<ObjectGeometryData>(true),
                 m_UseLocalAxis = m_UseLocalAxis,
                 m_XZHandleMode = m_XZHandleMode,
                 m_Position = position,
                 m_Rotation = rotation,
                 m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
-                m_TerrainHeightData = m_TerrainSystem.GetHeightData()
+                m_TerrainHeightData = m_TerrainSystem.GetHeightData(),
+                m_CameraPosition = cam.transform.position,
+                m_TanFOV = tanFOV,
+                m_HandleScreenSize = EDT.m_Settings.HandleScreenSize,
             }, JobHandle.CombineDependencies(inputDeps, dep));
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
             jobHandle = c.Dispose(jobHandle);
