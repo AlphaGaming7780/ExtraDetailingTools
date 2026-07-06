@@ -59,7 +59,6 @@ namespace ExtraDetailingTools.Patches
                 if (!__instance.EntityManager.Exists(selectedEntity))
 					return;
                 
-
                 EndFrameBarrier m_EndFrameBarrier = traverse.Field("m_EndFrameBarrier").GetValue<EndFrameBarrier>();
 
                 EntityCommandBuffer entityCommandBuffer = m_EndFrameBarrier.CreateCommandBuffer();

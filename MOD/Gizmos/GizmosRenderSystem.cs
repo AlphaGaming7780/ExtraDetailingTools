@@ -129,9 +129,69 @@ namespace ExtraDetailingTools.Gizmos
                             g.Segments
                             );
                         break;
+                    case GizmoType.Cube:
+                        Batcher.DrawWireCube(
+                            g.TRS,
+                            g.A, /* center */
+                            g.Params0.xyz, /* size */
+                            color
+                            );
+                        break;
+                    case GizmoType.Cylinder:
+                        Batcher.DrawWireCylinder(
+                            g.TRS,
+                            g.A, /* center */
+                            g.Params0.x, /* radius */
+                            g.Params0.y, /* height */
+                            color,
+                            g.Segments
+                            );
+                        break;
+                    case GizmoType.Cone:
+                        Batcher.DrawWireCone(
+                            g.TRS,
+                            g.A,
+                            g.Params0.x, /* radiusA */
+                            g.B,
+                            g.Params0.y, /* radiusB */
+                            color,
+                            g.Segments
+                            );
+                        break;
+                    case GizmoType.Capsule:
+                        Batcher.DrawWireCapsule(
+                            g.TRS,
+                            g.A, /* center */
+                            g.Params0.x, /* radius */
+                            g.Params0.y, /* height */
+                            color,
+                            g.Segments
+                            );
+                        break;
+                    case GizmoType.CapsuleConic:
+                        Batcher.DrawWireCapsuleConic(
+                            g.TRS,
+                            g.A,
+                            g.Params0.x, /* radiusA */
+                            g.B,
+                            g.Params0.y, /* radiusB */
+                            color,
+                            g.Segments
+                            );
+                        break;
+                    case GizmoType.Frustum:
+                        Batcher.DrawWireFrustum(
+                            g.TRS,
+                            g.Params0.x, /* fov */
+                            g.Params0.y, /* minRange */
+                            g.Params0.z, /* maxRange */
+                            g.Params0.w, /* aspect */
+                            color
+                            );
+                        break;
                 }
             }
-            Color GetHighlightedColor(Color color)
+            private readonly Color GetHighlightedColor(Color color)
             {
                 return Color.Lerp(color, Color.white, 0.4f);
             }
