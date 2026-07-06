@@ -1,10 +1,12 @@
 ﻿
+using Colossal.Entities;
+using Game;
+using Game.Areas;
+using Game.Buildings;
+using Game.Common;
 using Game.UI.InGame;
 using HarmonyLib;
 using Unity.Entities;
-using ExtraLib;
-using Colossal.Entities;
-using Game.Prefabs;
 
 namespace ExtraDetailingTools.Patches
 {
@@ -44,5 +46,38 @@ namespace ExtraDetailingTools.Patches
 				//}
 			}
 		}
-	}
+
+        [HarmonyPatch(typeof(ActionsSection), "OnDelete")]
+        public class OnDelete
+        {
+            public static void Postfix(ActionsSection __instance)
+            {
+                Traverse traverse = Traverse.Create(__instance);
+
+				Entity selectedEntity = traverse.Property("selectedEntity").GetValue<Entity>();
+
+                if (!__instance.EntityManager.Exists(selectedEntity))
+					return;
+                
+
+                EndFrameBarrier m_EndFrameBarrier = traverse.Field("m_EndFrameBarrier").GetValue<EndFrameBarrier>();
+
+                EntityCommandBuffer entityCommandBuffer = m_EndFrameBarrier.CreateCommandBuffer();
+
+				if(!__instance.EntityManager.TryGetBuffer<InstalledUpgrade>(selectedEntity, true, out var installedUpgradeBuffer))
+                    return;
+
+				foreach(var upgrade in installedUpgradeBuffer)
+				{
+                    if (!__instance.EntityManager.TryGetBuffer<SubArea>(upgrade.m_Upgrade, true, out var subAreaBuffer))
+                        return;
+
+                    foreach (SubArea subArea in subAreaBuffer)
+                    {
+                        entityCommandBuffer.AddComponent<Deleted>(subArea.m_Area);
+                    }
+                }
+            }
+        }
+    }
 }
