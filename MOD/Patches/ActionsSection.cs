@@ -4,6 +4,7 @@ using Game;
 using Game.Areas;
 using Game.Buildings;
 using Game.Common;
+using Game.Net;
 using Game.UI.InGame;
 using HarmonyLib;
 using Unity.Entities;
@@ -19,32 +20,10 @@ namespace ExtraDetailingTools.Patches
 			{
 				Traverse traverse = Traverse.Create(__instance);
 
-				//Entity selectedEntity = traverse.Property("selectedEntity").GetValue<Entity>();
-				//bool disableable = traverse.Property("disableable").GetValue<bool>();
+				Entity selectedEntity = traverse.Property("selectedEntity").GetValue<Entity>();
 
-				//if (EL.m_EntityManager.TryGetComponent(selectedEntity, out PrefabData prefabData) && EL.m_PrefabSystem.TryGetPrefab(prefabData, out PrefabBase prefabBase))
-				//{
-				//	EDT.Logger.Info(prefabBase);
-				//}
-
-				//if (ExtraLib.m_EntityManager.TryGetComponent(selectedEntity, out PrefabRef prefabRef) && ExtraLib.m_PrefabSystem.TryGetPrefab(prefabRef, out PrefabBase prefabBase2))
-				//{
-				//	EDT.Logger.Info(prefabBase2);
-				//}
-
-				traverse.Property("deletable").SetValue(true);
-				//if (!ExtraLib.m_EntityManager.HasComponent<Car>(selectedEntity) && !ExtraLib.m_EntityManager.HasComponent<Human>(selectedEntity)) traverse.Property("moveable").SetValue(true);
-				//traverse.Property("disableable").SetValue(disableable || ExtraLib.m_EntityManager.HasBuffer<EnabledEffect>(selectedEntity));
-
-				//if (ExtraLib.m_EntityManager.TryGetBuffer<EnabledEffect>(selectedEntity, false, out var enabledEffect)) 
-				//{
-				//    foreach(EnabledEffect enabledEffect1 in enabledEffect)
-				//    {
-				//        EDT.Logger.Info("m_EffectIndex " + enabledEffect1.m_EffectIndex);
-				//        EDT.Logger.Info("m_EnabledIndex " + enabledEffect1.m_EnabledIndex);
-				//    }
-				//}
-			}
+                traverse.Property("deletable").SetValue(!__instance.EntityManager.HasComponent<Aggregate>(selectedEntity));
+            }
 		}
 
         [HarmonyPatch(typeof(ActionsSection), "OnDelete")]
@@ -63,19 +42,37 @@ namespace ExtraDetailingTools.Patches
 
                 EntityCommandBuffer entityCommandBuffer = m_EndFrameBarrier.CreateCommandBuffer();
 
-				if(!__instance.EntityManager.TryGetBuffer<InstalledUpgrade>(selectedEntity, true, out var installedUpgradeBuffer))
-                    return;
-
-				foreach(var upgrade in installedUpgradeBuffer)
+				if (__instance.EntityManager.TryGetBuffer<InstalledUpgrade>(selectedEntity, true, out var installedUpgradeBuffer))
 				{
-                    if (!__instance.EntityManager.TryGetBuffer<SubArea>(upgrade.m_Upgrade, true, out var subAreaBuffer))
-                        return;
-
-                    foreach (SubArea subArea in subAreaBuffer)
+                    foreach (var upgrade in installedUpgradeBuffer)
                     {
-                        entityCommandBuffer.AddComponent<Deleted>(subArea.m_Area);
+                        if (!__instance.EntityManager.TryGetBuffer<SubArea>(upgrade.m_Upgrade, true, out var subAreaBuffer))
+                            return;
+
+                        foreach (SubArea subArea in subAreaBuffer)
+                        {
+                            entityCommandBuffer.AddComponent<Deleted>(subArea.m_Area);
+                        }
                     }
                 }
+
+                // For roads name, but disabled because it cause visual glitchs with connected roads.
+                if (__instance.EntityManager.TryGetBuffer<AggregateElement>(selectedEntity, true, out var aggregateElements))
+                {
+                    foreach (var aggregate in aggregateElements)
+                    {
+                        entityCommandBuffer.AddComponent<Deleted>(aggregate.m_Edge);
+                    }
+                }
+
+
+                //if(__instance.EntityManager.TryGetBuffer<SubNet>(selectedEntity, true, out var subNets))
+                //{
+                //                foreach (var subNet in subNets)
+                //                {
+                //                    entityCommandBuffer.AddComponent<Deleted>(subNet.m_SubNet);
+                //                }
+                //            }
             }
         }
     }
