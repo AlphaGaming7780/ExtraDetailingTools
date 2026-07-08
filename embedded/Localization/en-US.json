@@ -52,9 +52,9 @@
 	"Tool.TransformGizmoTool.SnapOnGround.tooltip": "Snap the object to the ground, setting its Y position to match the terrain surface below.",
 	"Tool.TransformGizmoTool.XZHandleMode": "Sphere Handle Mode",
 	"Tool.TransformGizmoTool.XZHandleMode.FollowSurface.Tooltip": "Follow Surface",
-	"Tool.TransformGizmoTool.XZHandleMode.FixedX.Tooltip": "Fixed X",
-	"Tool.TransformGizmoTool.XZHandleMode.FixedY.Tooltip": "Fixed Y",
-	"Tool.TransformGizmoTool.XZHandleMode.FixedZ.Tooltip": "Fixed Z",
+	"Tool.TransformGizmoTool.XZHandleMode.FixedX.Tooltip": "Fixed X axis",
+	"Tool.TransformGizmoTool.XZHandleMode.FixedY.Tooltip": "Fixed Y axis",
+	"Tool.TransformGizmoTool.XZHandleMode.FixedZ.Tooltip": "Fixed Z axis",
 
 	"ExtraPanelHeaderName[ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel]": "Transform Panel",
 
