@@ -107,7 +107,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		result.props.children?.unshift(
 			<>
 			<Section
-				title={translate("Tool.TransformGizmoTool.Mods", "Mods")}
+				title={translate("Tool.TransformGizmoTool.Modes", "Modes")}
 			>
 				<Tooltip tooltip={translate("Tool.TransformGizmoTool.Default.Tooltip", "Tool.TransformGizmoTool.Default.Tooltip")}>
 					<ValueToolButton<Number>
@@ -214,9 +214,9 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 
 			{ currentMode === Mode.Move &&
 				<Section
-					title={translate("Tool.TransformGizmoTool.XZHandleMode", "XZ Handle Mode")}
+					title={translate("Tool.TransformGizmoTool.XZHandleModes", "XZ Handle Modes")}
 				>
-					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleMode.FollowSurface.Tooltip", "Follow Surface")}>
+					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FollowSurface.Tooltip", "Follow Surface")}>
 						<ValueToolButton<Number>
 							focusKey={FOCUS_DISABLED$}
 							value={XZHandleMode.FollowSurface}
@@ -226,7 +226,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						/>
 					</Tooltip>
 
-					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleMode.FixedX.Tooltip", "Fixed X")}>
+					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedX.Tooltip", "Fixed X")}>
 						<ValueToolButton<Number>
 							focusKey={FOCUS_DISABLED$}
 							value={XZHandleMode.FixedX}
@@ -236,7 +236,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						/>
 					</Tooltip>
 
-					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleMode.FixedY.Tooltip", "Fixed Y")}>
+					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedY.Tooltip", "Fixed Y")}>
 						<ValueToolButton<Number>
 							focusKey={FOCUS_DISABLED$}
 							value={XZHandleMode.FixedY}
@@ -246,7 +246,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						/>
 					</Tooltip>
 
-					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleMode.FixedZ.Tooltip", "Fixed Z")}>
+					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedZ.Tooltip", "Fixed Z")}>
 						<ValueToolButton<Number>
 							focusKey={FOCUS_DISABLED$}
 							value={XZHandleMode.FixedZ}

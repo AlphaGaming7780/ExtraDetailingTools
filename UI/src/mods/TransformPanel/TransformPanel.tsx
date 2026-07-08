@@ -421,7 +421,7 @@ export const TransformPanel = () => {
 						</button>
 					</Tooltip>
 					{canPastPos && canPastRot ?
-						<Tooltip tooltip={translate("TransformPanel.PAST_POS_ROT.tooltip")}>
+						<Tooltip tooltip={translate("TransformPanel.PASTE_POS_ROT.tooltip")}>
 							<button className={classNames(ActionButtonSCSS.button, TransformPanelSCSS.TransfromSectionTinyButton)} onClick={() => { triggerPast("POS"); triggerPast("ROT") }}>
 								<img className={classNames(ActionButtonSCSS.icon, TransformPanelSCSS.TransfromSectionButtonTinyIcon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
 							</button>
