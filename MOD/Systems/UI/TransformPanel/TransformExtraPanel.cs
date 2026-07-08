@@ -15,7 +15,7 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
         protected override bool m_ShowInSelector => false;
         protected override bool m_CanFullScreen => false;
 
-        public override float2 PanelMinSize => new float2(400, 165);
+        public override float2 PanelMinSize => new float2(400, 165+48);
 
         private ToolSystem m_ToolSystem;
         private TransformGizmoTool m_TransformGizmoTool;
@@ -25,6 +25,7 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
         protected override void OnCreate()
         {
             base.OnCreate();
+            //SetPanelLocation(new float2(0.01f, 0.95f));
             EDT.Logger.Info("TransformPanel OnCreate");
             m_ToolSystem = World.GetExistingSystemManaged<ToolSystem>();
             m_TransformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
