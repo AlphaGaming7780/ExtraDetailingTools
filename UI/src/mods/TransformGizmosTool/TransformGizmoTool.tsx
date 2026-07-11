@@ -91,6 +91,11 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		{
 			trigger(kGroupName, `${kTransformGizmoToolId}.SnapOnGround`);
 		}
+
+		const Duplicate = () =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.Duplicate`);
+		}
 		
 		const SetXZHandleMode = (xzHandleMode : Number) =>
 		{
@@ -266,6 +271,13 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					tooltip={translate("Tool.TransformGizmoTool.SnapOnGround.tooltip")}
 					src="coui://extradetailingtools/Icons/TransformGizmosTool/SnapOnGround.svg"
 					onSelect={() => SnapOnGround()}
+				/>
+
+				<ToolButton
+					focusKey={FOCUS_DISABLED$}
+					tooltip={translate("Tool.TransformGizmoTool.Duplicate.tooltip")}
+					src="coui://extralib/Icons/Misc/Copy.svg"
+					onSelect={() => Duplicate()}
 				/>
 			</Section>
 			</>

@@ -34,6 +34,10 @@
 	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.RedoBinding]": "Redo the last undone transform action.",
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/RedoBinding/binding]": "Redo",
 
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.DuplicateBinding]": "Duplicate",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.DuplicateBinding]": "Duplicate the selected object.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/DuplicateBinding/binding]": "Duplicate",
+
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Gizmo Handle Size",
 	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Screen size, in pixels, of the Transform Gizmo Tool's handles.",
 
@@ -49,6 +53,7 @@
 	"Tool.TransformGizmoTool.Settings": "Settings",
 	"Tool.TransformGizmoTool.QuickActions": "Quick Actions",
 	"Tool.TransformGizmoTool.SnapOnGround.tooltip": "Snap the object to the ground, setting its Y position to match the terrain surface below.",
+	"Tool.TransformGizmoTool.Duplicate.tooltip": "Duplicate the selected object and select the new copy.",
 	"Tool.TransformGizmoTool.XZHandleModes": "Sphere Handle Modes",
 	"Tool.TransformGizmoTool.XZHandleModes.FollowSurface.Tooltip": "Follow Surface",
 	"Tool.TransformGizmoTool.XZHandleModes.FixedX.Tooltip": "Fixed X axis",

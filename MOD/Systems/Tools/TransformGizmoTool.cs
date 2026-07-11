@@ -910,6 +910,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private EntityQuery m_DefinitionQuery;
         private EntityQuery m_TempQuery;
         private EntityQuery m_HandleQuery;
+        private EntityQuery m_CreatedQuery;
 
         private Entity m_LastRaycastEntity;
         private Entity m_SelectedEntity;
@@ -928,6 +929,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private ProxyAction m_RedoAction;
         private ProxyAction m_MoveAction;
         private ProxyAction m_RotateAction;
+        private ProxyAction m_DuplicateAction;
 
         // Undo / Redo
         private Stack<ActionHistory> m_UndoHistory;
@@ -937,6 +939,11 @@ namespace ExtraDetailingTools.Systems.Tools
         private bool m_RequestSnapOnGround = false;
         private bool m_RequestUndo = false;
         private bool m_RequestRedo = false;
+        private bool m_RequestDuplicate = false;
+        private bool m_WaitingForDuplicate = false;
+        private Entity m_PendingDuplicatePrefab = Entity.Null;
+        private Entity m_PendingDuplicateSource = Entity.Null;
+        private float3 m_PendingDuplicatePosition;
 
         // SIP Support
         private bool m_WasAnEntitySelected = false;
@@ -993,6 +1000,10 @@ namespace ExtraDetailingTools.Systems.Tools
             m_TempQuery = GetEntityQuery(ComponentType.ReadOnly<Temp>());
             m_HandleQuery = GetEntityQuery(ComponentType.ReadOnly<TransformGizmosHandle>());
             m_DefinitionQuery = GetDefinitionQuery();
+            // Matched by PrefabRef + position rather than the Created tag: Created is stripped by the
+            // game's end-of-frame cleanup, and this tool's own system group may run after that cleanup
+            // relative to GenerateObjectsSystem, so the Created window can be missed on every single frame.
+            m_CreatedQuery = GetEntityQuery(ComponentType.ReadOnly<PrefabRef>(), ComponentType.ReadOnly<Transform>(), ComponentType.Exclude<Temp>());
 
             m_UndoHistory = new();
             m_RedoHistory = new();
@@ -1001,6 +1012,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_RedoAction = EDT.m_Settings.GetAction(EDT.m_Settings.RedoBinding.actionName);
             m_MoveAction = EDT.m_Settings.GetAction(EDT.m_Settings.EnterMoveBinding.actionName);
             m_RotateAction = EDT.m_Settings.GetAction(EDT.m_Settings.EnterRotateBinding.actionName);
+            m_DuplicateAction = EDT.m_Settings.GetAction(EDT.m_Settings.DuplicateBinding.actionName);
         }
 
         protected override void OnDestroy()
@@ -1033,6 +1045,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_RedoAction.shouldBeEnabled = true;
             m_MoveAction.shouldBeEnabled = true;
             m_RotateAction.shouldBeEnabled = true;
+            m_DuplicateAction.shouldBeEnabled = true;
             m_SelectedEntity = m_ToolSystem.selected;
             m_WasAnEntitySelected = m_SelectedEntity != Entity.Null;
             m_ToolSystem.selected = Entity.Null;
@@ -1047,6 +1060,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_RedoAction.shouldBeEnabled = false;
             m_MoveAction.shouldBeEnabled = false;
             m_RotateAction.shouldBeEnabled = false;
+            m_DuplicateAction.shouldBeEnabled = false;
             var es = m_HandleQuery.ToEntityArray(Allocator.Temp);
             foreach (Entity e in es)
             {
@@ -1240,6 +1254,41 @@ namespace ExtraDetailingTools.Systems.Tools
                     snapPos.y = terrainHeight;
                     inputDeps = UpdateObject(inputDeps, m_SelectedEntity, snapPos);
                     m_UndoHistory.Push(ActionHistory.NewMove(m_SelectedEntity, snapTransform.m_Position));
+                }
+            }
+
+            if (m_RequestDuplicate || m_DuplicateAction.WasPressedThisFrame())
+            {
+                m_RequestDuplicate = false;
+                if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out PrefabRef selectedPrefabRef) && EntityManager.TryGetComponent(m_SelectedEntity, out Transform selectedTransform))
+                {
+                    inputDeps = ScheduleDuplicate(inputDeps, m_SelectedEntity);
+                    m_PendingDuplicateSource = m_SelectedEntity;
+                    m_SelectedEntity = Entity.Null;
+                    m_PendingDuplicatePrefab = selectedPrefabRef.m_Prefab;
+                    m_PendingDuplicatePosition = selectedTransform.m_Position;
+                    m_WaitingForDuplicate = true;
+                    m_TransformGizmoToolUI.SetMode(Mode.Default);
+                } else
+                {
+                    EDT.Logger.Warn("Duplicate: No entity selected or selected entity has no PrefabRef.");
+                }
+            }
+
+            if (m_WaitingForDuplicate)
+            {
+                if (TryFindDuplicate(m_PendingDuplicatePrefab, m_PendingDuplicatePosition, m_PendingDuplicateSource, out Entity duplicateEntity))
+                {
+                    m_WaitingForDuplicate = false;
+                    m_PendingDuplicatePrefab = Entity.Null;
+                    m_PendingDuplicateSource = Entity.Null;
+                    m_SelectedEntity = duplicateEntity;
+                    m_UndoHistory.Clear();
+                    m_RedoHistory.Clear();
+                    m_TransformGizmoToolUI.SetMode(Mode.Move);
+                } else
+                {
+                    EDT.Logger.Warn($"Duplicate: Failed to find duplicate entity with prefab {m_PendingDuplicatePrefab}.");
                 }
             }
 
@@ -1664,6 +1713,55 @@ namespace ExtraDetailingTools.Systems.Tools
             return jobHandle;
         }
 
+        private JobHandle ScheduleDuplicate(JobHandle inputDeps, Entity entity)
+        {
+            JobHandle jobHandle = IJobExtensions.Schedule(new DuplicateEntityJob
+            {
+                m_Entity = entity,
+                m_TransformData = SystemAPI.GetComponentLookup<Transform>(true),
+                m_ElevationData = SystemAPI.GetComponentLookup<Game.Objects.Elevation>(true),
+                m_LocalTransformCacheData = SystemAPI.GetComponentLookup<LocalTransformCache>(true),
+                m_EditorContainerData = SystemAPI.GetComponentLookup<Game.Tools.EditorContainer>(true),
+                m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
+            }, inputDeps);
+            m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
+            return jobHandle;
+        }
+
+        private bool TryFindDuplicate(Entity prefab, float3 position, Entity source, out Entity result)
+        {
+            result = Entity.Null;
+            if (prefab == Entity.Null) return false;
+
+            NativeArray<Entity> candidates = m_CreatedQuery.ToEntityArray(Allocator.Temp);
+
+            EDT.Logger.Info($"Searching for duplicate of prefab {prefab} at position {position} (source: {source}) among {candidates.Length} candidates.");
+
+            try
+            {
+                for (int i = 0; i < candidates.Length; i++)
+                {
+                    Entity candidate = candidates[i];
+                    if (candidate == source)
+                        continue;
+
+                    if (EntityManager.TryGetComponent(candidate, out PrefabRef prefabRef) && prefabRef.m_Prefab == prefab
+                        && EntityManager.TryGetComponent(candidate, out Transform candidateTransform)
+                        && math.distancesq(candidateTransform.m_Position, position) < 0.0001f)
+                    {
+                        result = candidate;
+                        return true;
+                    }
+                }
+            }
+            finally
+            {
+                candidates.Dispose();
+            }
+
+            return false;
+        }
+
         private JobHandle UpdateGizmos(JobHandle inputDeps)
         {
             return UpdateGizmos(inputDeps, default, default);
@@ -1811,6 +1909,11 @@ namespace ExtraDetailingTools.Systems.Tools
         public void SnapOnGround()
         {
             m_RequestSnapOnGround = true;
+        }
+
+        public void Duplicate()
+        {
+            m_RequestDuplicate = true;
         }
 
         private void SetState(State state)

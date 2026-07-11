@@ -56,6 +56,7 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.RaycastFilter", new Action<int>(SetRaycastFilter)));
 
             AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SnapOnGround", new Action(SnapOnGround)));
+            AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.Duplicate", new Action(Duplicate)));
 
             AddBinding(m_AnarchyAvailableValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AnarchyAvailable", () => AnarchyBridge.IsAvailable));
             AddBinding(m_AddPreventOverrideValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddPreventOverride", () => m_TransformGizmoTool.m_AddPreventOverride));
@@ -131,6 +132,11 @@ namespace ExtraDetailingTools.Systems.UI
         public void SnapOnGround()
         {
             m_TransformGizmoTool.SnapOnGround();
+        }
+
+        public void Duplicate()
+        {
+            m_TransformGizmoTool.Duplicate();
         }
 
         public void SetAddPreventOverride(bool enabled)
