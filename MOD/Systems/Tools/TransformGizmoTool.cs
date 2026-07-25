@@ -18,7 +18,9 @@ using Game.Rendering;
 using Game.Routes;
 using Game.Simulation;
 using Game.Tools;
+using Game.UI.InGame;
 using Game.Vehicles;
+using ExtraDetailingTools.Systems;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -419,11 +421,9 @@ namespace ExtraDetailingTools.Systems.Tools
 
             [ReadOnly] public NativeList<Entity> m_Handles;
 
-            // Screen-proportional handle sizing: the handle keeps the same size relative to the vertical
-            // field of view, so it looks the same size on screen at any resolution (not a fixed pixel count).
             [ReadOnly] public float3 m_CameraPosition;
             [ReadOnly] public float m_TanFOV;
-            [ReadOnly] public float m_HandleScreenSize; // desired handle size, in pixels, at kReferenceScreenHeight (user setting)
+            [ReadOnly] public float m_HandleScreenSize;
 
             private const float kReferenceScreenHeight = 1080f;
 
@@ -452,9 +452,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 float3 pos =     !m_Position.Equals(default) ? m_Position : transform.m_Position;
                 quaternion rot = !m_Rotation.Equals(default) ? m_Rotation : transform.m_Rotation;
 
-                // Keep the handle at a constant screen-space size (relative to the vertical FOV, not a fixed
-                // pixel count), regardless of the selected object's size, its distance to the camera, or the
-                // render resolution — pixelHeight cancels out entirely when sizing by a fraction of the screen.
                 float distance = math.distance(pos, m_CameraPosition);
                 float targetFraction = m_HandleScreenSize / kReferenceScreenHeight;
                 float handleSize = math.max(distance * m_TanFOV * 2f * targetFraction, 0.01f);
@@ -819,31 +816,67 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
+        private enum ActionType
+        {
+            Select,
+            Move,
+            Rotate,
+            Create,
+        }
+
         private struct ActionHistory
         {
-            public Mode ActionType;
+            public ActionType ActionType;
             public Entity Entity;
+            public Entity SelectedEntity;
             public float3 Position;
             public quaternion Rotation;
+            //public int m_SelectedIndex; // For later if I add Net support.
 
-            public ActionHistory(Mode actionType, Entity entity, float3 position, quaternion rotation)
+            public ActionHistory(ActionType actionType, Entity entity, Entity selectedEntity, float3 position, quaternion rotation)
             {
                 ActionType = actionType;
                 Entity = entity;
+                SelectedEntity = selectedEntity;
                 Position = position;
                 Rotation = rotation;
             }
 
+            public static ActionHistory NewSelect(Entity newSelected, Entity entity)
+            {
+                return new ActionHistory(ActionType.Select, newSelected, entity, default, default);
+            }
+
             public static ActionHistory NewMove(Entity entity, float3 position)
             {
-                return new ActionHistory(Mode.Move, entity, position, default);
+                return new ActionHistory(ActionType.Move, entity, entity, position, default);
             }
 
             public static ActionHistory NewRotation(Entity entity, quaternion rotation)
             {
-                return new ActionHistory(Mode.Rotate, entity, default, rotation);
+                return new ActionHistory(ActionType.Rotate, entity, entity, default, rotation);
             }
 
+            public static ActionHistory NewCreate(Entity entity, Entity selectedEntity, float3 position, quaternion rotation)
+            {
+                return new ActionHistory(ActionType.Create, entity, selectedEntity, position, rotation);
+            }
+        }
+
+        private bool IsHistoryEntryUsable(ActionHistory actionHistory, bool forRedo)
+        {
+            switch (actionHistory.ActionType)
+            {
+                case ActionType.Select:
+                    {
+                        Entity target = forRedo ? actionHistory.Entity : actionHistory.SelectedEntity;
+                        return target == Entity.Null || EntityManager.Exists(target);
+                    }
+                case ActionType.Create:
+                    return actionHistory.Entity != Entity.Null && EntityManager.Exists(actionHistory.Entity) && EntityManager.Exists(actionHistory.SelectedEntity);
+                default: // Move, Rotate
+                    return actionHistory.Entity != Entity.Null && EntityManager.Exists(actionHistory.Entity) && EntityManager.HasComponent<Transform>(actionHistory.Entity);
+            }
         }
 
         public enum Handle
@@ -898,6 +931,8 @@ namespace ExtraDetailingTools.Systems.Tools
         private GizmosRaycastSystem m_GimzosRaycastSystem;
         private ToolOutputBarrier m_ToolOutputBarrier;
         private TransformGizmoToolUI m_TransformGizmoToolUI;
+        private SelectedInfoUISystem m_SelectedInfoUISystem;
+        private DuplicateEntitySystem m_DuplicateEntitySystem;
 
         private Mode m_Mode = Mode.Default;
         private XZHandleMode m_XZHandleMode = XZHandleMode.FollowSurface;
@@ -910,7 +945,6 @@ namespace ExtraDetailingTools.Systems.Tools
         private EntityQuery m_DefinitionQuery;
         private EntityQuery m_TempQuery;
         private EntityQuery m_HandleQuery;
-        private EntityQuery m_CreatedQuery;
 
         private Entity m_LastRaycastEntity;
         private Entity m_SelectedEntity;
@@ -941,9 +975,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private bool m_RequestRedo = false;
         private bool m_RequestDuplicate = false;
         private bool m_WaitingForDuplicate = false;
-        private Entity m_PendingDuplicatePrefab = Entity.Null;
         private Entity m_PendingDuplicateSource = Entity.Null;
-        private float3 m_PendingDuplicatePosition;
 
         // SIP Support
         private bool m_WasAnEntitySelected = false;
@@ -995,15 +1027,13 @@ namespace ExtraDetailingTools.Systems.Tools
             m_ToolOutputBarrier = World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_AudioManager = World.GetOrCreateSystemManaged<AudioManager>();
             m_GimzosRaycastSystem = World.GetOrCreateSystemManaged<GizmosRaycastSystem>();
+            m_SelectedInfoUISystem = World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
+            m_DuplicateEntitySystem = World.GetOrCreateSystemManaged<DuplicateEntitySystem>();
 
             m_SoundQuery = GetEntityQuery(ComponentType.ReadOnly<ToolUXSoundSettingsData>());
             m_TempQuery = GetEntityQuery(ComponentType.ReadOnly<Temp>());
             m_HandleQuery = GetEntityQuery(ComponentType.ReadOnly<TransformGizmosHandle>());
             m_DefinitionQuery = GetDefinitionQuery();
-            // Matched by PrefabRef + position rather than the Created tag: Created is stripped by the
-            // game's end-of-frame cleanup, and this tool's own system group may run after that cleanup
-            // relative to GenerateObjectsSystem, so the Created window can be missed on every single frame.
-            m_CreatedQuery = GetEntityQuery(ComponentType.ReadOnly<PrefabRef>(), ComponentType.ReadOnly<Transform>(), ComponentType.Exclude<Temp>());
 
             m_UndoHistory = new();
             m_RedoHistory = new();
@@ -1182,6 +1212,199 @@ namespace ExtraDetailingTools.Systems.Tools
                 return inputDeps;
             }
 
+            if (m_MoveAction.WasPressedThisFrame())
+            {
+                if (m_Mode != Mode.Move)
+                    m_TransformGizmoToolUI.SetMode(Mode.Move);
+                else
+                    m_TransformGizmoToolUI.SetMode(Mode.Default);
+            }
+
+            if (m_RotateAction.WasPressedThisFrame())
+            {
+                if (m_Mode != Mode.Rotate)
+                    m_TransformGizmoToolUI.SetMode(Mode.Rotate);
+                else
+                    m_TransformGizmoToolUI.SetMode(Mode.Default);
+            }
+
+            if (m_RequestSnapOnGround)
+            {
+                m_RequestSnapOnGround = false;
+                if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out Transform transform))
+                {
+                    TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
+                    float terrainHeight = TerrainUtils.SampleHeight(ref heightData, transform.m_Position);
+                    float3 snapPos = transform.m_Position;
+                    snapPos.y = terrainHeight;
+                    inputDeps = UpdateObject(inputDeps, m_SelectedEntity, snapPos);
+                    m_UndoHistory.Push(ActionHistory.NewMove(m_SelectedEntity, transform.m_Position));
+                }
+            }
+
+            if (m_WaitingForDuplicate)
+            {
+                if (m_DuplicateEntitySystem.TryGetDuplicated(this, out List<Entity> duplicated))
+                {
+                    m_WaitingForDuplicate = false;
+                    Entity duplicateEntity = duplicated.Count > 0 ? duplicated[0] : Entity.Null;
+
+                    if (duplicateEntity != Entity.Null)
+                    {
+                        quaternion duplicateRotation = quaternion.identity;
+                        float3 duplicatePosition = default;
+                        if (EntityManager.TryGetComponent(duplicateEntity, out Transform duplicateTransform))
+                        {
+                            duplicateRotation = duplicateTransform.m_Rotation;
+                            duplicatePosition = duplicateTransform.m_Position;
+                        }
+
+                        m_UndoHistory.Push(ActionHistory.NewCreate(duplicateEntity, m_PendingDuplicateSource, duplicatePosition, duplicateRotation));
+
+                        m_SelectedEntity = duplicateEntity;
+                        m_SelectedIndex = -1;
+                        m_TransformGizmoToolUI.SetMode(Mode.Move);
+                    }
+
+                    m_PendingDuplicateSource = Entity.Null;
+                }
+            }
+
+            if (m_RequestDuplicate || m_DuplicateAction.WasPressedThisFrame())
+            {
+                m_RequestDuplicate = false;
+                if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.HasComponent<PrefabRef>(m_SelectedEntity))
+                {
+                    EDT.Logger.Info($"Duplicate requested for entity: {m_SelectedEntity}");
+                    inputDeps = m_DuplicateEntitySystem.Duplicate(inputDeps, this, m_SelectedEntity);
+                    m_PendingDuplicateSource = m_SelectedEntity;
+                    m_SelectedEntity = Entity.Null;
+                    m_SelectedTempEntity = Entity.Null;
+                    m_SelectedIndex = -1;
+                    m_WaitingForDuplicate = true;
+                    m_TransformGizmoToolUI.SetMode(Mode.Default);
+                    //applyMode = ApplyMode.Clear;
+
+                    // Skip the rest of this frame's Update(), in particular the hover-refresh further down
+                    // (UpdateDefinitions/CreateDefinitionsJob): it sets CreationDefinition.m_Original to
+                    // whatever's currently under the mouse, and if that's still the entity we just requested
+                    // a duplicate of, both definitions share the same m_Original and land in the same
+                    // GenerateObjectsSystem batch. The game's own sort/merge-by-m_Original logic then keeps
+                    // only one of them — and it wasn't ours, so no permanent duplicate was ever created.
+                    //return inputDeps;
+                }
+                else
+                {
+                    EDT.Logger.Warn("Duplicate: No entity selected or selected entity has no PrefabRef or in invalid state.");
+                }
+            }
+
+            if (m_RequestUndo || m_UndoAction.WasPressedThisFrame())
+            {
+                m_RequestUndo = false;
+                if (m_State == State.Idle && m_UndoHistory.Count > 0)
+                {
+                    ActionHistory actionHistory = m_UndoHistory.Pop();
+                    while (m_UndoHistory.Count > 0 && !IsHistoryEntryUsable(actionHistory, forRedo: false))
+                    {
+                        actionHistory = m_UndoHistory.Pop();
+                    }
+
+                    if (IsHistoryEntryUsable(actionHistory, forRedo: false))
+                    {
+                        Entity entity = actionHistory.Entity;
+                        ActionType actionType = actionHistory.ActionType;
+                        if (actionType == ActionType.Select)
+                        {
+                            m_RedoHistory.Push(actionHistory);
+                            m_SelectedEntity = actionHistory.SelectedEntity;
+                            m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
+
+                            m_TransformGizmoToolUI.SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                            m_SelectedInfoUISystem.Focus(m_SelectedEntity);
+                        }
+                        else if (actionType == ActionType.Move)
+                        {
+                            EntityManager.TryGetComponent(entity, out Transform currentTransform);
+                            m_RedoHistory.Push(ActionHistory.NewMove(entity, currentTransform.m_Position));
+                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Position);
+                        }
+                        else if (actionType == ActionType.Rotate)
+                        {
+                            EntityManager.TryGetComponent(entity, out Transform currentTransform);
+                            m_RedoHistory.Push(ActionHistory.NewRotation(entity, currentTransform.m_Rotation));
+                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Rotation);
+                        }
+                        else if (actionType == ActionType.Create)
+                        {
+                            m_RedoHistory.Push(ActionHistory.NewCreate(actionHistory.SelectedEntity, Entity.Null, actionHistory.Position, actionHistory.Rotation));
+                            EntityManager.AddComponent<Deleted>(entity);
+                            if (m_SelectedEntity == entity)
+                            {
+                                m_SelectedEntity = actionHistory.SelectedEntity;
+                                m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
+
+                                m_TransformGizmoToolUI.SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                                m_SelectedInfoUISystem.Focus(m_SelectedEntity);
+                            }
+                        }
+                        else
+                        {
+                            EDT.Logger.Warn($"Undo: unhandled action type {actionType}");
+                        }
+                    }
+                }
+            }
+            else if (m_RequestRedo || m_RedoAction.WasPressedThisFrame())
+            {
+                m_RequestRedo = false;
+                if (m_State == State.Idle && m_RedoHistory.Count > 0)
+                {
+                    ActionHistory actionHistory = m_RedoHistory.Pop();
+                    while (m_RedoHistory.Count > 0 && !IsHistoryEntryUsable(actionHistory, forRedo: true))
+                    {
+                        actionHistory = m_RedoHistory.Pop();
+                    }
+
+                    if (IsHistoryEntryUsable(actionHistory, forRedo: true))
+                    {
+                        Entity entity = actionHistory.Entity;
+                        ActionType actionType = actionHistory.ActionType;
+                        if (actionType == ActionType.Create)
+                        {
+                            m_SelectedEntity = entity;
+                            m_SelectedIndex = -1;
+                            m_RequestDuplicate = true;
+                        }
+                        else if (actionType == ActionType.Select)
+                        {
+                            m_UndoHistory.Push(actionHistory);
+                            m_SelectedEntity = actionHistory.Entity;
+                            m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
+
+                            m_TransformGizmoToolUI.SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                            m_SelectedInfoUISystem.Focus(m_SelectedEntity);
+                        }
+                        else if (actionType == ActionType.Move)
+                        {
+                            EntityManager.TryGetComponent(entity, out Transform currentTransform);
+                            m_UndoHistory.Push(ActionHistory.NewMove(entity, currentTransform.m_Position));
+                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Position);
+                        }
+                        else if (actionType == ActionType.Rotate)
+                        {
+                            EntityManager.TryGetComponent(entity, out Transform currentTransform);
+                            m_UndoHistory.Push(ActionHistory.NewRotation(entity, currentTransform.m_Rotation));
+                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Rotation);
+                        }
+                        else
+                        {
+                            EDT.Logger.Warn($"Redo: unhandled action type {actionType}");
+                        }
+                    }
+                }
+            }
+
             if ((m_ToolRaycastSystem.raycastFlags & (RaycastFlags.DebugDisable)) == 0)// | RaycastFlags.UIDisable)
             {
                 switch (m_Mode)
@@ -1218,7 +1441,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             m_State = State.Idle;
-            m_TransformGizmoToolUI.SetMode((int)Mode.Default);
+            m_TransformGizmoToolUI.SetMode(Mode.Default);
             return inputDeps;
         }
 
@@ -1226,145 +1449,6 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             float3 newPos = default;
             quaternion newRot = default;
-
-            if(m_MoveAction.WasPressedThisFrame())
-            {
-                if(m_Mode != Mode.Move)
-                    m_TransformGizmoToolUI.SetMode(Mode.Move);
-                else
-                    m_TransformGizmoToolUI.SetMode(Mode.Default);
-            }
-
-            if (m_RotateAction.WasPressedThisFrame())
-            {
-                if (m_Mode != Mode.Rotate)
-                    m_TransformGizmoToolUI.SetMode(Mode.Rotate);
-                else
-                    m_TransformGizmoToolUI.SetMode(Mode.Default);
-            }
-
-            if (m_RequestSnapOnGround)
-            {
-                m_RequestSnapOnGround = false;
-                if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out Transform snapTransform))
-                {
-                    TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
-                    float terrainHeight = TerrainUtils.SampleHeight(ref heightData, snapTransform.m_Position);
-                    float3 snapPos = snapTransform.m_Position;
-                    snapPos.y = terrainHeight;
-                    inputDeps = UpdateObject(inputDeps, m_SelectedEntity, snapPos);
-                    m_UndoHistory.Push(ActionHistory.NewMove(m_SelectedEntity, snapTransform.m_Position));
-                }
-            }
-
-            if (m_RequestDuplicate || m_DuplicateAction.WasPressedThisFrame())
-            {
-                m_RequestDuplicate = false;
-                if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out PrefabRef selectedPrefabRef) && EntityManager.TryGetComponent(m_SelectedEntity, out Transform selectedTransform))
-                {
-                    inputDeps = ScheduleDuplicate(inputDeps, m_SelectedEntity);
-                    m_PendingDuplicateSource = m_SelectedEntity;
-                    m_SelectedEntity = Entity.Null;
-                    m_PendingDuplicatePrefab = selectedPrefabRef.m_Prefab;
-                    m_PendingDuplicatePosition = selectedTransform.m_Position;
-                    m_WaitingForDuplicate = true;
-                    m_TransformGizmoToolUI.SetMode(Mode.Default);
-                } else
-                {
-                    EDT.Logger.Warn("Duplicate: No entity selected or selected entity has no PrefabRef.");
-                }
-            }
-
-            if (m_WaitingForDuplicate)
-            {
-                if (TryFindDuplicate(m_PendingDuplicatePrefab, m_PendingDuplicatePosition, m_PendingDuplicateSource, out Entity duplicateEntity))
-                {
-                    m_WaitingForDuplicate = false;
-                    m_PendingDuplicatePrefab = Entity.Null;
-                    m_PendingDuplicateSource = Entity.Null;
-                    m_SelectedEntity = duplicateEntity;
-                    m_UndoHistory.Clear();
-                    m_RedoHistory.Clear();
-                    m_TransformGizmoToolUI.SetMode(Mode.Move);
-                } else
-                {
-                    EDT.Logger.Warn($"Duplicate: Failed to find duplicate entity with prefab {m_PendingDuplicatePrefab}.");
-                }
-            }
-
-            if (m_RequestUndo || m_UndoAction.WasPressedThisFrame())
-            {
-                m_RequestUndo = false;
-                if(m_State == State.Idle && m_UndoHistory.Count > 0)
-                {
-                    ActionHistory actionHistory = m_UndoHistory.Pop();
-                    Entity entity = actionHistory.Entity;
-                    while (m_UndoHistory.Count > 0 && (
-                        entity == Entity.Null ||
-                        !EntityManager.Exists(entity) ||
-                        !EntityManager.TryGetComponent<Transform>(entity, out _)))
-                    {
-                        actionHistory = m_UndoHistory.Pop();
-                        entity = actionHistory.Entity;
-                    }
-
-                    if (entity != Entity.Null && EntityManager.Exists(entity) && EntityManager.TryGetComponent<Transform>(entity, out Transform currentTransform))
-                    {
-                        Mode actionType = actionHistory.ActionType;
-                        if (actionType == Mode.Move)
-                        {
-                            m_RedoHistory.Push(ActionHistory.NewMove(entity, currentTransform.m_Position));
-                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Position);
-                        }
-                        else if (actionType == Mode.Rotate)
-                        {
-                            m_RedoHistory.Push(ActionHistory.NewRotation(entity, currentTransform.m_Rotation));
-                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Rotation);
-                        }
-                        else
-                        {
-                            EDT.Logger.Warn($"Undo: unhandled action type {actionType}");
-                        }
-                    }
-                }
-            }
-            else if(m_RequestRedo || m_RedoAction.WasPressedThisFrame())
-            {
-                m_RequestRedo = false;
-                if (m_State == State.Idle && m_RedoHistory.Count > 0)
-                {
-                    ActionHistory actionHistory = m_RedoHistory.Pop();
-                    Entity entity = actionHistory.Entity;
-                    while (m_RedoHistory.Count > 0 && (
-                        entity == Entity.Null ||
-                        !EntityManager.Exists(entity) ||
-                        !EntityManager.TryGetComponent<Transform>(entity, out _)))
-                    {
-                        actionHistory = m_RedoHistory.Pop();
-                        entity = actionHistory.Entity;
-                    }
-
-                    if (entity != Entity.Null && EntityManager.Exists(entity) && EntityManager.TryGetComponent<Transform>(entity, out Transform currentTransform))
-                    {
-                        Mode actionType = actionHistory.ActionType;
-                        if (actionType == Mode.Move)
-                        {
-                            m_UndoHistory.Push(ActionHistory.NewMove(entity, currentTransform.m_Position));
-                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Position);
-                        }
-                        else if (actionType == Mode.Rotate)
-                        {
-                            m_UndoHistory.Push(ActionHistory.NewRotation(entity, currentTransform.m_Rotation));
-                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Rotation);
-                        }
-                        else
-                        {
-                            EDT.Logger.Warn($"Redo: unhandled action type {actionType}");
-                        }
-                    }
-                }
-            }
-
 
             if (m_Mode == Mode.Default)
             {
@@ -1416,7 +1500,7 @@ namespace ExtraDetailingTools.Systems.Tools
                         {
                             newPos = hit.m_HitPosition;
 
-                            if(!EntityManager.HasComponent<Game.Common.Terrain>(entity))
+                            if (!EntityManager.HasComponent<Game.Common.Terrain>(entity))
                             {
                                 float3 up = math.normalize(hit.m_HitDirection);
                                 float3 r = math.abs(up.y) < 0.99f ? math.up() : math.forward();
@@ -1424,10 +1508,10 @@ namespace ExtraDetailingTools.Systems.Tools
                                 float3 fwd = math.cross(right, up);
                                 newRot = quaternion.LookRotationSafe(fwd, up);
                             }
-                            else if(EntityManager.TryGetComponent<Transform>(m_SelectedEntity, out var transformComponent))
+                            else if (EntityManager.TryGetComponent<Transform>(m_SelectedEntity, out var transformComponent))
                             {
                                 newRot = transformComponent.m_Rotation;
-                            } 
+                            }
                             else
                             {
                                 newRot = quaternion.LookRotationSafe(math.forward(), math.up());
@@ -1479,7 +1563,7 @@ namespace ExtraDetailingTools.Systems.Tools
                                 quaternion deltaRot = quaternion.AxisAngle(axisDir, angle);
 
                                 newRot = math.mul(deltaRot, m_DragStartGizmoRot);
-                            } 
+                            }
                             else
                             {
                                 EDT.Logger.Warn($"Try to update in State.Dragging but the tool mode wasn't move or rotate, current tool mode: {m_Mode}");
@@ -1510,12 +1594,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 applyMode = ApplyMode.None;
                 m_SelectedHandle = Handle.None;
                 JobHandle jobHandle = SelectTempEntity(inputDeps, toggleSelected);
-                if (m_SelectedEntity != Entity.Null)
-                {
-                    m_TransformGizmoToolUI.SetMode((int)Mode.Move);
-                    m_UndoHistory.Clear();
-                    m_RedoHistory.Clear();
-                }
                 return jobHandle;
             }
 
@@ -1652,14 +1730,12 @@ namespace ExtraDetailingTools.Systems.Tools
             }
             if (m_SelectedEntity != selected.Value || m_SelectedIndex != m_LastSelectedIndex)
             {
-                m_SelectedEntity = selected.Value;
-                m_SelectedIndex = m_LastSelectedIndex;
+                SelectEntity(selected.Value, m_LastSelectedIndex);
                 PlaySelectedSound(selected.Value, forcePlay: true);
             }
             else if (toggleSelected)
             {
-                m_SelectedEntity = Entity.Null;
-                m_SelectedIndex = -1;
+                SelectEntity(Entity.Null, -1);
             }
             else
             {
@@ -1711,55 +1787,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_LastSelectedIndex = index;
             }
             return jobHandle;
-        }
-
-        private JobHandle ScheduleDuplicate(JobHandle inputDeps, Entity entity)
-        {
-            JobHandle jobHandle = IJobExtensions.Schedule(new DuplicateEntityJob
-            {
-                m_Entity = entity,
-                m_TransformData = SystemAPI.GetComponentLookup<Transform>(true),
-                m_ElevationData = SystemAPI.GetComponentLookup<Game.Objects.Elevation>(true),
-                m_LocalTransformCacheData = SystemAPI.GetComponentLookup<LocalTransformCache>(true),
-                m_EditorContainerData = SystemAPI.GetComponentLookup<Game.Tools.EditorContainer>(true),
-                m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
-            }, inputDeps);
-            m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
-            return jobHandle;
-        }
-
-        private bool TryFindDuplicate(Entity prefab, float3 position, Entity source, out Entity result)
-        {
-            result = Entity.Null;
-            if (prefab == Entity.Null) return false;
-
-            NativeArray<Entity> candidates = m_CreatedQuery.ToEntityArray(Allocator.Temp);
-
-            EDT.Logger.Info($"Searching for duplicate of prefab {prefab} at position {position} (source: {source}) among {candidates.Length} candidates.");
-
-            try
-            {
-                for (int i = 0; i < candidates.Length; i++)
-                {
-                    Entity candidate = candidates[i];
-                    if (candidate == source)
-                        continue;
-
-                    if (EntityManager.TryGetComponent(candidate, out PrefabRef prefabRef) && prefabRef.m_Prefab == prefab
-                        && EntityManager.TryGetComponent(candidate, out Transform candidateTransform)
-                        && math.distancesq(candidateTransform.m_Position, position) < 0.0001f)
-                    {
-                        result = candidate;
-                        return true;
-                    }
-                }
-            }
-            finally
-            {
-                candidates.Dispose();
-            }
-
-            return false;
         }
 
         private JobHandle UpdateGizmos(JobHandle inputDeps)
@@ -1906,6 +1933,16 @@ namespace ExtraDetailingTools.Systems.Tools
             m_Mode = mode;
         }
 
+        private void SelectEntity(Entity entity, int index = -1)
+        {
+            m_UndoHistory.Push(ActionHistory.NewSelect(entity, m_SelectedEntity));
+            m_SelectedEntity = entity;
+            m_SelectedIndex = index;
+            m_TransformGizmoToolUI.SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+            //m_UndoHistory.Clear();
+            //m_RedoHistory.Clear();
+        }
+
         public void SnapOnGround()
         {
             m_RequestSnapOnGround = true;
@@ -2045,7 +2082,7 @@ namespace ExtraDetailingTools.Systems.Tools
             SetState(State.Idle);
         }
 
-        public Plane CreateDragPlane(float3 axisDir, float3 gizmoCenter)
+        private Plane CreateDragPlane(float3 axisDir, float3 gizmoCenter)
         {
             if(m_Mode == Mode.Rotate || m_SelectedHandle == Handle.XZ)
                 return new Plane(axisDir, gizmoCenter);

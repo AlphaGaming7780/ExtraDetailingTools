@@ -66,6 +66,8 @@ namespace ExtraDetailingTools
 
                 updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
                 //updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
+                updateSystem.UpdateAt<DuplicateEntityBarrier>(SystemUpdatePhase.PostTool);
+                updateSystem.UpdateAt<DuplicateEntitySystem>(SystemUpdatePhase.Modification2);
                 updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
                 updateSystem.UpdateAt<GizmosRenderSystem>(SystemUpdatePhase.Rendering);
                 updateSystem.UpdateAt<GizmosRaycastSystem>(SystemUpdatePhase.Raycast);
