@@ -106,6 +106,7 @@ namespace ExtraDetailingTools.Systems
                     m_ElevationData = SystemAPI.GetComponentLookup<Game.Objects.Elevation>(true),
                     m_LocalTransformCacheData = SystemAPI.GetComponentLookup<LocalTransformCache>(true),
                     m_EditorContainerData = SystemAPI.GetComponentLookup<Game.Tools.EditorContainer>(true),
+                    m_TreeData = SystemAPI.GetComponentLookup<Tree>(true),
                     m_SubAreaData = SystemAPI.GetBufferLookup<Game.Areas.SubArea>(true),
                     m_AreaNodeData = SystemAPI.GetBufferLookup<Node>(true),
                     m_SubNetData = SystemAPI.GetBufferLookup<Game.Net.SubNet>(true),
@@ -253,6 +254,7 @@ namespace ExtraDetailingTools.Systems
             [ReadOnly] public ComponentLookup<Game.Objects.Elevation> m_ElevationData;
             [ReadOnly] public ComponentLookup<LocalTransformCache> m_LocalTransformCacheData;
             [ReadOnly] public ComponentLookup<Game.Tools.EditorContainer> m_EditorContainerData;
+            [ReadOnly] public ComponentLookup<Tree> m_TreeData;
             [ReadOnly] public BufferLookup<Game.Areas.SubArea> m_SubAreaData;
             [ReadOnly] public BufferLookup<Node> m_AreaNodeData;
             [ReadOnly] public BufferLookup<Game.Net.SubNet> m_SubNetData;
@@ -266,6 +268,23 @@ namespace ExtraDetailingTools.Systems
             public void Execute(int index)
             {
                 AddObject(m_Entities[index], default, index);
+            }
+
+            // Inverse of ObjectUtils.InitializeTreeState: GenerateObjectsSystem reads
+            // ObjectDefinition.m_Age to (re)initialize the duplicate's Tree growth state, so recover the
+            // age that would reproduce the source's current state/growth.
+            private static float GetTreeAge(Tree tree)
+            {
+                float growth = tree.m_Growth;
+                if ((tree.m_State & TreeState.Dead) != 0)
+                    return 0.95f + growth / 5120f;
+                if ((tree.m_State & TreeState.Elderly) != 0)
+                    return 0.6f + growth / 731.4286f;
+                if ((tree.m_State & TreeState.Adult) != 0)
+                    return 0.25f + growth / 731.4286f;
+                if ((tree.m_State & TreeState.Teen) != 0)
+                    return 0.1f + growth / 1706.6666f;
+                return growth / 2560f;
             }
 
             // Duplicates a single object (main entity or an installed upgrade), plus its sub-areas,
@@ -282,8 +301,6 @@ namespace ExtraDetailingTools.Systems
                 {
                     m_Prefab = prefabRef.m_Prefab,
                     m_Flags = CreationFlags.Permanent,
-                    // Adding this spawn nothing
-                    //m_Original = source
                 };
 
                 m_CommandBuffer.AddComponent(sortKey, e, default(Updated));
@@ -341,6 +358,11 @@ namespace ExtraDetailingTools.Systems
                     objectDefinition.m_Scale = editorContainer.m_Scale;
                     objectDefinition.m_Intensity = editorContainer.m_Intensity;
                     objectDefinition.m_GroupIndex = editorContainer.m_GroupIndex;
+                }
+
+                if (m_TreeData.TryGetComponent(source, out var tree))
+                {
+                    objectDefinition.m_Age = GetTreeAge(tree);
                 }
 
                 m_CommandBuffer.AddComponent(sortKey, e, objectDefinition);

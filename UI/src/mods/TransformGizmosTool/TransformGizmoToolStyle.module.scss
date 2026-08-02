@@ -9,3 +9,38 @@
 .panelButtonUM.active {
     transform: scale(1.12);
 }
+
+.headerButton {
+    width: 20rem;
+    height: 20rem;
+    flex-shrink: 0;
+}
+
+.headerButtonIcon {
+    width: 18rem;
+    height: 18rem;
+}
+
+.headerButtonSelected {
+    background-color: var(--selectedColor);
+}
+
+.gridRow {
+    width: 100%;
+    align-items: center;
+}
+
+.gridContent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap5);
+    background-color: var(--sectionBackgroundColor);
+    border-radius: var(--panelRadiusInner);
+    padding: var(--gap6);
+    box-sizing: border-box;
+}
+
+.gridSection {
+    flex-direction: column !important;
+    align-items: stretch !important;
+}

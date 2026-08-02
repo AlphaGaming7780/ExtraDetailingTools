@@ -18,7 +18,7 @@ export type PropsToolButton = {
 	uiTag?: string
 	className?: string
 	children?: JSX.Element
-	onSelect?: (value: Event) => void
+	onSelect?: () => void
 }
 
 // =========================

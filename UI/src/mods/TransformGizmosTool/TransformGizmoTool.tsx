@@ -13,6 +13,12 @@ import { FOCUS_DISABLED$ } from "../../../game-ui/common/focus/focus-key";
 import { kTransformSection$ } from "../TransformSection/TransformSection";
 import { AnarchyButtons } from "../AnarchyButtons/AnarchyButtons";
 import { kTransformGizmoToolId } from "../../BindingConst";
+import { InfoRowSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
+import { InfoSectionFoldout } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section-foldout";
+import { InfoSectionSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
+import { ActionButtonSCSS } from "../../../game-ui/game/components/selected-info-panel/selected-info-sections/shared-sections/actions-section/action-button.module.scss";
+import { StepInput } from "../Shared/StepInput";
+import { MouseToolOptionsSCSS } from "../../../game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.module.scss";
 
 enum Mode {
 	Default = 0,
@@ -34,18 +40,24 @@ enum RaycastFilter {
 	Decals = 2,
 	Buildings = 4,
 	MovingObject = 8,
+	Water = 16,
+	Net = 32,
 }
 
-const toolMode$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.ToolMode`, 0);
+const toolMode$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.ToolMode`, 0);
 const pos$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Position`, {x: 0, y: 0, z:0});
 const rot$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Rotation`, {x: 0, y: 0, z:0});
 // const scale$ = bindValue<Float3>(kGroupName, `${kToolId}.Scale`, {x: 0, y: 0, z:0});
 const localAxis$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.LocalAxis`, false);
-const xzHandleMode$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.XZHandleMode`, 0);
+const xzHandleMode$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.XZHandleMode`, 0);
 const snapToSurface$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.SnapToSurface`, false);
 const moveSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, false);
 const haSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.HasSubBuildings`, false);
-const raycastFilter$ = bindValue<Number>(kGroupName, `${kTransformGizmoToolId}.RaycastFilter`, 0);
+const raycastFilter$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.RaycastFilter`, 0);
+
+const gridEnabled$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.GridEnabled`, false);
+const posOffset$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.PosOffset`, 0);
+const rotOffset$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.RotOffset`, 0);
 
 export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 	return (props) => {
@@ -58,9 +70,12 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const useSnapToSurface : boolean = useValue(snapToSurface$);
 		const moveSubBuildings : boolean = useValue(moveSubBuildings$);
 		const haSubBuildings : boolean = useValue(haSubBuildings$);
-		const currentMode : Number = useValue(toolMode$);
-		const currentXZHandleMode : Number = useValue(xzHandleMode$);
-		const raycastFilter : Number = useValue(raycastFilter$);
+		const currentMode : number = useValue(toolMode$);
+		const currentXZHandleMode : number = useValue(xzHandleMode$);
+		const raycastFilter : number = useValue(raycastFilter$);
+		const gridEnabled : boolean = useValue(gridEnabled$);
+		const posOffset : number = useValue(posOffset$);
+		const rotOffset : number = useValue(rotOffset$);
 
 		const { translate } = useLocalization();
 
@@ -72,7 +87,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			trigger(kGroupName, `${kTransformGizmoToolId}.RaycastFilter`, current);
 		};
 
-		const setMode = (mode : Number) =>
+		const setMode = (mode : number) =>
 		{
 			trigger(kGroupName, `${kTransformGizmoToolId}.ToolMode`, mode);
 		}
@@ -97,9 +112,43 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			trigger(kGroupName, `${kTransformGizmoToolId}.Duplicate`);
 		}
 		
-		const SetXZHandleMode = (xzHandleMode : Number) =>
+		const SetXZHandleMode = (xzHandleMode : number) =>
 		{
 			trigger(kGroupName, `${kTransformGizmoToolId}.XZHandleMode`, xzHandleMode);
+		}
+
+		const SetGridEnabled = (enabled : boolean) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.GridEnabled`, enabled);
+		}
+
+		const SetPosOffset = (value : number) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.PosOffset`, value);
+		}
+
+		const SetRotOffset = (value : number) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.RotOffset`, value);
+		}
+
+		// Single-value scroll/drag/edit row used for the grid's position and rotation step. Thin wrapper
+		// around the shared StepInput. StepInput is rendered as a real JSX element (not called as a plain
+		// function) so its hooks live on their own fiber: this row sits after the early "tool not active"
+		// return below, and calling a hook-bearing function directly from there would make this render's
+		// hook count vary with that condition (React error #300, "rendered fewer hooks than expected").
+		function GridOffsetRow(id: string, labelKey: string, tooltipKey: string, value: number, min: number, onCommit: (value: number) => void): JSX.Element {
+			return <div className={classNames(InfoRowSCSS.infoRow, styles.gridRow)}>
+				<StepInput
+					id={id}
+					value={value}
+					min={min}
+					onCommit={onCommit}
+					label={translate(labelKey)}
+					tooltip={translate(tooltipKey)}
+					layout="inline"
+				/>
+			</div>;
 		}
 
 		// This defines aspects of the components.
@@ -115,7 +164,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				title={translate("Tool.TransformGizmoTool.Modes", "Modes")}
 			>
 				<Tooltip tooltip={translate("Tool.TransformGizmoTool.Default.Tooltip", "Tool.TransformGizmoTool.Default.Tooltip")}>
-					<ValueToolButton<Number>
+					<ValueToolButton<number>
 						focusKey={FOCUS_DISABLED$}
 						value={Mode.Default}
 						selected={currentMode === Mode.Default}
@@ -125,7 +174,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				</Tooltip>
 
 				<Tooltip tooltip={translate("Tool.TransformGizmoTool.Move.Tooltip", "Tool.TransformGizmoTool.Move.Tooltip")}>
-					<ValueToolButton<Number>
+					<ValueToolButton<number>
 						focusKey={FOCUS_DISABLED$}
 						value={Mode.Move}
 						selected={currentMode === Mode.Move}
@@ -135,7 +184,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				</Tooltip>
 
 				<Tooltip tooltip={translate("Tool.TransformGizmoTool.Rotate.Tooltip", "Tool.TransformGizmoTool.Rotate.Tooltip")}>
-					<ValueToolButton<Number>
+					<ValueToolButton<number>
 						focusKey={FOCUS_DISABLED$}
 						value={Mode.Rotate}
 						selected={currentMode === Mode.Rotate}
@@ -144,7 +193,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					/>
 				</Tooltip>
 
-				{/* <ValueToolButton<Number>
+				{/* <ValueToolButton<number>
 				value={Mode.Scale}
 				selected={currentMode === Mode.Scale}
 				onSelect={(v) => setMode(v)}
@@ -218,49 +267,107 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			}
 
 			{ currentMode === Mode.Move &&
-				<Section
-					title={translate("Tool.TransformGizmoTool.XZHandleModes", "XZ Handle Modes")}
-				>
-					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FollowSurface.Tooltip", "Follow Surface")}>
-						<ValueToolButton<Number>
-							focusKey={FOCUS_DISABLED$}
-							value={XZHandleMode.FollowSurface}
-							selected={currentXZHandleMode === XZHandleMode.FollowSurface}
-							onSelect={(v) => SetXZHandleMode(v)}
-							src="Media/Tools/Snap Options/ObjectSurface.svg"
-						/>
-					</Tooltip>
+				<>
+					<Section
+						title={translate("Tool.TransformGizmoTool.XZHandleModes", "Sphere Handle Modes")}
+					>
+						<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FollowSurface.Tooltip", "Follow Surface")}>
+							<ValueToolButton<number>
+								focusKey={FOCUS_DISABLED$}
+								value={XZHandleMode.FollowSurface}
+								selected={currentXZHandleMode === XZHandleMode.FollowSurface}
+								onSelect={(v) => SetXZHandleMode(v)}
+								src="Media/Tools/Snap Options/ObjectSurface.svg"
+							/>
+						</Tooltip>
 
-					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedX.Tooltip", "Fixed X")}>
-						<ValueToolButton<Number>
-							focusKey={FOCUS_DISABLED$}
-							value={XZHandleMode.FixedX}
-							selected={currentXZHandleMode === XZHandleMode.FixedX}
-							onSelect={(v) => SetXZHandleMode(v)}
-							src="coui://extradetailingtools/Icons/TransformGizmosTool/FixedX.svg"
-						/>
-					</Tooltip>
+						<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedX.Tooltip", "Fixed X")}>
+							<ValueToolButton<number>
+								focusKey={FOCUS_DISABLED$}
+								value={XZHandleMode.FixedX}
+								selected={currentXZHandleMode === XZHandleMode.FixedX}
+								onSelect={(v) => SetXZHandleMode(v)}
+								src="coui://extradetailingtools/Icons/TransformGizmosTool/FixedX.svg"
+							/>
+						</Tooltip>
 
-					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedY.Tooltip", "Fixed Y")}>
-						<ValueToolButton<Number>
-							focusKey={FOCUS_DISABLED$}
-							value={XZHandleMode.FixedY}
-							selected={currentXZHandleMode === XZHandleMode.FixedY}
-							onSelect={(v) => SetXZHandleMode(v)}
-							src="coui://extradetailingtools/Icons/TransformGizmosTool/FixedY.svg"
-						/>
-					</Tooltip>
+						<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedY.Tooltip", "Fixed Y")}>
+							<ValueToolButton<number>
+								focusKey={FOCUS_DISABLED$}
+								value={XZHandleMode.FixedY}
+								selected={currentXZHandleMode === XZHandleMode.FixedY}
+								onSelect={(v) => SetXZHandleMode(v)}
+								src="coui://extradetailingtools/Icons/TransformGizmosTool/FixedY.svg"
+							/>
+						</Tooltip>
 
-					<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedZ.Tooltip", "Fixed Z")}>
-						<ValueToolButton<Number>
-							focusKey={FOCUS_DISABLED$}
-							value={XZHandleMode.FixedZ}
-							selected={currentXZHandleMode === XZHandleMode.FixedZ}
-							onSelect={(v) => SetXZHandleMode(v)}
-							src="coui://extradetailingtools/Icons/TransformGizmosTool/FixedZ.svg"
-						/>
-					</Tooltip>
-				</Section>
+						<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedZ.Tooltip", "Fixed Z")}>
+							<ValueToolButton<number>
+								focusKey={FOCUS_DISABLED$}
+								value={XZHandleMode.FixedZ}
+								selected={currentXZHandleMode === XZHandleMode.FixedZ}
+								onSelect={(v) => SetXZHandleMode(v)}
+								src="coui://extradetailingtools/Icons/TransformGizmosTool/FixedZ.svg"
+							/>
+						</Tooltip>
+					</Section>
+					{ currentXZHandleMode === XZHandleMode.FollowSurface &&
+						<Section
+							title={translate("Tool.TransformGizmoTool.RaycastFilter", "Raycast Filter")}
+						>
+							<ToolButton
+								focusKey={FOCUS_DISABLED$}
+								tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.StaticObject.Tooltip", "Static Objects")}
+								src="Media/Game/Icons/Props.svg"
+								selected={!hasFlag(RaycastFilter.StaticObject)}
+								onSelect={() => toggleFlag(RaycastFilter.StaticObject)}
+							/>
+
+							{/* <ToolButton
+								focusKey={FOCUS_DISABLED$}
+								tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.Decals.Tooltip", "Decals")}
+								src="Media/Game/Icons/PropsDecals.svg"
+								selected={!hasFlag(RaycastFilter.StaticObject) && !hasFlag(RaycastFilter.Decals)}
+								disabled={hasFlag(RaycastFilter.StaticObject)}
+								onSelect={() => toggleFlag(RaycastFilter.Decals)}
+							/> */}
+
+							{/* <ToolButton
+								focusKey={FOCUS_DISABLED$}
+								tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.Buildings.Tooltip", "Buildings")}
+								src="Media/Editor/Thumbnails/Fallback_BuildingPrefab.svg"
+								selected={hasFlag(RaycastFilter.StaticObject) && hasFlag(RaycastFilter.Buildings)}
+								disabled={!hasFlag(RaycastFilter.StaticObject)}
+								onSelect={() => toggleFlag(RaycastFilter.Buildings)}
+							/> */}
+
+							<ToolButton
+								focusKey={FOCUS_DISABLED$}
+								tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.MovingObject.Tooltip", "Moving Objects")}
+								src="Media/Game/Icons/Traffic.svg"
+								selected={!hasFlag(RaycastFilter.MovingObject)}
+								onSelect={() => toggleFlag(RaycastFilter.MovingObject)}
+							/>
+
+							<ToolButton
+								focusKey={FOCUS_DISABLED$}
+								tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.Net.Tooltip", "Networks")}
+								src="Media/Game/Icons/Roads.svg"
+								selected={!hasFlag(RaycastFilter.Net)}
+								onSelect={() => toggleFlag(RaycastFilter.Net)}
+							/>
+
+							<ToolButton
+								focusKey={FOCUS_DISABLED$}
+								tooltip={translate("Tool.TransformGizmoTool.RaycastFilter.Water.Tooltip", "Water")}
+								src="Media/Game/Icons/Water.svg"
+								selected={!hasFlag(RaycastFilter.Water)}
+								onSelect={() => toggleFlag(RaycastFilter.Water)}
+							/>
+						</Section>
+					}
+				</>
+
 			}
 
 			<Section
@@ -280,6 +387,34 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					onSelect={() => Duplicate()}
 				/>
 			</Section>
+
+			<InfoSectionFoldout
+				header={
+					<div className={InfoRowSCSS.infoRow} style={{ paddingLeft: "0rem" }}>
+						<div className={classNames(MouseToolOptionsSCSS.label, InfoRowSCSS.left)} style={{ flexGrow: 1 }}>
+							{translate("Tool.TransformGizmoTool.Grid", "Grid")}
+						</div>
+						<Tooltip tooltip={translate("Tool.TransformGizmoTool.GridEnable.Tooltip", "Snap the object's position and rotation to a fixed grid.")} className={InfoRowSCSS.right}>
+							<ToolButton
+								selected={gridEnabled}
+								onSelect={() => SetGridEnabled(!gridEnabled)}
+								src="Media/Tools/Snap Options/ZoneGrid.svg"
+							/>
+						</Tooltip>
+					</div>
+				}
+				initialExpanded={false}
+				expandFromContent={false}
+				focusKey={FOCUS_AUTO}
+				className={classNames(MouseToolOptionsSCSS.item, styles.gridSection)}
+			>
+				<div className={classNames(InfoSectionSCSS.content, InfoSectionSCSS.disableFocusHighlight, styles.gridContent)}>
+					{GridOffsetRow("GridPosOffset", "Tool.TransformGizmoTool.Grid.PosOffset", "Tool.TransformGizmoTool.Grid.PosOffset.Tooltip", posOffset, 0.001, SetPosOffset)}
+					{GridOffsetRow("GridRotOffset", "Tool.TransformGizmoTool.Grid.RotOffset", "Tool.TransformGizmoTool.Grid.RotOffset.Tooltip", rotOffset, 0.001, SetRotOffset)}
+				</div>
+			</InfoSectionFoldout>
+
+
 			</>
 		)
 

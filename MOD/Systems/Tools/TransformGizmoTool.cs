@@ -921,6 +921,8 @@ namespace ExtraDetailingTools.Systems.Tools
             Decals = 2,
             Buildings = 4,
             MovingObject = 8,
+            Water = 16,
+            Net = 32,
             All = uint.MaxValue,
         }
 
@@ -957,6 +959,11 @@ namespace ExtraDetailingTools.Systems.Tools
         private float3 m_DragStartGizmoPos;
         private quaternion m_DragStartGizmoRot;
         private float3 m_DragStartMouseHitPos;
+
+        // Grid
+        internal bool m_GridEnabled = false;
+        internal double m_PosOffset = 1;
+        internal double m_RotOffset = 45;
 
         // Bindings
         private ProxyAction m_UndoAction;
@@ -1168,10 +1175,25 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground;
                         m_ToolRaycastSystem.typeMask |= TypeMask.Terrain;
+                        if(!m_RaycastFilter.HasFlag(RaycastFilter.Water))
+                        {
+                            m_ToolRaycastSystem.typeMask |= TypeMask.Water;
+                        }
                     }
 
-                    m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects | TypeMask.MovingObjects | TypeMask.Net | TypeMask.Lanes;
-                    m_ToolRaycastSystem.netLayerMask = Layer.Road | Layer.Fence | Layer.TrainTrack | Layer.SubwayTrack | Layer.TrainTrack;
+                    if (!m_RaycastFilter.HasFlag(RaycastFilter.StaticObject))
+                    {
+                        m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
+                    }
+
+                    if (!m_RaycastFilter.HasFlag(RaycastFilter.MovingObject))
+                        m_ToolRaycastSystem.typeMask |= TypeMask.MovingObjects;
+
+                    if (!m_RaycastFilter.HasFlag(RaycastFilter.Net))
+                    {
+                        m_ToolRaycastSystem.typeMask |= TypeMask.Net | TypeMask.Lanes;
+                        m_ToolRaycastSystem.netLayerMask = Layer.Road | Layer.Fence | Layer.TrainTrack | Layer.SubwayTrack | Layer.TrainTrack;
+                    }
 
                     if (m_ToolSystem.actionMode.IsEditor())
                     {
@@ -1283,15 +1305,6 @@ namespace ExtraDetailingTools.Systems.Tools
                     m_SelectedIndex = -1;
                     m_WaitingForDuplicate = true;
                     m_TransformGizmoToolUI.SetMode(Mode.Default);
-                    //applyMode = ApplyMode.Clear;
-
-                    // Skip the rest of this frame's Update(), in particular the hover-refresh further down
-                    // (UpdateDefinitions/CreateDefinitionsJob): it sets CreationDefinition.m_Original to
-                    // whatever's currently under the mouse, and if that's still the entity we just requested
-                    // a duplicate of, both definitions share the same m_Original and land in the same
-                    // GenerateObjectsSystem batch. The game's own sort/merge-by-m_Original logic then keeps
-                    // only one of them — and it wasn't ours, so no permanent duplicate was ever created.
-                    //return inputDeps;
                 }
                 else
                 {
@@ -1549,6 +1562,10 @@ namespace ExtraDetailingTools.Systems.Tools
                                     newPos = projectedDelta + m_DragStartGizmoPos;
                                 }
 
+                                if (m_GridEnabled)
+                                {
+                                    newPos = SnapPositionToGrid(m_DragStartGizmoPos, newPos);
+                                }
                             }
                             else if (m_Mode == Mode.Rotate)
                             {
@@ -1559,6 +1576,11 @@ namespace ExtraDetailingTools.Systems.Tools
                                     math.dot(axisDir, math.cross(startDir, currentDir)),
                                     math.dot(startDir, currentDir)
                                 );
+
+                                if (m_GridEnabled)
+                                {
+                                    angle = SnapAngleToGrid(angle);
+                                }
 
                                 quaternion deltaRot = quaternion.AxisAngle(axisDir, angle);
 
@@ -2080,6 +2102,50 @@ namespace ExtraDetailingTools.Systems.Tools
             m_SelectedTempEntity = Entity.Null;
             m_SelectedHandle = Handle.None;
             SetState(State.Idle);
+        }
+
+        // Snaps the movement delta (pos - origin) to the nearest multiple of m_PosOffset along each axis of
+        // the active basis: the selected entity's local axes when m_UseLocalAxis is on, world axes
+        // otherwise (same basis GetSelectedAxisDirection uses). Snapping in this basis, rather than raw
+        // world x/y/z, keeps a single-axis handle exactly on its line and the XZ handle's free movement on
+        // its plane, whether that axis/plane is world- or local-aligned.
+        private float3 SnapPositionToGrid(float3 origin, float3 pos)
+        {
+            float step = (float)m_PosOffset;
+            if (step <= 0f)
+                return pos;
+
+            quaternion rot = quaternion.identity;
+            if (m_UseLocalAxis && EntityManager.TryGetComponent(m_SelectedEntity, out Transform transform))
+            {
+                rot = transform.m_Rotation;
+            }
+
+            float3 right = math.rotate(rot, new float3(1, 0, 0));
+            float3 up = math.rotate(rot, new float3(0, 1, 0));
+            float3 forward = math.rotate(rot, new float3(0, 0, 1));
+
+            float3 delta = pos - origin;
+            float3 localDelta = new float3(
+                math.dot(delta, right),
+                math.dot(delta, up),
+                math.dot(delta, forward)
+            );
+
+            localDelta = math.round(localDelta / step) * step;
+
+            return origin + right * localDelta.x + up * localDelta.y + forward * localDelta.z;
+        }
+
+        // Snaps a rotation delta (radians, around the selected handle's axis) to the nearest multiple of
+        // m_RotOffset (degrees).
+        private float SnapAngleToGrid(float angle)
+        {
+            float stepRad = math.radians((float)m_RotOffset);
+            if (stepRad <= 0f)
+                return angle;
+
+            return math.round(angle / stepRad) * stepRad;
         }
 
         private Plane CreateDragPlane(float3 axisDir, float3 gizmoCenter)

@@ -7,10 +7,14 @@ using Game.Buildings;
 using Game.Common;
 using Game.Rendering;
 using Game.UI;
+using Game.UI.Widgets;
 using System;
+using System.Collections.Generic;
+using System.Reflection;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
+using static Game.Rendering.Debug.RenderPrefabRenderer;
 using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Systems.UI.TransformPanel
@@ -71,6 +75,7 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             m_EndFrameBarrier = World.GetOrCreateSystemManaged<EndFrameBarrier>();
 
             AddBinding(transformGetPos = new GetterValueBinding<float3>("EDT", "TransformPanel.pos", GetPosition));
+
             AddBinding(new TriggerBinding<float3>("EDT", "TransformPanel.pos", new Action<float3>(SetPosition)));
             AddBinding(new TriggerBinding<float3>("EDT", "TransformPanel.abspos", new Action<float3>(SetAbsolutePosition)));
 
