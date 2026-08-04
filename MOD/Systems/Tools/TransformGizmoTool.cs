@@ -863,22 +863,6 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
-        private bool IsHistoryEntryUsable(ActionHistory actionHistory, bool forRedo)
-        {
-            switch (actionHistory.ActionType)
-            {
-                case ActionType.Select:
-                    {
-                        Entity target = forRedo ? actionHistory.Entity : actionHistory.SelectedEntity;
-                        return target == Entity.Null || EntityManager.Exists(target);
-                    }
-                case ActionType.Create:
-                    return actionHistory.Entity != Entity.Null && EntityManager.Exists(actionHistory.Entity) && EntityManager.Exists(actionHistory.SelectedEntity);
-                default: // Move, Rotate
-                    return actionHistory.Entity != Entity.Null && EntityManager.Exists(actionHistory.Entity) && EntityManager.HasComponent<Transform>(actionHistory.Entity);
-            }
-        }
-
         public enum Handle
         {
             None, X, Y, Z, XZ,
@@ -2104,11 +2088,6 @@ namespace ExtraDetailingTools.Systems.Tools
             SetState(State.Idle);
         }
 
-        // Snaps the movement delta (pos - origin) to the nearest multiple of m_PosOffset along each axis of
-        // the active basis: the selected entity's local axes when m_UseLocalAxis is on, world axes
-        // otherwise (same basis GetSelectedAxisDirection uses). Snapping in this basis, rather than raw
-        // world x/y/z, keeps a single-axis handle exactly on its line and the XZ handle's free movement on
-        // its plane, whether that axis/plane is world- or local-aligned.
         private float3 SnapPositionToGrid(float3 origin, float3 pos)
         {
             float step = (float)m_PosOffset;
@@ -2137,8 +2116,6 @@ namespace ExtraDetailingTools.Systems.Tools
             return origin + right * localDelta.x + up * localDelta.y + forward * localDelta.z;
         }
 
-        // Snaps a rotation delta (radians, around the selected handle's axis) to the nearest multiple of
-        // m_RotOffset (degrees).
         private float SnapAngleToGrid(float angle)
         {
             float stepRad = math.radians((float)m_RotOffset);
@@ -2220,6 +2197,22 @@ namespace ExtraDetailingTools.Systems.Tools
                 return true;
 
             return false;
+        }
+
+        private bool IsHistoryEntryUsable(ActionHistory actionHistory, bool forRedo)
+        {
+            switch (actionHistory.ActionType)
+            {
+                case ActionType.Select:
+                    {
+                        Entity target = forRedo ? actionHistory.Entity : actionHistory.SelectedEntity;
+                        return target == Entity.Null || EntityManager.Exists(target);
+                    }
+                case ActionType.Create:
+                    return actionHistory.Entity != Entity.Null && EntityManager.Exists(actionHistory.Entity);
+                default: // Move, Rotate
+                    return actionHistory.Entity != Entity.Null && EntityManager.Exists(actionHistory.Entity) && EntityManager.HasComponent<Transform>(actionHistory.Entity);
+            }
         }
     }
 }
