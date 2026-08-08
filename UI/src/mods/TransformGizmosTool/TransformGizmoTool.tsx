@@ -4,7 +4,7 @@ import { PropsToolButton, ToolButton, ValueToolButton } from "../../../game-ui/g
 import { bindValue, trigger, useValue } from "cs2/api";
 import { useLocalization } from "cs2/l10n";
 import { Tool, tool } from "cs2/bindings";
-import { Button, FOCUS_AUTO, FOCUS_DISABLED, Tooltip } from "cs2/ui";
+import { Button, FOCUS_DISABLED, Tooltip } from "cs2/ui";
 import { kGroupName } from "../../BindingConst";
 import { Float3 } from "../TransformPanel/TransformPanel";
 import styles from "./TransformGizmoToolStyle.module.scss";
@@ -14,11 +14,9 @@ import { kTransformSection$ } from "../TransformSection/TransformSection";
 import { AnarchyButtons } from "../AnarchyButtons/AnarchyButtons";
 import { kTransformGizmoToolId } from "../../BindingConst";
 import { InfoRowSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
-import { InfoSectionFoldout } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section-foldout";
-import { InfoSectionSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
-import { ActionButtonSCSS } from "../../../game-ui/game/components/selected-info-panel/selected-info-sections/shared-sections/actions-section/action-button.module.scss";
 import { StepInput } from "../Shared/StepInput";
-import { MouseToolOptionsSCSS } from "../../../game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.module.scss";
+import { SectionFoldout, getPersistedExpanded } from "../Shared/SectionFoldout";
+import { useState } from "react";
 
 enum Mode {
 	Default = 0,
@@ -52,8 +50,10 @@ const localAxis$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.Loca
 const xzHandleMode$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.XZHandleMode`, 0);
 const snapToSurface$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.SnapToSurface`, false);
 const moveSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, false);
-const haSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.HasSubBuildings`, false);
 const raycastFilter$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.RaycastFilter`, 0);
+
+const haSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.HasSubBuildings`, false);
+const isCopyable$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.IsCopyable`, false);
 
 const gridEnabled$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.GridEnabled`, false);
 const posOffset$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.PosOffset`, 0);
@@ -69,13 +69,16 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const useLocalAxis : boolean = useValue(localAxis$);
 		const useSnapToSurface : boolean = useValue(snapToSurface$);
 		const moveSubBuildings : boolean = useValue(moveSubBuildings$);
-		const haSubBuildings : boolean = useValue(haSubBuildings$);
+		const hasSubBuildings : boolean = useValue(haSubBuildings$);
+		const isCopyable : boolean = useValue(isCopyable$);
 		const currentMode : number = useValue(toolMode$);
 		const currentXZHandleMode : number = useValue(xzHandleMode$);
 		const raycastFilter : number = useValue(raycastFilter$);
 		const gridEnabled : boolean = useValue(gridEnabled$);
 		const posOffset : number = useValue(posOffset$);
 		const rotOffset : number = useValue(rotOffset$);
+
+		const [snapExpanded, setSnapExpanded] = useState(() => getPersistedExpanded("TransformGizmoTool.SnapOptions") ?? false);
 
 		const { translate } = useLocalization();
 
@@ -212,7 +215,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					onSelect={() => LocalAxis(!useLocalAxis)}
 				/>
 
-				{ haSubBuildings ?
+				{ hasSubBuildings ?
 					<ToolButton
 						focusKey={FOCUS_DISABLED$}
 						tooltip={translate("TransformPanel.MoveSubBuildings.tooltip")}
@@ -385,15 +388,31 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					tooltip={translate("Tool.TransformGizmoTool.Duplicate.tooltip")}
 					src="coui://extralib/Icons/Misc/Copy.svg"
 					onSelect={() => Duplicate()}
+					disabled={!isCopyable}
 				/>
 			</Section>
 
-			<InfoSectionFoldout
-				header={
-					<div className={InfoRowSCSS.infoRow} style={{ paddingLeft: "0rem" }}>
-						<div className={classNames(MouseToolOptionsSCSS.label, InfoRowSCSS.left)} style={{ flexGrow: 1 }}>
-							{translate("Tool.TransformGizmoTool.Grid", "Grid")}
-						</div>
+
+			<SectionFoldout
+				title={"Snap Options"}
+				persistKey="TransformGizmoTool.SnapOptions"
+				onToggleExpanded={(expanded) => setSnapExpanded(expanded)}
+				headerRight={
+					<>
+						{ !snapExpanded && <Tooltip tooltip={translate("Tool.TransformGizmoTool.GridEnable.Tooltip", "Snap the object's position and rotation to a fixed grid.")} className={InfoRowSCSS.right}>
+							<ToolButton
+								selected={gridEnabled}
+								onSelect={() => SetGridEnabled(!gridEnabled)}
+								src="Media/Tools/Snap Options/ZoneGrid.svg"
+							/>
+						</Tooltip> }
+					</>
+				}
+			>
+				<SectionFoldout
+					title={translate("Tool.TransformGizmoTool.Grid", "Grid")}
+					persistKey="TransformGizmoTool.Grid"
+					headerRight={
 						<Tooltip tooltip={translate("Tool.TransformGizmoTool.GridEnable.Tooltip", "Snap the object's position and rotation to a fixed grid.")} className={InfoRowSCSS.right}>
 							<ToolButton
 								selected={gridEnabled}
@@ -401,20 +420,12 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 								src="Media/Tools/Snap Options/ZoneGrid.svg"
 							/>
 						</Tooltip>
-					</div>
-				}
-				initialExpanded={false}
-				expandFromContent={false}
-				focusKey={FOCUS_AUTO}
-				className={classNames(MouseToolOptionsSCSS.item, styles.gridSection)}
-			>
-				<div className={classNames(InfoSectionSCSS.content, InfoSectionSCSS.disableFocusHighlight, styles.gridContent)}>
+					}
+				>
 					{GridOffsetRow("GridPosOffset", "Tool.TransformGizmoTool.Grid.PosOffset", "Tool.TransformGizmoTool.Grid.PosOffset.Tooltip", posOffset, 0.001, SetPosOffset)}
 					{GridOffsetRow("GridRotOffset", "Tool.TransformGizmoTool.Grid.RotOffset", "Tool.TransformGizmoTool.Grid.RotOffset.Tooltip", rotOffset, 0.001, SetRotOffset)}
-				</div>
-			</InfoSectionFoldout>
-
-
+				</SectionFoldout>
+			</SectionFoldout>
 			</>
 		)
 

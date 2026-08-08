@@ -1,6 +1,6 @@
 using Unity.Entities;
 
-namespace ExtraDetailingTools.Systems
+namespace ExtraDetailingTools.Systems.Duplicate
 {
     // Flushed at PostTool: after any caller has had a chance to request a duplicate during ToolUpdate
     // (earlier in the same frame), but before Modification1 (GenerateObjectsSystem), so the resulting

@@ -6,6 +6,7 @@ using Game.Buildings;
 using Game.Common;
 using Game.Objects;
 using Game.Prefabs;
+using Game.Rendering;
 using Game.Tools;
 using System.Collections.Generic;
 using Unity.Burst;
@@ -16,8 +17,9 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Transform = Game.Objects.Transform;
 
-namespace ExtraDetailingTools.Systems
+namespace ExtraDetailingTools.Systems.Duplicate
 {
+    [UpdateBefore(typeof(ModificationBarrier2))]
     public partial class DuplicateEntitySystem : GameSystemBase
     {
         private struct PendingDuplicate
@@ -25,6 +27,7 @@ namespace ExtraDetailingTools.Systems
             public Entity Source;
             public Entity Prefab;
             public float3 Position;
+            public int ContextId;
         }
 
         private struct Candidate
@@ -33,19 +36,34 @@ namespace ExtraDetailingTools.Systems
             public float3 Position;
         }
 
-        private DuplicateEntityBarrier m_Barrier;
+        private struct ResultEntry
+        {
+            public Entity Source;
+            public Entity Result;
+            public int ContextId;
+        }
+
+        private ModificationBarrier2 m_ModificationBarrier2;
+        private DuplicateEntityBarrier m_DuplicateBarrier;
         private EntityQuery m_CreatedQuery;
 
         private NativeList<PendingDuplicate> m_Pending;
-        private readonly List<object> m_PendingContext = new List<object>();
+
+        private readonly List<object> m_ContextById = new List<object>();
 
         private readonly Dictionary<object, int> m_ExpectedCount = new Dictionary<object, int>();
-        private readonly Dictionary<object, List<Entity>> m_DuplicatedEntities = new Dictionary<object, List<Entity>>();
+
+        private readonly List<object> m_ResultContext = new List<object>();
+        private readonly List<Entity> m_ResultEntity = new List<Entity>();
+
+        private bool m_HasPendingMatches;
+        private NativeList<ResultEntry> m_PendingMatches;
 
         protected override void OnCreate()
         {
             base.OnCreate();
-            m_Barrier = World.GetOrCreateSystemManaged<DuplicateEntityBarrier>();
+            m_ModificationBarrier2 = World.GetOrCreateSystemManaged<ModificationBarrier2>();
+            m_DuplicateBarrier = World.GetOrCreateSystemManaged<DuplicateEntityBarrier>();
             m_Pending = new NativeList<PendingDuplicate>(8, Allocator.Persistent);
             m_CreatedQuery = GetEntityQuery(ComponentType.ReadOnly<PrefabRef>(), ComponentType.ReadOnly<Transform>(), ComponentType.Exclude<Temp>());
         }
@@ -53,8 +71,22 @@ namespace ExtraDetailingTools.Systems
         protected override void OnDestroy()
         {
             Dependency.Complete();
+            if (m_HasPendingMatches)
+            {
+                m_PendingMatches.Dispose();
+            }
             m_Pending.Dispose();
             base.OnDestroy();
+        }
+
+        private int GetOrCreateContextId(object context)
+        {
+            int id = m_ContextById.IndexOf(context);
+            if (id >= 0)
+                return id;
+
+            m_ContextById.Add(context);
+            return m_ContextById.Count - 1;
         }
 
         public JobHandle Duplicate(JobHandle inputDeps, object context, Entity entity)
@@ -68,10 +100,17 @@ namespace ExtraDetailingTools.Systems
 
         public JobHandle Duplicate(JobHandle inputDeps, object context, NativeArray<Entity> entities)
         {
+            if (m_HasPendingMatches)
+            {
+                ConsumePendingMatches();
+            }
+
             JobHandle deps = JobHandle.CombineDependencies(inputDeps, Dependency);
 
             ComponentLookup<Transform> transformData = SystemAPI.GetComponentLookup<Transform>(true);
             ComponentLookup<PrefabRef> prefabRefData = SystemAPI.GetComponentLookup<PrefabRef>(true);
+
+            int contextId = GetOrCreateContextId(context);
 
             NativeList<Entity> validEntities = new NativeList<Entity>(entities.Length, Allocator.TempJob);
             int expected = m_ExpectedCount.TryGetValue(context, out int existingExpected) ? existingExpected : 0;
@@ -85,12 +124,12 @@ namespace ExtraDetailingTools.Systems
                 }
 
                 validEntities.Add(entity);
-                m_PendingContext.Add(context);
                 m_Pending.Add(new PendingDuplicate
                 {
                     Source = entity,
                     Prefab = prefabRef.m_Prefab,
-                    Position = transform.m_Position
+                    Position = transform.m_Position,
+                    ContextId = contextId
                 });
                 expected++;
             }
@@ -114,10 +153,10 @@ namespace ExtraDetailingTools.Systems
                     m_CurveData = SystemAPI.GetComponentLookup<Game.Net.Curve>(true),
                     m_NetNodeData = SystemAPI.GetComponentLookup<Game.Net.Node>(true),
                     m_InstalledUpgradeData = SystemAPI.GetBufferLookup<InstalledUpgrade>(true),
-                    m_CommandBuffer = m_Barrier.CreateCommandBuffer().AsParallelWriter(),
+                    m_CommandBuffer = m_DuplicateBarrier.CreateCommandBuffer().AsParallelWriter(),
                 }.Schedule(validEntities.Length, 1, deps);
 
-                m_Barrier.AddJobHandleForProducer(jobHandle);
+                m_DuplicateBarrier.AddJobHandleForProducer(jobHandle);
                 deps = validEntities.Dispose(jobHandle);
             }
             else
@@ -132,6 +171,8 @@ namespace ExtraDetailingTools.Systems
 
         protected override void OnUpdate()
         {
+            ConsumePendingMatches();
+
             if (m_Pending.Length == 0)
                 return;
 
@@ -152,44 +193,87 @@ namespace ExtraDetailingTools.Systems
                 m_Results = results,
             }.Schedule(m_Pending.Length, 8, buildMapHandle);
 
-            findHandle.Complete();
-            candidatesByPrefab.Dispose();
-
-            for (int i = m_Pending.Length - 1; i >= 0; i--)
+            m_PendingMatches = new NativeList<ResultEntry>(m_Pending.Length, Allocator.Persistent);
+            JobHandle compactHandle = new CompactPendingJob
             {
-                Entity result = results[i];
-                if (result == Entity.Null)
-                    continue;
+                m_Pending = m_Pending,
+                m_Results = results,
+                m_Matched = m_PendingMatches,
+            }.Schedule(findHandle);
 
-                object context = m_PendingContext[i];
-                if (!m_DuplicatedEntities.TryGetValue(context, out List<Entity> list))
-                {
-                    list = new List<Entity>();
-                    m_DuplicatedEntities[context] = list;
-                }
-                list.Add(result);
+            JobHandle copyHandle = new CopyComponentsJob
+            {
+                m_Matches = m_PendingMatches.AsDeferredJobArray(),
+                m_DamagedData = SystemAPI.GetComponentLookup<Game.Objects.Damaged>(),
+                m_TreeData = SystemAPI.GetComponentLookup<Tree>(),
+                m_MeshColorLookup = SystemAPI.GetBufferLookup<MeshColor>(),
+                m_ECB = m_ModificationBarrier2.CreateCommandBuffer(),
+                m_AnarchyComponentType = AnarchyBridge.GetAnarchyComponentType(),
+            }.Schedule(compactHandle);
+            m_ModificationBarrier2.AddJobHandleForProducer(copyHandle);
 
-                m_Pending.RemoveAtSwapBack(i);
-                m_PendingContext[i] = m_PendingContext[m_PendingContext.Count - 1];
-                m_PendingContext.RemoveAt(m_PendingContext.Count - 1);
+            JobHandle disposeHandle = results.Dispose(copyHandle);
+            disposeHandle = candidatesByPrefab.Dispose(disposeHandle);
+
+            m_HasPendingMatches = true;
+            Dependency = disposeHandle;
+        }
+
+        private void ConsumePendingMatches()
+        {
+            if (!m_HasPendingMatches)
+                return;
+
+            Dependency.Complete();
+
+            for (int i = 0; i < m_PendingMatches.Length; i++)
+            {
+                ResultEntry entry = m_PendingMatches[i];
+                m_ResultContext.Add(m_ContextById[entry.ContextId]);
+                m_ResultEntity.Add(entry.Result);
             }
-            results.Dispose();
+
+            m_PendingMatches.Dispose();
+            m_HasPendingMatches = false;
         }
 
         // True once every entity requested for this context has been located. Consumes the result: a
         // second call for the same context (with nothing new pending) returns false.
         public bool TryGetDuplicated(object context, out List<Entity> result)
         {
+            ConsumePendingMatches();
+
             result = null;
             if (!m_ExpectedCount.TryGetValue(context, out int expected))
                 return false;
 
-            if (!m_DuplicatedEntities.TryGetValue(context, out List<Entity> list) || list.Count < expected)
+            int count = 0;
+            for (int i = 0; i < m_ResultContext.Count; i++)
+            {
+                if (m_ResultContext[i] == context)
+                    count++;
+            }
+
+            if (count < expected)
                 return false;
 
-            result = list;
-            m_DuplicatedEntities.Remove(context);
+            List<Entity> list = new List<Entity>(count);
+            for (int i = m_ResultContext.Count - 1; i >= 0; i--)
+            {
+                if (m_ResultContext[i] != context)
+                    continue;
+
+                list.Add(m_ResultEntity[i]);
+
+                int last = m_ResultContext.Count - 1;
+                m_ResultContext[i] = m_ResultContext[last];
+                m_ResultEntity[i] = m_ResultEntity[last];
+                m_ResultContext.RemoveAt(last);
+                m_ResultEntity.RemoveAt(last);
+            }
+
             m_ExpectedCount.Remove(context);
+            result = list;
             return true;
         }
 
@@ -239,6 +323,82 @@ namespace ExtraDetailingTools.Systems
                 }
 
                 m_Results[index] = result;
+            }
+        }
+
+        [BurstCompile]
+        private struct CompactPendingJob : IJob
+        {
+            public NativeList<PendingDuplicate> m_Pending;
+            [ReadOnly] public NativeArray<Entity> m_Results;
+            public NativeList<ResultEntry> m_Matched;
+
+            public void Execute()
+            {
+                for (int i = m_Pending.Length - 1; i >= 0; i--)
+                {
+                    Entity result = m_Results[i];
+                    if (result == Entity.Null)
+                        continue;
+
+                    PendingDuplicate pending = m_Pending[i];
+                    m_Matched.Add(new ResultEntry { Source = pending.Source, Result = result, ContextId = pending.ContextId });
+                    m_Pending.RemoveAtSwapBack(i);
+                }
+            }
+        }
+
+        [BurstCompile]
+        private struct CopyComponentsJob : IJob
+        {
+            [ReadOnly] public NativeArray<ResultEntry> m_Matches;
+            [ReadOnly] public ComponentLookup<Game.Objects.Damaged> m_DamagedData;
+            [ReadOnly] public ComponentLookup<Tree> m_TreeData;
+            [ReadOnly] public BufferLookup<MeshColor> m_MeshColorLookup;
+
+            [ReadOnly] public ComponentType m_AnarchyComponentType;
+
+            public EntityCommandBuffer m_ECB;
+
+            public void Execute()
+            {
+                for (int i = 0; i < m_Matches.Length; i++)
+                {
+                    ResultEntry match = m_Matches[i];
+                    CopyComponent(m_DamagedData, match.Source, match.Result);
+                    CopyComponent(m_TreeData, match.Source, match.Result);
+
+                    CopyBuffer(m_MeshColorLookup, match.Source, match.Result);
+
+                    if(m_AnarchyComponentType != default)
+                    {
+                        m_ECB.AddComponent(match.Result, m_AnarchyComponentType);
+                    }
+
+                    m_ECB.AddComponent(match.Result, new Updated());
+                }
+            }
+
+            private void CopyComponent<T>(ComponentLookup<T> lookup, Entity source, Entity destination) where T : unmanaged, IComponentData
+            {
+                if (lookup.HasComponent(source)) // && lookup.HasComponent(destination)
+                {
+                    m_ECB.AddComponent<T>(destination, lookup[source]);
+                }
+            }
+
+            private void CopyBuffer<T>(BufferLookup<T> lookup, Entity source, Entity destination) where T : unmanaged, IBufferElementData
+            {
+                if (lookup.HasBuffer(source)) // && lookup.HasBuffer(destination)
+                {
+                    DynamicBuffer<T> sourceBuffer = lookup[source];
+                    DynamicBuffer<T> destBuffer = m_ECB.AddBuffer<T>(destination);
+                    destBuffer.CopyFrom(sourceBuffer);
+                    //foreach (T element in sourceBuffer)
+                    //{
+                    //    destBuffer.Add(element);
+                    //}
+                }
             }
         }
 
@@ -360,10 +520,10 @@ namespace ExtraDetailingTools.Systems
                     objectDefinition.m_GroupIndex = editorContainer.m_GroupIndex;
                 }
 
-                if (m_TreeData.TryGetComponent(source, out var tree))
-                {
-                    objectDefinition.m_Age = GetTreeAge(tree);
-                }
+                //if (m_TreeData.TryGetComponent(source, out var tree))
+                //{
+                //    objectDefinition.m_Age = GetTreeAge(tree);
+                //}
 
                 m_CommandBuffer.AddComponent(sortKey, e, objectDefinition);
                 m_CommandBuffer.AddComponent(sortKey, e, creationDefinition);

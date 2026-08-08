@@ -19,7 +19,8 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    gap: var(--gap5);
+    row-gap: var(--gap5);
+    column-gap: var(--gap5);
     flex: 1 1 0;
     width: 100%;
     box-sizing: border-box;

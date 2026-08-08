@@ -2,7 +2,6 @@
 using Colossal.Mathematics;
 using ExtraDetailingTools.Components;
 using ExtraDetailingTools.Gizmos;
-using ExtraDetailingTools.Systems.UI;
 using Game;
 using Game.Areas;
 using Game.Audio;
@@ -21,6 +20,7 @@ using Game.Tools;
 using Game.UI.InGame;
 using Game.Vehicles;
 using ExtraDetailingTools.Systems;
+using ExtraDetailingTools.Systems.Duplicate;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -916,7 +916,6 @@ namespace ExtraDetailingTools.Systems.Tools
         private TerrainSystem m_TerrainSystem;
         private GizmosRaycastSystem m_GimzosRaycastSystem;
         private ToolOutputBarrier m_ToolOutputBarrier;
-        private TransformGizmoToolUI m_TransformGizmoToolUI;
         private SelectedInfoUISystem m_SelectedInfoUISystem;
         private DuplicateEntitySystem m_DuplicateEntitySystem;
 
@@ -992,6 +991,10 @@ namespace ExtraDetailingTools.Systems.Tools
 
         public Entity SelectedEntity => m_SelectedEntity;
 
+        // Events
+        public event Action<Mode> ModeChanged;
+        public event Action<Entity> SelectedEntityChanged;
+
         public override PrefabBase GetPrefab() { return null; }
 
         public override bool TrySetPrefab(PrefabBase prefab) { return false; }
@@ -1013,7 +1016,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 EDT.Logger.Warn($"Anarchy not available. {toolID} will not be registered to Anarchy and may not work properly.");
             }
 
-            m_TransformGizmoToolUI = World.GetOrCreateSystemManaged<TransformGizmoToolUI>();
             m_TerrainSystem = World.GetOrCreateSystemManaged<TerrainSystem>();
             m_ToolOutputBarrier = World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_AudioManager = World.GetOrCreateSystemManaged<AudioManager>();
@@ -1067,10 +1069,10 @@ namespace ExtraDetailingTools.Systems.Tools
             m_MoveAction.shouldBeEnabled = true;
             m_RotateAction.shouldBeEnabled = true;
             m_DuplicateAction.shouldBeEnabled = true;
-            m_SelectedEntity = m_ToolSystem.selected;
+            SetSelectedEntity(m_ToolSystem.selected);
             m_WasAnEntitySelected = m_SelectedEntity != Entity.Null;
             m_ToolSystem.selected = Entity.Null;
-            m_TransformGizmoToolUI.SetMode(Mode.Default);
+            SetMode(Mode.Default);
             EnableActions(true);
         }
 
@@ -1094,7 +1096,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
             m_UndoHistory.Clear();
             m_RedoHistory.Clear();
-            m_TransformGizmoToolUI.SetMode(Mode.Default);
+            SetMode(Mode.Default);
             EnableActions(false);
         }
 
@@ -1221,17 +1223,17 @@ namespace ExtraDetailingTools.Systems.Tools
             if (m_MoveAction.WasPressedThisFrame())
             {
                 if (m_Mode != Mode.Move)
-                    m_TransformGizmoToolUI.SetMode(Mode.Move);
+                    SetMode(Mode.Move);
                 else
-                    m_TransformGizmoToolUI.SetMode(Mode.Default);
+                    SetMode(Mode.Default);
             }
 
             if (m_RotateAction.WasPressedThisFrame())
             {
                 if (m_Mode != Mode.Rotate)
-                    m_TransformGizmoToolUI.SetMode(Mode.Rotate);
+                    SetMode(Mode.Rotate);
                 else
-                    m_TransformGizmoToolUI.SetMode(Mode.Default);
+                    SetMode(Mode.Default);
             }
 
             if (m_RequestSnapOnGround)
@@ -1267,9 +1269,9 @@ namespace ExtraDetailingTools.Systems.Tools
 
                         m_UndoHistory.Push(ActionHistory.NewCreate(duplicateEntity, m_PendingDuplicateSource, duplicatePosition, duplicateRotation));
 
-                        m_SelectedEntity = duplicateEntity;
+                        SetSelectedEntity(duplicateEntity);
                         m_SelectedIndex = -1;
-                        m_TransformGizmoToolUI.SetMode(Mode.Move);
+                        SetMode(Mode.Move);
                     }
 
                     m_PendingDuplicateSource = Entity.Null;
@@ -1284,11 +1286,11 @@ namespace ExtraDetailingTools.Systems.Tools
                     EDT.Logger.Info($"Duplicate requested for entity: {m_SelectedEntity}");
                     inputDeps = m_DuplicateEntitySystem.Duplicate(inputDeps, this, m_SelectedEntity);
                     m_PendingDuplicateSource = m_SelectedEntity;
-                    m_SelectedEntity = Entity.Null;
+                    SetSelectedEntity(Entity.Null);
                     m_SelectedTempEntity = Entity.Null;
                     m_SelectedIndex = -1;
                     m_WaitingForDuplicate = true;
-                    m_TransformGizmoToolUI.SetMode(Mode.Default);
+                    SetMode(Mode.Default);
                 }
                 else
                 {
@@ -1314,10 +1316,10 @@ namespace ExtraDetailingTools.Systems.Tools
                         if (actionType == ActionType.Select)
                         {
                             m_RedoHistory.Push(actionHistory);
-                            m_SelectedEntity = actionHistory.SelectedEntity;
+                            SetSelectedEntity(actionHistory.SelectedEntity);
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
-                            m_TransformGizmoToolUI.SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                            SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
                             m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
                         else if (actionType == ActionType.Move)
@@ -1338,10 +1340,10 @@ namespace ExtraDetailingTools.Systems.Tools
                             EntityManager.AddComponent<Deleted>(entity);
                             if (m_SelectedEntity == entity)
                             {
-                                m_SelectedEntity = actionHistory.SelectedEntity;
+                                SetSelectedEntity(actionHistory.SelectedEntity);
                                 m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
-                                m_TransformGizmoToolUI.SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                                SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
                                 m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                             }
                         }
@@ -1369,17 +1371,17 @@ namespace ExtraDetailingTools.Systems.Tools
                         ActionType actionType = actionHistory.ActionType;
                         if (actionType == ActionType.Create)
                         {
-                            m_SelectedEntity = entity;
+                            SetSelectedEntity(entity);
                             m_SelectedIndex = -1;
                             m_RequestDuplicate = true;
                         }
                         else if (actionType == ActionType.Select)
                         {
                             m_UndoHistory.Push(actionHistory);
-                            m_SelectedEntity = actionHistory.Entity;
+                            SetSelectedEntity(actionHistory.Entity);
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
-                            m_TransformGizmoToolUI.SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                            SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
                             m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
                         else if (actionType == ActionType.Move)
@@ -1438,7 +1440,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             m_State = State.Idle;
-            m_TransformGizmoToolUI.SetMode(Mode.Default);
+            SetMode(Mode.Default);
             return inputDeps;
         }
 
@@ -1685,7 +1687,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             if (m_State == State.Idle)
             {
-                m_TransformGizmoToolUI.SetMode((int)Mode.Default);
+                SetMode(Mode.Default);
                 return UpdateGizmos(inputDeps);
             }
 
@@ -1703,7 +1705,7 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             if (m_TempQuery.IsEmptyIgnoreFilter)
             {
-                m_SelectedEntity = Entity.Null;
+                SetSelectedEntity(Entity.Null);
                 return inputDeps;
             }
             NativeList<ArchetypeChunk> chunks = m_TempQuery.ToArchetypeChunkListAsync(Allocator.TempJob, out JobHandle outJobHandle);
@@ -1936,17 +1938,32 @@ namespace ExtraDetailingTools.Systems.Tools
                 return;
             }
 
+            if (m_Mode == mode)
+            {
+                return;
+            }
+
             m_Mode = mode;
+            ModeChanged?.Invoke(m_Mode);
+        }
+
+        private void SetSelectedEntity(Entity entity)
+        {
+            if (m_SelectedEntity == entity)
+            {
+                return;
+            }
+
+            m_SelectedEntity = entity;
+            SelectedEntityChanged?.Invoke(m_SelectedEntity);
         }
 
         private void SelectEntity(Entity entity, int index = -1)
         {
             m_UndoHistory.Push(ActionHistory.NewSelect(entity, m_SelectedEntity));
-            m_SelectedEntity = entity;
+            SetSelectedEntity(entity);
             m_SelectedIndex = index;
-            m_TransformGizmoToolUI.SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
-            //m_UndoHistory.Clear();
-            //m_RedoHistory.Clear();
+            SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
         }
 
         public void SnapOnGround()

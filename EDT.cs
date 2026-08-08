@@ -8,6 +8,7 @@ using Colossal.Logging;
 using ExtraDetailingTools.ExtraSnap;
 using ExtraDetailingTools.Gizmos;
 using ExtraDetailingTools.Systems;
+using ExtraDetailingTools.Systems.Duplicate;
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.Tooltip;
 using ExtraDetailingTools.Systems.UI;

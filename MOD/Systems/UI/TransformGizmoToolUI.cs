@@ -2,7 +2,9 @@
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI.TransformPanel;
 using ExtraLib.Systems.UI.ExtraPanels;
+using Game.Common;
 using Game.Input;
+using Game.Prefabs;
 using Game.Tools;
 using Game.UI;
 using Game.UI.Widgets;
@@ -25,7 +27,8 @@ namespace ExtraDetailingTools.Systems.UI
 
         private GetterValueBinding<int> m_ToolModeValueGetter;
         private GetterValueBinding<bool> m_LocalAxisValueGetter;
-        private GetterValueBinding<bool> m_HasSubBuildingsValueGetter;
+        private ValueBinding<bool> m_IsCopyableValueBinding;
+        private ValueBinding<bool> m_HasSubBuildingsValueBinding;
         private GetterValueBinding<bool> m_MoveSubBuildingsValueGetter;
         private GetterValueBinding<int> m_XZHandleModeValueGetter;
         private GetterValueBinding<int> m_RaycastFilterValueGetter;
@@ -42,6 +45,8 @@ namespace ExtraDetailingTools.Systems.UI
         {
             base.OnCreate();
             m_TransformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
+            m_TransformGizmoTool.ModeChanged += OnToolModeChanged;
+            m_TransformGizmoTool.SelectedEntityChanged += OnSelectedEntityChanged;
             m_ToolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
             m_ExtraPanelsUISystem = World.GetOrCreateSystemManaged<ExtraPanelsUISystem>();
             m_TransformExtraPanel = m_ExtraPanelsUISystem.AddExtraPanel<TransformExtraPanel>();
@@ -52,7 +57,8 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(m_LocalAxisValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", () => m_TransformGizmoTool.m_UseLocalAxis));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", SetUseLocalAxis));
 
-            AddBinding(m_HasSubBuildingsValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.HasSubBuildings", () => true));
+            AddBinding(m_IsCopyableValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.IsCopyable", IsCopyable(m_TransformGizmoTool.SelectedEntity)));
+            AddBinding(m_HasSubBuildingsValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.HasSubBuildings", true));
             AddBinding(m_MoveSubBuildingsValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", () => m_TransformGizmoTool.m_MoveSubBuildings));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", SetMoveSubBuildings));
 
@@ -93,6 +99,35 @@ namespace ExtraDetailingTools.Systems.UI
             }
         }
 
+        protected override void OnDestroy()
+        {
+            m_TransformGizmoTool.ModeChanged -= OnToolModeChanged;
+            base.OnDestroy();
+        }
+
+        private void OnToolModeChanged(TransformGizmoTool.Mode mode)
+        {
+            m_ToolModeValueGetter.Update();
+        }
+
+        private void OnSelectedEntityChanged(Entity entity)
+        {
+            m_IsCopyableValueBinding.Update(IsCopyable(entity));
+        }
+
+        private bool IsCopyable(Entity entity)
+        {
+            // Maybe also exclude Owner ?
+            return EntityManager.HasComponent<Game.Objects.Object>(entity) &&
+                EntityManager.HasComponent<Game.Objects.Transform>(entity) &&
+                EntityManager.HasComponent<PrefabRef>(entity) &&
+                !EntityManager.HasComponent<Game.Buildings.Building>(entity) &&
+                !EntityManager.HasComponent<Game.Buildings.Extension>(entity) &&
+                !EntityManager.HasComponent<Game.Objects.Moving>(entity) &&
+                !EntityManager.HasComponent<Temp>(entity) &&
+                !EntityManager.HasComponent<Deleted>(entity);
+        }
+
         public void EnableTransformGizmoTool()
         {
             m_AnarchyAvailableValueGetter.Update();
@@ -102,7 +137,6 @@ namespace ExtraDetailingTools.Systems.UI
         public void SetMode(TransformGizmoTool.Mode mode)
         {
             m_TransformGizmoTool.SetMode(mode);
-            m_ToolModeValueGetter.Update();
         }
 
         public void SetMode(int mode)
