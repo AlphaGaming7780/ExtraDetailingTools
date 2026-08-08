@@ -1,0 +1,21 @@
+.foldout {
+    flex-direction: column !important;
+    align-items: stretch !important;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--gap5);
+    column-gap: var(--gap5);
+    background-color: var(--sectionBackgroundColor);
+    border-top-left-radius: var(--panelRadiusInner);
+    border-top-right-radius: var(--panelRadiusInner);
+    border-bottom-right-radius: var(--panelRadiusInner);
+    border-bottom-left-radius: var(--panelRadiusInner);
+    padding-top: var(--gap6);
+    padding-right: var(--gap6);
+    padding-bottom: var(--gap6);
+    padding-left: var(--gap6);
+    box-sizing: border-box;
+}

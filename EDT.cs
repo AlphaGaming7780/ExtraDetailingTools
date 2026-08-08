@@ -8,6 +8,7 @@ using Colossal.Logging;
 using ExtraDetailingTools.ExtraSnap;
 using ExtraDetailingTools.Gizmos;
 using ExtraDetailingTools.Systems;
+using ExtraDetailingTools.Systems.Duplicate;
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.Tooltip;
 using ExtraDetailingTools.Systems.UI;
@@ -66,6 +67,8 @@ namespace ExtraDetailingTools
 
                 updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
                 //updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
+                updateSystem.UpdateAt<DuplicateEntityBarrier>(SystemUpdatePhase.PostTool);
+                updateSystem.UpdateAt<DuplicateEntitySystem>(SystemUpdatePhase.Modification2);
                 updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
                 updateSystem.UpdateAt<GizmosRenderSystem>(SystemUpdatePhase.Rendering);
                 updateSystem.UpdateAt<GizmosRaycastSystem>(SystemUpdatePhase.Raycast);

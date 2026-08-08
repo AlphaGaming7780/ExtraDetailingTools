@@ -49,7 +49,7 @@
 }
 
 .draggableLabel {
-    cursor: ew-resize;
+    cursor: url(cursor://horizontal-can-resize);
     user-select: none;
     -webkit-user-select: none;
 }

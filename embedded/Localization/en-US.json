@@ -34,6 +34,10 @@
 	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.RedoBinding]": "Redo the last undone transform action.",
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/RedoBinding/binding]": "Redo",
 
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.DuplicateBinding]": "Duplicate",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.DuplicateBinding]": "Duplicate the selected object.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/DuplicateBinding/binding]": "Duplicate",
+
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Gizmo Handle Size",
 	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Screen size, in pixels, of the Transform Gizmo Tool's handles.",
 
@@ -41,20 +45,34 @@
 	"ToolOptions.TOOLTIP[ShowMarker]": "Show/hide the markers.",
 
 	"Tool.TransformGizmoTool.Tooltip": "Open EDT's Transform Gizmo Tool.",
+	"Tool.TransformGizmoTool.Modes": "Modes",
 	"Tool.TransformGizmoTool.Default.Tooltip": "Enables the default mode of the tool, used to select objects.",
 	"Tool.TransformGizmoTool.Move.Tooltip": "Enables the Move mode, allowing you to move objects using the gizmo handles.",
 	"Tool.TransformGizmoTool.Rotate.Tooltip": "Enables the Rotate mode, allowing you to rotate objects using the gizmo handles.",
 	"Tool.TransformGizmoTool.Scale.Tooltip": "Enables the Scale mode, allowing you to resize objects using the gizmo handles.",
-	"Tool.TransformGizmoTool.Mods": "Modes",
 	"Tool.TransformGizmoTool.Settings": "Settings",
 	"Tool.TransformGizmoTool.QuickActions": "Quick Actions",
-	"Tool.TransformGizmoTool.FollowGround.tooltip": "When enabled, the object follows the ground surface, maintaining its height offset relative to the terrain.",
 	"Tool.TransformGizmoTool.SnapOnGround.tooltip": "Snap the object to the ground, setting its Y position to match the terrain surface below.",
-	"Tool.TransformGizmoTool.XZHandleMode": "Sphere Handle Mode",
-	"Tool.TransformGizmoTool.XZHandleMode.FollowSurface.Tooltip": "Follow Surface",
-	"Tool.TransformGizmoTool.XZHandleMode.FixedX.Tooltip": "Fixed X",
-	"Tool.TransformGizmoTool.XZHandleMode.FixedY.Tooltip": "Fixed Y",
-	"Tool.TransformGizmoTool.XZHandleMode.FixedZ.Tooltip": "Fixed Z",
+	"Tool.TransformGizmoTool.Duplicate.tooltip": "Duplicate the selected object and select the new copy.",
+	"Tool.TransformGizmoTool.XZHandleModes": "Sphere Handle Modes",
+	"Tool.TransformGizmoTool.XZHandleModes.FollowSurface.Tooltip": "Follow Surface",
+	"Tool.TransformGizmoTool.XZHandleModes.FixedX.Tooltip": "Fixed X axis",
+	"Tool.TransformGizmoTool.XZHandleModes.FixedY.Tooltip": "Fixed Y axis",
+	"Tool.TransformGizmoTool.XZHandleModes.FixedZ.Tooltip": "Fixed Z axis",
+
+	"Tool.TransformGizmoTool.RaycastFilter": "Raycast Filter",
+	"Tool.TransformGizmoTool.RaycastFilter.StaticObject.Tooltip": "Static Objects",
+	"Tool.TransformGizmoTool.RaycastFilter.Decals.Tooltip": "Decals",
+	"Tool.TransformGizmoTool.RaycastFilter.MovingObject.Tooltip": "Moving Objects",
+	"Tool.TransformGizmoTool.RaycastFilter.Net.Tooltip": "Networks",
+	"Tool.TransformGizmoTool.RaycastFilter.Water.Tooltip": "Water",
+
+	"Tool.TransformGizmoTool.Grid": "Grid",
+	"Tool.TransformGizmoTool.GridEnable.Tooltip": "Snap the object's position and rotation to a fixed grid.",
+	"Tool.TransformGizmoTool.Grid.PosOffset": "Position Step",
+	"Tool.TransformGizmoTool.Grid.PosOffset.Tooltip": "Grid spacing used to snap the object's position, in meters.",
+	"Tool.TransformGizmoTool.Grid.RotOffset": "Rotation Step",
+	"Tool.TransformGizmoTool.Grid.RotOffset.Tooltip": "Grid spacing used to snap the object's rotation, in degrees.",
 
 	"ExtraPanelHeaderName[ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel]": "Transform Panel",
 
@@ -89,12 +107,9 @@
 	"TransformPanel.SCALE_X": "X scale (local axis). Scroll up/down or type to change the value.",
 	"TransformPanel.SCALE_Y": "Y scale (local axis). Scroll up/down or type to change the value.",
 	"TransformPanel.SCALE_Z": "Z scale (local axis). Scroll up/down or type to change the value.",
-	"TransformPanel.MoveSubBuildings": "Move Sub-Buildings",
 	"TransformPanel.MoveSubBuildings.tooltip": "Enables or disables the movement of building upgrades, which are themselves separate buildings.",
 
 	"TransformPanel.step": "Step",
-	"TransformPanel.COPY_POS_ROT": "Copy position & rotation",
 	"TransformPanel.COPY_POS_ROT.tooltip": "Copy the position and the rotation.",
-	"TransformPanel.PASTE_POS_ROT": "Paste position & rotation",
 	"TransformPanel.PASTE_POS_ROT.tooltip": "Paste the position and the rotation."
 }

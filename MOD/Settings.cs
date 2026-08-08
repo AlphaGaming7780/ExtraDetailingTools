@@ -12,6 +12,7 @@ namespace ExtraDetailingTools
     [SettingsUIKeyboardAction(nameof(EnterRotateBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
     [SettingsUIKeyboardAction(nameof(UndoBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
     [SettingsUIKeyboardAction(nameof(RedoBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
+    [SettingsUIKeyboardAction(nameof(DuplicateBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
     internal class Settings : ModSetting
     {   
 
@@ -49,6 +50,10 @@ namespace ExtraDetailingTools
         [SettingsUIKeyboardBinding(BindingKeyboard.Y, nameof(RedoBinding), ctrl: true)]
         [SettingsUISection(kTTTSection, kKeybindingGroup, kQuickActionsGroup)]
         public ProxyBinding RedoBinding { get; set; }
+
+        [SettingsUIKeyboardBinding(BindingKeyboard.D, nameof(DuplicateBinding), ctrl: true)]
+        [SettingsUISection(kTTTSection, kKeybindingGroup, kQuickActionsGroup)]
+        public ProxyBinding DuplicateBinding { get; set; }
 
         [SettingsUISection(kTTTSection, kQOLGroup)]
         [SettingsUISlider(min = 50f, max = 500f, step = 10f, unit = "integer")]

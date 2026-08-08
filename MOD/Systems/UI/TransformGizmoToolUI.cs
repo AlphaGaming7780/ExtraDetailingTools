@@ -2,10 +2,17 @@
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI.TransformPanel;
 using ExtraLib.Systems.UI.ExtraPanels;
+using Game.Common;
 using Game.Input;
+using Game.Prefabs;
 using Game.Tools;
 using Game.UI;
+using Game.UI.Widgets;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Unity.Collections;
+using Unity.Entities;
 
 namespace ExtraDetailingTools.Systems.UI
 {
@@ -20,7 +27,8 @@ namespace ExtraDetailingTools.Systems.UI
 
         private GetterValueBinding<int> m_ToolModeValueGetter;
         private GetterValueBinding<bool> m_LocalAxisValueGetter;
-        private GetterValueBinding<bool> m_HasSubBuildingsValueGetter;
+        private ValueBinding<bool> m_IsCopyableValueBinding;
+        private ValueBinding<bool> m_HasSubBuildingsValueBinding;
         private GetterValueBinding<bool> m_MoveSubBuildingsValueGetter;
         private GetterValueBinding<int> m_XZHandleModeValueGetter;
         private GetterValueBinding<int> m_RaycastFilterValueGetter;
@@ -28,10 +36,17 @@ namespace ExtraDetailingTools.Systems.UI
         private GetterValueBinding<bool> m_AddPreventOverrideValueGetter;
         private GetterValueBinding<bool> m_AddTransformLockValueGetter;
 
+        // Grid bindings
+        private GetterValueBinding<bool> m_GridEnabledValueGetter;
+        private GetterValueBinding<double> m_PosOffsetValueGetter;
+        private GetterValueBinding<double> m_RotOffsetValueGetter;
+
         protected override void OnCreate()
         {
             base.OnCreate();
             m_TransformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
+            m_TransformGizmoTool.ModeChanged += OnToolModeChanged;
+            m_TransformGizmoTool.SelectedEntityChanged += OnSelectedEntityChanged;
             m_ToolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
             m_ExtraPanelsUISystem = World.GetOrCreateSystemManaged<ExtraPanelsUISystem>();
             m_TransformExtraPanel = m_ExtraPanelsUISystem.AddExtraPanel<TransformExtraPanel>();
@@ -40,30 +55,39 @@ namespace ExtraDetailingTools.Systems.UI
             m_OpenTransformToolAction.shouldBeEnabled = true;
 
             AddBinding(m_LocalAxisValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", () => m_TransformGizmoTool.m_UseLocalAxis));
-            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", new Action<bool>(SetUseLocalAxis)));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", SetUseLocalAxis));
 
-            AddBinding(m_HasSubBuildingsValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.HasSubBuildings", () => true));
+            AddBinding(m_IsCopyableValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.IsCopyable", IsCopyable(m_TransformGizmoTool.SelectedEntity)));
+            AddBinding(m_HasSubBuildingsValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.HasSubBuildings", true));
             AddBinding(m_MoveSubBuildingsValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", () => m_TransformGizmoTool.m_MoveSubBuildings));
-            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", new Action<bool>(SetMoveSubBuildings)));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", SetMoveSubBuildings));
 
             AddBinding(m_ToolModeValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.ToolMode", () => m_TransformGizmoTool.uiModeIndex));
-            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.ToolMode", new Action<int>(SetMode)));
+            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.ToolMode", SetMode));
 
             AddBinding(m_XZHandleModeValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.XZHandleMode", () => (int)m_TransformGizmoTool.xzHandleMode));
-            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.XZHandleMode", new Action<int>(SetXZHandleMode)));
+            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.XZHandleMode", SetXZHandleMode));
 
             AddBinding(m_RaycastFilterValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.RaycastFilter", () => (int)m_TransformGizmoTool.raycastFilter));
-            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.RaycastFilter", new Action<int>(SetRaycastFilter)));
+            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.RaycastFilter", SetRaycastFilter));
 
-            AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SnapOnGround", new Action(SnapOnGround)));
+            AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SnapOnGround", SnapOnGround));
+            AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.Duplicate", Duplicate));
 
             AddBinding(m_AnarchyAvailableValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AnarchyAvailable", () => AnarchyBridge.IsAvailable));
             AddBinding(m_AddPreventOverrideValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddPreventOverride", () => m_TransformGizmoTool.m_AddPreventOverride));
-            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddPreventOverride", new Action<bool>(SetAddPreventOverride)));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddPreventOverride", SetAddPreventOverride));
             AddBinding(m_AddTransformLockValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddTransformLock", () => m_TransformGizmoTool.m_AddTransformLock));
-            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddTransformLock", new Action<bool>(SetAddTransformLock)));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.AddTransformLock", SetAddTransformLock));
 
             AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SelectTransformGizmosTool", EnableTransformGizmoTool));
+
+            AddBinding(m_GridEnabledValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.GridEnabled", () => m_TransformGizmoTool.m_GridEnabled));
+            AddBinding(m_PosOffsetValueGetter = new GetterValueBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffset", () => m_TransformGizmoTool.m_PosOffset));
+            AddBinding(m_RotOffsetValueGetter = new GetterValueBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffset", () => m_TransformGizmoTool.m_RotOffset));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.GridEnabled", SetGridEnabled));
+            AddBinding(new TriggerBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffset", SetPosOffset));
+            AddBinding(new TriggerBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffset", SetRotOffset));
         }
 
         protected override void OnUpdate()
@@ -75,6 +99,35 @@ namespace ExtraDetailingTools.Systems.UI
             }
         }
 
+        protected override void OnDestroy()
+        {
+            m_TransformGizmoTool.ModeChanged -= OnToolModeChanged;
+            base.OnDestroy();
+        }
+
+        private void OnToolModeChanged(TransformGizmoTool.Mode mode)
+        {
+            m_ToolModeValueGetter.Update();
+        }
+
+        private void OnSelectedEntityChanged(Entity entity)
+        {
+            m_IsCopyableValueBinding.Update(IsCopyable(entity));
+        }
+
+        private bool IsCopyable(Entity entity)
+        {
+            // Maybe also exclude Owner ?
+            return EntityManager.HasComponent<Game.Objects.Object>(entity) &&
+                EntityManager.HasComponent<Game.Objects.Transform>(entity) &&
+                EntityManager.HasComponent<PrefabRef>(entity) &&
+                !EntityManager.HasComponent<Game.Buildings.Building>(entity) &&
+                !EntityManager.HasComponent<Game.Buildings.Extension>(entity) &&
+                !EntityManager.HasComponent<Game.Objects.Moving>(entity) &&
+                !EntityManager.HasComponent<Temp>(entity) &&
+                !EntityManager.HasComponent<Deleted>(entity);
+        }
+
         public void EnableTransformGizmoTool()
         {
             m_AnarchyAvailableValueGetter.Update();
@@ -84,7 +137,6 @@ namespace ExtraDetailingTools.Systems.UI
         public void SetMode(TransformGizmoTool.Mode mode)
         {
             m_TransformGizmoTool.SetMode(mode);
-            m_ToolModeValueGetter.Update();
         }
 
         public void SetMode(int mode)
@@ -133,6 +185,11 @@ namespace ExtraDetailingTools.Systems.UI
             m_TransformGizmoTool.SnapOnGround();
         }
 
+        public void Duplicate()
+        {
+            m_TransformGizmoTool.Duplicate();
+        }
+
         public void SetAddPreventOverride(bool enabled)
         {
             m_TransformGizmoTool.m_AddPreventOverride = enabled;
@@ -145,5 +202,22 @@ namespace ExtraDetailingTools.Systems.UI
             m_AddTransformLockValueGetter.Update();
         }
 
+        public void SetGridEnabled(bool enabled)
+        {
+            m_TransformGizmoTool.m_GridEnabled = enabled;
+            m_GridEnabledValueGetter.Update();
+        }
+
+        public void SetPosOffset(double value)
+        {
+            m_TransformGizmoTool.m_PosOffset = value;
+            m_PosOffsetValueGetter.Update();
+        }
+
+        public void SetRotOffset(double value)
+        {
+            m_TransformGizmoTool.m_RotOffset = value;
+            m_RotOffsetValueGetter.Update();
+        }
     }
 }

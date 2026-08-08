@@ -1,0 +1,58 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1 1 40rem;
+    min-width: 35rem;
+    box-sizing: border-box;
+}
+
+.row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    overflow: hidden;
+}
+
+.inlineWrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    row-gap: var(--gap5);
+    column-gap: var(--gap5);
+    flex: 1 1 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.inlineLabelRow {
+    flex: 1 1 auto;
+    white-space: nowrap;
+}
+
+.inlineInputRow {
+    flex: 0 0 auto;
+    width: 120rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.input {
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+}
+
+.draggableLabel {
+    cursor: url(cursor://horizontal-can-resize);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.handle {
+    cursor: url(cursor://horizontal-can-resize);
+    user-select: none;
+    -webkit-user-select: none;
+    flex-shrink: 0;
+}
