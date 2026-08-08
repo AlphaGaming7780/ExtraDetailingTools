@@ -392,8 +392,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				/>
 			</Section>
 
-
-			<SectionFoldout
+			{/* <SectionFoldout
 				title={"Snap Options"}
 				persistKey="TransformGizmoTool.SnapOptions"
 				onToggleExpanded={(expanded) => setSnapExpanded(expanded)}
@@ -425,7 +424,25 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					{GridOffsetRow("GridPosOffset", "Tool.TransformGizmoTool.Grid.PosOffset", "Tool.TransformGizmoTool.Grid.PosOffset.Tooltip", posOffset, 0.001, SetPosOffset)}
 					{GridOffsetRow("GridRotOffset", "Tool.TransformGizmoTool.Grid.RotOffset", "Tool.TransformGizmoTool.Grid.RotOffset.Tooltip", rotOffset, 0.001, SetRotOffset)}
 				</SectionFoldout>
+			</SectionFoldout> */}
+			
+			<SectionFoldout
+				title={translate("Tool.TransformGizmoTool.Grid", "Grid")}
+				persistKey="TransformGizmoTool.Grid"
+				headerRight={
+					<Tooltip tooltip={translate("Tool.TransformGizmoTool.GridEnable.Tooltip", "Snap the object's position and rotation to a fixed grid.")} className={InfoRowSCSS.right}>
+						<ToolButton
+							selected={gridEnabled}
+							onSelect={() => SetGridEnabled(!gridEnabled)}
+							src="Media/Tools/Snap Options/ZoneGrid.svg"
+						/>
+					</Tooltip>
+				}
+			>
+				{GridOffsetRow("GridPosOffset", "Tool.TransformGizmoTool.Grid.PosOffset", "Tool.TransformGizmoTool.Grid.PosOffset.Tooltip", posOffset, 0.001, SetPosOffset)}
+				{GridOffsetRow("GridRotOffset", "Tool.TransformGizmoTool.Grid.RotOffset", "Tool.TransformGizmoTool.Grid.RotOffset.Tooltip", rotOffset, 0.001, SetRotOffset)}
 			</SectionFoldout>
+			
 			</>
 		)
 
