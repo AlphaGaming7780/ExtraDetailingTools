@@ -9,13 +9,17 @@ using Game.Prefabs;
 using Game.Rendering;
 using Game.Tools;
 using Game.UI.InGame;
-#if RELEASE
-using Unity.Burst;
-#endif
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Transform = Game.Objects.Transform;
+using UnityEngine;
+
+
+#if RELEASE
+using Unity.Burst;
+#endif
 
 namespace ExtraDetailingTools.Systems.UI
 {
@@ -131,6 +135,8 @@ namespace ExtraDetailingTools.Systems.UI
                 linesLenght = linesLenght,
                 transform = transform,
                 m_UseLocalAxis = _transformGizmoTool.m_UseLocalAxis,
+                selectedEntity = selectedEntity,
+                m_CullingInfoLookup = SystemAPI.GetComponentLookup<CullingInfo>(true)
             };
             JobHandle jobHandle = job.Schedule(JobHandle.CombineDependencies(Dependency, dep));
             _gizmosSystem.AddGizmosBatcherWriter(jobHandle);
@@ -142,10 +148,14 @@ namespace ExtraDetailingTools.Systems.UI
 #endif
         private struct RenderAxisJob : IJob
         {
-            public GizmoBatcher m_GizmoBatcher;
-            public Transform transform;
-            public float3 linesLenght;
-            public bool m_UseLocalAxis;
+            [ReadOnly] public GizmoBatcher m_GizmoBatcher;
+            [ReadOnly] public Transform transform;
+            [ReadOnly] public float3 linesLenght;
+            [ReadOnly] public bool m_UseLocalAxis;
+
+            [ReadOnly] public Entity selectedEntity;
+            [ReadOnly] public ComponentLookup<CullingInfo> m_CullingInfoLookup;
+
             public void Execute()
             {
                 quaternion rot = transform.m_Rotation;
