@@ -18,6 +18,8 @@ using Unity.Mathematics;
 using static ExtraDetailingTools.ExtraSnap.ObjectToolSystemExtraSnap;
 using static Game.Tools.ObjectToolSystem;
 using Colossal.Mathematics;
+using Colossal.UI.Binding;
+
 
 #if RELEASE
 using Unity.Burst;
@@ -38,10 +40,24 @@ namespace ExtraDetailingTools.ExtraSnap
             ALL             = uint.MaxValue,
         }
 
+        public enum ObjectSideSnapMode
+        {
+            FreeMove,
+            SnapToCenter,
+            SnapToCorner,
+        }
+
         readonly Traverse traverse;
         readonly WaterSystem m_WaterSystem;
         readonly TerrainSystem m_TerrainSystem;
         readonly SearchSystem m_ObjectSearchSystem;
+
+
+        ObjectSideSnapMode m_ObjectSideSnapMode = ObjectSideSnapMode.FreeMove;
+
+
+        // Trigger Bindings
+        readonly TriggerBinding<ObjectSideSnapMode> m_ObjectSideSnap;
 
         // Address of ObjectToolSystem's own persistent-allocated NativeReference<Rotation> data, so the
         // job can read/write the tool's real rotation state directly instead of a throwaway copy. Cached
@@ -58,6 +74,14 @@ namespace ExtraDetailingTools.ExtraSnap
             m_RotationPtr = GetRotationPtr();
             m_SelectedSnap = ObjectToolExtraSnap.ALL;
             m_SelectedSnap &= ~(ObjectToolExtraSnap.ObjectSide);
+
+            m_ObjectSideSnap = AddTriggerBinding<ObjectSideSnapMode>("SetObjectSideSnapMode", (v) => SetObjectSideSnapMode(v), new EnumReader<ObjectSideSnapMode>());
+        }
+
+        private void SetObjectSideSnapMode(ObjectSideSnapMode v)
+        {
+            m_ObjectSideSnapMode = v;
+            MarkDirty();
         }
 
         protected override void GetAvailableSnapMask(out ObjectToolExtraSnap onMask, out ObjectToolExtraSnap offMask)
@@ -163,6 +187,7 @@ namespace ExtraDetailingTools.ExtraSnap
             {
                 m_EditorMode = IsEditor,
                 m_Snap = GetActualSnap(),
+                m_ObjectSideSnapMode = m_ObjectSideSnapMode,
                 m_Mode = m_Tool.actualMode,
                 m_Prefab = m_PrefabSystem.GetEntity(traverse.Field("m_Prefab").GetValue<PrefabBase>()),
                 m_Selected = selected,
@@ -191,6 +216,12 @@ namespace ExtraDetailingTools.ExtraSnap
             return jobHandle;
         }
 
+        public override void OnWrite(IJsonWriter writer)
+        {
+            writer.PropertyName("ObjectSideSnapMode");
+            writer.Write((uint)m_ObjectSideSnapMode);
+        }
+
 #if RELEASE
         [BurstCompile]
 #endif
@@ -199,6 +230,8 @@ namespace ExtraDetailingTools.ExtraSnap
             [ReadOnly]  public bool m_EditorMode;
 
             [ReadOnly] public ObjectToolExtraSnap m_Snap;
+
+            [ReadOnly] public ObjectSideSnapMode m_ObjectSideSnapMode;
 
             [ReadOnly] public Mode m_Mode;
 
@@ -316,7 +349,8 @@ namespace ExtraDetailingTools.ExtraSnap
                         float snappedYaw = math.Euler(snappedWorldRotation).y;
 
 
-                        // ===== Snap validity test =====
+                        // ===== Snap validity test (shared by FreeMove and SnapToCenter - both pick
+                        // among the target's edges based on cursor proximity/overlap) =====
                         Quad2 placedQuadAtTarget = ObjectUtils.CalculateBaseCorners(
                             targetTransform.m_Position,
                             targetTransform.m_Rotation,
@@ -333,46 +367,79 @@ namespace ExtraDetailingTools.ExtraSnap
                             MathUtils.Intersect(placedQuadAtTarget, placedQuadAtHit) &&
                             MathUtils.Intersect(targetQuad, controlPoint.m_HitPosition.xz);
 
-                        // ===== Iterate over all target edges =====
-                        CheckSnapLineGeneric(
-                            placedBounds,
-                            targetTransform,
-                            controlPoint,
-                            ref bestSnapPosition,
-                            new Line2(targetQuad.a, targetQuad.b),
-                            snappedYaw,
-                            allowSnap
-                        );
+                        switch (m_ObjectSideSnapMode)
+                        {
+                            case ObjectSideSnapMode.SnapToCenter:
+                            {
+                                // Still an edge snap, like FreeMove - just fixed at the middle of
+                                // whichever edge is closest instead of sliding with the cursor.
+                                CheckSnapLineCenter(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, new Line2(targetQuad.a, targetQuad.b), snappedYaw, allowSnap);
+                                CheckSnapLineCenter(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, new Line2(targetQuad.b, targetQuad.c), snappedYaw, allowSnap);
+                                CheckSnapLineCenter(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, new Line2(targetQuad.c, targetQuad.d), snappedYaw, allowSnap);
+                                CheckSnapLineCenter(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, new Line2(targetQuad.d, targetQuad.a), snappedYaw, allowSnap);
+                                break;
+                            }
 
-                        CheckSnapLineGeneric(
-                            placedBounds,
-                            targetTransform,
-                            controlPoint,
-                            ref bestSnapPosition,
-                            new Line2(targetQuad.b, targetQuad.c),
-                            snappedYaw,
-                            allowSnap
-                        );
+                            case ObjectSideSnapMode.SnapToCorner:
+                            {
+                                // Same idea as FreeMove's per-edge check, but for the 4 corners: offset
+                                // outward from the corner (away from the target's center) by the placed
+                                // object's own half-extent along that diagonal, so it tucks flush against
+                                // both edges meeting there. Whichever corner ends up closest to the
+                                // cursor wins, via the same AddSnapPosition priority comparison.
+                                float2 targetCenterXZ = (targetQuad.a + targetQuad.c) * 0.5f;
+                                CheckSnapCorner(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, targetQuad.a, targetCenterXZ, snappedYaw);
+                                CheckSnapCorner(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, targetQuad.b, targetCenterXZ, snappedYaw);
+                                CheckSnapCorner(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, targetQuad.c, targetCenterXZ, snappedYaw);
+                                CheckSnapCorner(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, targetQuad.d, targetCenterXZ, snappedYaw);
+                                break;
+                            }
 
-                        CheckSnapLineGeneric(
-                            placedBounds,
-                            targetTransform,
-                            controlPoint,
-                            ref bestSnapPosition,
-                            new Line2(targetQuad.c, targetQuad.d),
-                            snappedYaw,
-                            allowSnap
-                        );
+                            default: // FreeMove
+                            {
+                                // ===== Iterate over all target edges =====
+                                CheckSnapLineGeneric(
+                                    placedBounds,
+                                    targetTransform,
+                                    controlPoint,
+                                    ref bestSnapPosition,
+                                    new Line2(targetQuad.a, targetQuad.b),
+                                    snappedYaw,
+                                    allowSnap
+                                );
 
-                        CheckSnapLineGeneric(
-                            placedBounds,
-                            targetTransform,
-                            controlPoint,
-                            ref bestSnapPosition,
-                            new Line2(targetQuad.d, targetQuad.a),
-                            snappedYaw,
-                            allowSnap
-                        );
+                                CheckSnapLineGeneric(
+                                    placedBounds,
+                                    targetTransform,
+                                    controlPoint,
+                                    ref bestSnapPosition,
+                                    new Line2(targetQuad.b, targetQuad.c),
+                                    snappedYaw,
+                                    allowSnap
+                                );
+
+                                CheckSnapLineGeneric(
+                                    placedBounds,
+                                    targetTransform,
+                                    controlPoint,
+                                    ref bestSnapPosition,
+                                    new Line2(targetQuad.c, targetQuad.d),
+                                    snappedYaw,
+                                    allowSnap
+                                );
+
+                                CheckSnapLineGeneric(
+                                    placedBounds,
+                                    targetTransform,
+                                    controlPoint,
+                                    ref bestSnapPosition,
+                                    new Line2(targetQuad.d, targetQuad.a),
+                                    snappedYaw,
+                                    allowSnap
+                                );
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -715,6 +782,116 @@ namespace ExtraDetailingTools.ExtraSnap
                 snapPosition.m_SnapPriority =
                     ToolUtils.CalculateSnapPriority(
                         level,
+                        1f,
+                        0f,
+                        controlPoint.m_HitPosition * 0.5f,
+                        snapPosition.m_Position * 0.5f,
+                        snapPosition.m_Direction
+                    );
+
+                AddSnapPosition(ref bestPosition, snapPosition);
+            }
+
+            // Same OBB-onto-edge-normal projection as CheckSnapLineGeneric, but the position along the
+            // edge is fixed at the midpoint instead of following the cursor - still an edge snap, just
+            // without the sliding. Whichever of the target's 4 edges ends up closest to the cursor wins
+            // via the same AddSnapPosition priority comparison FreeMove uses.
+            private static void CheckSnapLineCenter(
+                Bounds3 bounds,                    // Bounds of the PLACED prefab
+                Transform targetTransform,          // Transform of the TARGET object
+                ControlPoint controlPoint,
+                ref ControlPoint bestPosition,
+                Line2 line,
+                float angle,
+                bool forceSnap)
+            {
+                quaternion rotation = quaternion.RotateY(angle);
+
+                float3 center = (bounds.min + bounds.max) * 0.5f;
+                float2 centerOffset = math.mul(rotation, center).xz;
+
+                float2 edgeDir = math.normalize(line.b - line.a);
+                float2 normal = new float2(-edgeDir.y, edgeDir.x);
+
+                float3 size = bounds.max - bounds.min;
+                float2 halfSize = size.xz * 0.5f;
+
+                float2 axisX = math.normalize(math.mul(rotation, new float3(1f, 0f, 0f)).xz);
+                float2 axisZ = math.normalize(math.mul(rotation, new float3(0f, 0f, 1f)).xz);
+
+                float offset =
+                    math.abs(math.dot(axisX, normal)) * halfSize.x +
+                    math.abs(math.dot(axisZ, normal)) * halfSize.y;
+
+                // Fixed at the edge's midpoint - no cursor projection/clamping like CheckSnapLineGeneric.
+                float2 pointOnLine = (line.a + line.b) * 0.5f;
+
+                float centerProjection = math.dot(centerOffset, normal);
+                float finalOffset = offset - centerProjection;
+                float2 snappedXZ = pointOnLine + normal * finalOffset;
+
+                ControlPoint snapPosition = controlPoint;
+                snapPosition.m_OriginalEntity = Entity.Null;
+                snapPosition.m_Position.xz = snappedXZ;
+                snapPosition.m_Position.y = targetTransform.m_Position.y;
+
+                snapPosition.m_Direction = math.mul(rotation, new float3(0f, 0f, 1f)).xz;
+                snapPosition.m_Rotation = ToolUtils.CalculateRotation(snapPosition.m_Direction);
+
+                float level = forceSnap ? 1f : 0f;
+                snapPosition.m_SnapPriority =
+                    ToolUtils.CalculateSnapPriority(
+                        level,
+                        1f,
+                        0f,
+                        controlPoint.m_HitPosition * 0.5f,
+                        snapPosition.m_Position * 0.5f,
+                        snapPosition.m_Direction
+                    );
+
+                AddSnapPosition(ref bestPosition, snapPosition);
+            }
+
+            private static void CheckSnapCorner(
+                Bounds3 bounds,                    // Bounds of the PLACED prefab
+                Transform targetTransform,          // Transform of the TARGET object
+                ControlPoint controlPoint,
+                ref ControlPoint bestPosition,
+                float2 corner,
+                float2 targetCenterXZ,
+                float angle)
+            {
+                quaternion rotation = quaternion.RotateY(angle);
+
+                float3 size = bounds.max - bounds.min;
+                float2 halfSize = size.xz * 0.5f;
+
+                float2 axisX = math.normalize(math.mul(rotation, new float3(1f, 0f, 0f)).xz);
+                float2 axisZ = math.normalize(math.mul(rotation, new float3(0f, 0f, 1f)).xz);
+
+                // Direction pointing away from the target's center, through this corner - the placed
+                // object gets tucked into the corner along this diagonal.
+                float2 outward = math.normalizesafe(corner - targetCenterXZ, new float2(1f, 0f));
+
+                // Project the placed object's OBB half-extent onto that outward diagonal, same technique
+                // CheckSnapLineGeneric uses to project onto an edge normal.
+                float offset =
+                    math.abs(math.dot(axisX, outward)) * halfSize.x +
+                    math.abs(math.dot(axisZ, outward)) * halfSize.y;
+
+                float2 snappedXZ = corner + outward * offset;
+
+                ControlPoint snapPosition = controlPoint;
+                snapPosition.m_OriginalEntity = Entity.Null;
+                snapPosition.m_Position.xz = snappedXZ;
+                snapPosition.m_Position.y = targetTransform.m_Position.y;
+
+                snapPosition.m_Direction = math.mul(rotation, new float3(0f, 0f, 1f)).xz;
+                snapPosition.m_Rotation = ToolUtils.CalculateRotation(snapPosition.m_Direction);
+
+                snapPosition.m_SnapPriority =
+                    ToolUtils.CalculateSnapPriority(
+                        1f,
                         1f,
                         0f,
                         controlPoint.m_HitPosition * 0.5f,

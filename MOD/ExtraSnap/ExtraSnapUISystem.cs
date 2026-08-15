@@ -74,7 +74,7 @@ namespace ExtraDetailingTools.ExtraSnap
         }
 
         internal TriggerBinding AddTriggerBinding(ExtraSnapBase extraSnapBase, string key, Action action) => AddTriggerBinding(new TriggerBinding("EDT", $"{extraSnapBase.GetType().FullName}.{key}", action));
-        internal TriggerBinding<T> AddTriggerBinding<T>(ExtraSnapBase extraSnapBase, string key, Action<T> action) => AddTriggerBinding(new TriggerBinding<T>("EDT", $"{extraSnapBase.GetType().FullName}.{key}", action));
+        internal TriggerBinding<T> AddTriggerBinding<T>(ExtraSnapBase extraSnapBase, string key, Action<T> action, IReader<T> reader = null) => AddTriggerBinding(new TriggerBinding<T>("EDT", $"{extraSnapBase.GetType().FullName}.{key}", action, reader));
 
         private T AddTriggerBinding<T>(T triggerBinding) where T : BindingBase
         {

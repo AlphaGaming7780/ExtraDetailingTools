@@ -3,6 +3,8 @@ import { ToolButton } from "../../../game-ui/game/components/tool-options/tool-b
 import { FOCUS_DISABLED$ } from "../../../game-ui/common/focus/focus-key";
 import { ExtraSnapBase, registerExtraSnapRenderer, setExtraSnap } from "./ExtraSnap";
 import { useLocalization } from "cs2/l10n";
+import { SectionFoldout } from "mods/Shared/SectionFoldout";
+import { SectionOrFoldout } from "mods/Shared/SectionOrFoldout";
 
 const kObjectToolExtraSnapType = "ExtraDetailingTools.ExtraSnap.ObjectToolSystemExtraSnap";
 
@@ -13,12 +15,28 @@ enum ObjectToolExtraSnap {
     ObjectSide = 1 << 2,
 }
 
-function ObjectToolExtraSnapRenderer(extraSnap: ExtraSnapBase): JSX.Element {
+enum ObjectSideSnapMode {
+    FreeMove,
+    SnapToCenter,
+    SnapToCorner,
+}
+
+interface ObjectToolExtra extends ExtraSnapBase {
+    ObjectSideSnapMode: ObjectSideSnapMode;
+}
+
+function ObjectToolExtraSnapRenderer(extraSnap: ObjectToolExtra): JSX.Element {
     const { translate } = useLocalization();
 
     const isAvailable = (flag: ObjectToolExtraSnap) => (extraSnap.SnapOnMask & flag) !== 0;
     const isForced = (flag: ObjectToolExtraSnap) => isAvailable(flag) && (extraSnap.SnapOffMask & flag) === 0;
     const isSelected = (flag: ObjectToolExtraSnap) => (extraSnap.SelectedSnap & flag) !== 0;
+
+    const SetObjectSideSnapMode = (snapMode: ObjectSideSnapMode) =>
+    {
+        extraSnap.Trigger(`SetObjectSideSnapMode`, snapMode);
+    }
+
 
     // Mask math can involve the high bit (SelectedSnap starts as ALL minus a couple of flags), and JS
     // bitwise operators return signed 32-bit results - >>> 0 forces the result back to the unsigned
@@ -30,40 +48,82 @@ function ObjectToolExtraSnapRenderer(extraSnap: ExtraSnapBase): JSX.Element {
     };
 
     return (
-        <Section title={translate("ExtraSnap.Title", "Extra Snap")}>
-            {isAvailable(ObjectToolExtraSnap.ObjectSurface) ?
-                <ToolButton
-                    focusKey={FOCUS_DISABLED$}
-                    tooltip={translate("ExtraSnap.ObjectSurface.Tooltip", "Snap to the surface of any object.")}
-                    src="Media/Tools/Snap Options/ObjectSurface.svg"
-                    selected={isSelected(ObjectToolExtraSnap.ObjectSurface)}
-                    disabled={isForced(ObjectToolExtraSnap.ObjectSurface)}
-                    onSelect={() => toggleFlag(ObjectToolExtraSnap.ObjectSurface)}
-                /> : <></>
-            }
 
-            {isAvailable(ObjectToolExtraSnap.Upright) ?
-                <ToolButton
-                    focusKey={FOCUS_DISABLED$}
-                    tooltip={translate("ExtraSnap.Upright.Tooltip", "Keep the object upright while snapping to a surface.")}
-                    src="Media/Tools/Snap Options/Upright.svg"
-                    selected={isSelected(ObjectToolExtraSnap.Upright)}
-                    disabled={isForced(ObjectToolExtraSnap.Upright)}
-                    onSelect={() => toggleFlag(ObjectToolExtraSnap.Upright)}
-                /> : <></>
-            }
+        <SectionOrFoldout 
+            title={translate("ExtraSnap.Title", "Extra Snap")}
+            persistKey="ExtraSnap"
+            headerRight={
+                <>
+                    {isAvailable(ObjectToolExtraSnap.ObjectSurface) ?
+                        <ToolButton
+                            focusKey={FOCUS_DISABLED$}
+                            tooltip={translate("ExtraSnap.ObjectSurface.Tooltip", "Snap to the surface of any object.")}
+                            src="Media/Tools/Snap Options/ObjectSurface.svg"
+                            selected={isSelected(ObjectToolExtraSnap.ObjectSurface)}
+                            disabled={isForced(ObjectToolExtraSnap.ObjectSurface)}
+                            onSelect={() => toggleFlag(ObjectToolExtraSnap.ObjectSurface)}
+                        /> : <></>
+                    }
 
-            {isAvailable(ObjectToolExtraSnap.ObjectSide) ?
+                    {isAvailable(ObjectToolExtraSnap.Upright) ?
+                        <ToolButton
+                            focusKey={FOCUS_DISABLED$}
+                            tooltip={translate("ExtraSnap.Upright.Tooltip", "Keep the object upright while snapping to a surface.")}
+                            src="Media/Tools/Snap Options/Upright.svg"
+                            selected={isSelected(ObjectToolExtraSnap.Upright)}
+                            disabled={isForced(ObjectToolExtraSnap.Upright)}
+                            onSelect={() => toggleFlag(ObjectToolExtraSnap.Upright)}
+                        /> : <></>
+                    }
+
+                    {isAvailable(ObjectToolExtraSnap.ObjectSide) ?
+                        <ToolButton
+                            focusKey={FOCUS_DISABLED$}
+                            tooltip={translate("ExtraSnap.ObjectSide.Tooltip", "Snap and align the object flush against the side of the nearest object.")}
+                            src="Media/Tools/Snap Options/ObjectSide.svg"
+                            selected={isSelected(ObjectToolExtraSnap.ObjectSide)}
+                            disabled={isForced(ObjectToolExtraSnap.ObjectSide)}
+                            onSelect={() => toggleFlag(ObjectToolExtraSnap.ObjectSide)}
+                        /> : <></>
+                    }
+                </>
+            }
+        >
+
+            {isAvailable(ObjectToolExtraSnap.ObjectSide) ? <Section
+                title={translate("ExtraSnap.ObjectSideSnapMode.Title", "Object Side Snap Mode")}
+            >
+                        
                 <ToolButton
                     focusKey={FOCUS_DISABLED$}
-                    tooltip={translate("ExtraSnap.ObjectSide.Tooltip", "Snap and align the object flush against the side of the nearest object.")}
-                    src="Media/Tools/Snap Options/ObjectSide.svg"
-                    selected={isSelected(ObjectToolExtraSnap.ObjectSide)}
-                    disabled={isForced(ObjectToolExtraSnap.ObjectSide)}
-                    onSelect={() => toggleFlag(ObjectToolExtraSnap.ObjectSide)}
-                /> : <></>
-            }
-        </Section>
+                    tooltip={translate("ExtraSnap.ObjectSide.FreeMove.Tooltip", "Allow free movement of the object without snapping.")}
+                    src="coui://extradetailingtools/Icons/ExtraSnap/FreeMove.svg"
+                    selected={extraSnap.ObjectSideSnapMode === ObjectSideSnapMode.FreeMove}
+                    disabled={!isSelected(ObjectToolExtraSnap.ObjectSide)}
+                    onSelect={() => SetObjectSideSnapMode(ObjectSideSnapMode.FreeMove)}
+                />
+
+                <ToolButton
+                    focusKey={FOCUS_DISABLED$}
+                    tooltip={translate("ExtraSnap.ObjectSide.SnapToCenter.Tooltip", "Snap and align the object to the center of the nearest side of the nearest object.")}
+                    src="coui://extradetailingtools/Icons/ExtraSnap/SnapToCenter.svg"
+                    selected={extraSnap.ObjectSideSnapMode === ObjectSideSnapMode.SnapToCenter}
+                    disabled={!isSelected(ObjectToolExtraSnap.ObjectSide)}
+                    onSelect={() => SetObjectSideSnapMode(ObjectSideSnapMode.SnapToCenter)}
+                />
+
+                <ToolButton
+                    focusKey={FOCUS_DISABLED$}
+                    tooltip={translate("ExtraSnap.ObjectSide.SnapToCorner.Tooltip", "Snap and align the object flush against the corner of the nearest object.")}
+                    src="coui://extradetailingtools/Icons/ExtraSnap/SnapToCorner.svg"
+                    selected={extraSnap.ObjectSideSnapMode === ObjectSideSnapMode.SnapToCorner}
+                    disabled={!isSelected(ObjectToolExtraSnap.ObjectSide)}
+                    onSelect={() => SetObjectSideSnapMode(ObjectSideSnapMode.SnapToCorner)}
+                />
+                        
+            </Section> : <></> }
+
+        </SectionOrFoldout>
     );
 }
 

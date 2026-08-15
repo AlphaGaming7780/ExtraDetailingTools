@@ -27,7 +27,7 @@ namespace ExtraDetailingTools.ExtraSnap
         }
 
         protected TriggerBinding AddTriggerBinding(string key, Action action) => m_ExtraSnapUISystem.AddTriggerBinding(this, key, action);
-        protected TriggerBinding<T> AddTriggerBinding<T>(string key, Action<T> action) => m_ExtraSnapUISystem.AddTriggerBinding<T>(this, key, action);
+        protected TriggerBinding<T> AddTriggerBinding<T>(string key, Action<T> action, IReader<T> reader = null) => m_ExtraSnapUISystem.AddTriggerBinding<T>(this, key, action, reader);
 
         public abstract void Dispose();
         public abstract void Write(IJsonWriter writer);
