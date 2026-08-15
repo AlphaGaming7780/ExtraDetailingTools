@@ -101,7 +101,7 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.3.0.7" />
+	<ModVersion Value="1.3.0.8" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.5.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -114,19 +114,13 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--<ChangeLog Value="" />-->
 	<ChangeLog>
 ### New Features
-- Added a Duplicate action to the Transform Gizmo Tool (Ctrl+D by default, keybind configurable in settings). Duplicated trees keep their growth stage.
-- Added an optional Grid: snap position and rotation to a configurable step while moving/rotating objects.
-
-### Improvements
-- Selecting a different object no longer clears the Undo/Redo history.
-- The Raycast Filter options now also let you exclude water and networks.
-- Various UI polish and performance optimizations.
+- Added a new Extra Snap panel with toggles for Object Surface, Upright, and Object Side snapping.
+- Object Side snapping now automatically finds nearby objects to snap against based on proximity, instead of requiring you to point exactly at their geometry - much easier to use on small or irregular props.
+- Added 3 modes for Object Side snapping: Free Move (slide freely along the object's side), Snap to Center (lock to the middle of the nearest side), and Snap to Corner (lock to the nearest corner).
+- Added an Upright option to keep objects vertical while snapping to a surface.
 
 ### Bug Fixes
-- Fixed the Delete action not properly excluding road segments.
-- Fixed a few Undo/Redo edge cases.
-- Fixed some incorrect localization keys in the Transform panel.
-- Fixed Ctrl+A not selecting all text in number fields on some keyboard layouts.
+- Fixed objects placed in a row using Object Side's Snap to Center/Corner modes gradually drifting out of alignment further down the row.
 	</ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
