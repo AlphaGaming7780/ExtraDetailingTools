@@ -758,10 +758,16 @@ namespace ExtraDetailingTools.ExtraSnap
                 // Position along the edge (THIS is what allows sliding)
                 float2 pointOnLine = math.lerp(line.a, line.b, t / lineLength);
 
-                // Final snapped position
-                float centerProjection = math.dot(centerOffset, normal);
-                float finalOffset = offset - centerProjection;
-                float2 snappedXZ = pointOnLine + normal * finalOffset;
+                // pointOnLine + normal * offset is where the placed object's own GEOMETRIC CENTER needs to
+                // end up (pushed out from the line by its own half-extent so its near face is flush with
+                // it). m_Position is the object's PIVOT, not its center, so convert center -> pivot by
+                // subtracting the full centerOffset vector (not just its normal component - the tangential
+                // part matters too whenever the prefab's local bounds aren't centered on its pivot, e.g. an
+                // asymmetric mesh. Dropping it here previously left a small constant along-edge bias that,
+                // since each snapped object becomes the target for the next, accumulated into a visible
+                // drift over a long chain of placements).
+                float2 worldCenter = pointOnLine + normal * offset;
+                float2 snappedXZ = worldCenter - centerOffset;
 
                 ControlPoint snapPosition = controlPoint;
                 snapPosition.m_OriginalEntity = Entity.Null;
@@ -826,9 +832,9 @@ namespace ExtraDetailingTools.ExtraSnap
                 // Fixed at the edge's midpoint - no cursor projection/clamping like CheckSnapLineGeneric.
                 float2 pointOnLine = (line.a + line.b) * 0.5f;
 
-                float centerProjection = math.dot(centerOffset, normal);
-                float finalOffset = offset - centerProjection;
-                float2 snappedXZ = pointOnLine + normal * finalOffset;
+                // See CheckSnapLineGeneric - full centerOffset subtraction, not just its normal component.
+                float2 worldCenter = pointOnLine + normal * offset;
+                float2 snappedXZ = worldCenter - centerOffset;
 
                 ControlPoint snapPosition = controlPoint;
                 snapPosition.m_OriginalEntity = Entity.Null;
@@ -863,6 +869,9 @@ namespace ExtraDetailingTools.ExtraSnap
             {
                 quaternion rotation = quaternion.RotateY(angle);
 
+                float3 center = (bounds.min + bounds.max) * 0.5f;
+                float2 centerOffset = math.mul(rotation, center).xz;
+
                 float3 size = bounds.max - bounds.min;
                 float2 halfSize = size.xz * 0.5f;
 
@@ -879,7 +888,11 @@ namespace ExtraDetailingTools.ExtraSnap
                     math.abs(math.dot(axisX, outward)) * halfSize.x +
                     math.abs(math.dot(axisZ, outward)) * halfSize.y;
 
-                float2 snappedXZ = corner + outward * offset;
+                // corner + outward * offset is the placed object's GEOMETRIC CENTER; subtract the full
+                // centerOffset to convert to its pivot (m_Position) - see CheckSnapLineGeneric for why the
+                // full vector (not just one projected component) is needed.
+                float2 worldCenter = corner + outward * offset;
+                float2 snappedXZ = worldCenter - centerOffset;
 
                 ControlPoint snapPosition = controlPoint;
                 snapPosition.m_OriginalEntity = Entity.Null;

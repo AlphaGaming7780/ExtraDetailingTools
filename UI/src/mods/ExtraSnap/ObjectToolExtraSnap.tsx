@@ -5,6 +5,7 @@ import { ExtraSnapBase, registerExtraSnapRenderer, setExtraSnap } from "./ExtraS
 import { useLocalization } from "cs2/l10n";
 import { SectionFoldout } from "mods/Shared/SectionFoldout";
 import { SectionOrFoldout } from "mods/Shared/SectionOrFoldout";
+import Styles from "mods/Shared/SectionFoldout.module.scss";
 
 const kObjectToolExtraSnapType = "ExtraDetailingTools.ExtraSnap.ObjectToolSystemExtraSnap";
 
@@ -101,6 +102,7 @@ function ObjectToolExtraSnapRenderer(extraSnap: ObjectToolExtra): JSX.Element {
                     selected={extraSnap.ObjectSideSnapMode === ObjectSideSnapMode.FreeMove}
                     disabled={!isSelected(ObjectToolExtraSnap.ObjectSide)}
                     onSelect={() => SetObjectSideSnapMode(ObjectSideSnapMode.FreeMove)}
+                    className={Styles.toolButtonFoldout}
                 />
 
                 <ToolButton
@@ -110,6 +112,7 @@ function ObjectToolExtraSnapRenderer(extraSnap: ObjectToolExtra): JSX.Element {
                     selected={extraSnap.ObjectSideSnapMode === ObjectSideSnapMode.SnapToCenter}
                     disabled={!isSelected(ObjectToolExtraSnap.ObjectSide)}
                     onSelect={() => SetObjectSideSnapMode(ObjectSideSnapMode.SnapToCenter)}
+                    className={Styles.toolButtonFoldout}
                 />
 
                 <ToolButton
@@ -119,6 +122,7 @@ function ObjectToolExtraSnapRenderer(extraSnap: ObjectToolExtra): JSX.Element {
                     selected={extraSnap.ObjectSideSnapMode === ObjectSideSnapMode.SnapToCorner}
                     disabled={!isSelected(ObjectToolExtraSnap.ObjectSide)}
                     onSelect={() => SetObjectSideSnapMode(ObjectSideSnapMode.SnapToCorner)}
+                    className={Styles.toolButtonFoldout}
                 />
                         
             </Section> : <></> }
