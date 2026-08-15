@@ -6,10 +6,10 @@ using UnityEngine;
 
 namespace ExtraDetailingTools.Prefabs
 {
-    //[ComponentMenu("EDT/", new Type[]
-    //{
+    [ComponentMenu("EDT/", new Type[]
+    {
 
-    //})]
+    })]
     public class GrassPrefabNew : GrassPrefabBase
     {
         public bool DebugDistantGrass = false;

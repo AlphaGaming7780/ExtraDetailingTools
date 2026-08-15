@@ -39,7 +39,7 @@ namespace ExtraDetailingTools
 
         private Harmony harmony;
         // internal static ToolRaycastSystem toolRaycastSystem;
-        internal static ObjectToolSystem objectToolSystem;
+        //internal static ObjectToolSystem objectToolSystem;
 
         public void OnLoad(UpdateSystem updateSystem)
         {
@@ -66,7 +66,7 @@ namespace ExtraDetailingTools
                 EditEntities.SetupEditEntities();
 
                 updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
-                //updateSystem.UpdateAt<BOTSystem>(SystemUpdatePhase.ToolUpdate);
+                updateSystem.UpdateAt<ExtraSnapUISystem>(SystemUpdatePhase.UIUpdate);
                 updateSystem.UpdateAt<DuplicateEntityBarrier>(SystemUpdatePhase.PostTool);
                 updateSystem.UpdateAt<DuplicateEntitySystem>(SystemUpdatePhase.Modification2);
                 updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
@@ -88,8 +88,9 @@ namespace ExtraDetailingTools
                 selectedInfoUISystem.AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<TransformSection>());
 
                 // toolRaycastSystem = updateSystem.World.GetOrCreateSystemManaged<ToolRaycastSystem>();
-                objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
-                ExtraSnapBase.RegisterInstance<ObjectToolSystemExtraSnap>();
+                //objectToolSystem = updateSystem.World.GetOrCreateSystemManaged<ObjectToolSystem>();
+                ExtraSnapUISystem extraSnapUISystem = updateSystem.World.GetOrCreateSystemManaged<ExtraSnapUISystem>();
+                extraSnapUISystem.RegisterInstance<ObjectToolSystemExtraSnap>();
 
                 //PrefabsHelper.LoadPrefabsInDirectory(Path.Combine(fileInfo.Directory.FullName, "Prefabs"));
 

@@ -421,8 +421,8 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						</Tooltip>
 					}
 				>
-					{GridOffsetRow("GridPosOffset", "Tool.TransformGizmoTool.Grid.PosOffset", "Tool.TransformGizmoTool.Grid.PosOffset.Tooltip", posOffset, 0.001, SetPosOffset)}
-					{GridOffsetRow("GridRotOffset", "Tool.TransformGizmoTool.Grid.RotOffset", "Tool.TransformGizmoTool.Grid.RotOffset.Tooltip", rotOffset, 0.001, SetRotOffset)}
+					{GridOffsetRow("GridPosStep", "Tool.TransformGizmoTool.Grid.PosStep", "Tool.TransformGizmoTool.Grid.PosStep.Tooltip", posOffset, 0.001, SetPosOffset)}
+					{GridOffsetRow("GridRotStep", "Tool.TransformGizmoTool.Grid.RotStep", "Tool.TransformGizmoTool.Grid.RotStep.Tooltip", rotOffset, 0.001, SetRotOffset)}
 				</SectionFoldout>
 			</SectionFoldout> */}
 			
@@ -439,8 +439,8 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					</Tooltip>
 				}
 			>
-				{GridOffsetRow("GridPosOffset", "Tool.TransformGizmoTool.Grid.PosOffset", "Tool.TransformGizmoTool.Grid.PosOffset.Tooltip", posOffset, 0.001, SetPosOffset)}
-				{GridOffsetRow("GridRotOffset", "Tool.TransformGizmoTool.Grid.RotOffset", "Tool.TransformGizmoTool.Grid.RotOffset.Tooltip", rotOffset, 0.001, SetRotOffset)}
+				{GridOffsetRow("GridPosStep", "Tool.TransformGizmoTool.Grid.PosStep", "Tool.TransformGizmoTool.Grid.PosStep.Tooltip", posOffset, 0.001, SetPosOffset)}
+				{GridOffsetRow("GridRotStep", "Tool.TransformGizmoTool.Grid.RotStep", "Tool.TransformGizmoTool.Grid.RotStep.Tooltip", rotOffset, 0.001, SetRotOffset)}
 			</SectionFoldout>
 			
 			</>

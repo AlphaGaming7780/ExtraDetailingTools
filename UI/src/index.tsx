@@ -4,6 +4,8 @@ import { TransformSection } from "./mods/TransformSection/TransformSection";
 import { ToolOption } from "./mods/ToolOption";
 import { GrassToolUI } from "./mods/GrassToolUI";
 import { TransformGizmosToolButton, TransformGizmoTool } from "mods/TransformGizmosTool/TransformGizmoTool";
+import { ExtraSnapToolOptions } from "mods/ExtraSnap/ExtraSnap";
+import "mods/ExtraSnap/ObjectToolExtraSnap";
 import { TransformExtraPanel } from "mods/TransformExtraPanel/TransformExtraPanel";
 import { RegisterTransformPanel } from "mods/TransformPanel/RegisterTransformPanel";
 import { CustomizeTabSections } from "./mods/CustomizeTabSections/CustomizeTabSections";
@@ -18,6 +20,7 @@ const register: ModRegistrar = (moduleRegistry) => {
     moduleRegistry.extend("game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.tsx", 'MouseToolOptions', ToolOption);
     moduleRegistry.extend("game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.tsx", 'MouseToolOptions', TransformGizmoTool);
     moduleRegistry.extend("game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.tsx", 'MouseToolOptions', GrassToolUI);
+    moduleRegistry.extend("game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.tsx", 'MouseToolOptions', ExtraSnapToolOptions);
 
     // Show Transform tool panel in Visual tab
     // moduleRegistry.extend("game-ui/game/components/selected-info-panel/selected-info-sections/selected-info-sections.tsx", 'CUSTOMIZE_TAB_SECTIONS', CustomizeTabSections as any);

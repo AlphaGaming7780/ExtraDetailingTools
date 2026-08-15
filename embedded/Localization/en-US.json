@@ -69,10 +69,19 @@
 
 	"Tool.TransformGizmoTool.Grid": "Grid",
 	"Tool.TransformGizmoTool.GridEnable.Tooltip": "Snap the object's position and rotation to a fixed grid.",
-	"Tool.TransformGizmoTool.Grid.PosOffset": "Position Step",
-	"Tool.TransformGizmoTool.Grid.PosOffset.Tooltip": "Grid spacing used to snap the object's position, in meters.",
-	"Tool.TransformGizmoTool.Grid.RotOffset": "Rotation Step",
-	"Tool.TransformGizmoTool.Grid.RotOffset.Tooltip": "Grid spacing used to snap the object's rotation, in degrees.",
+	"Tool.TransformGizmoTool.Grid.PosStep": "Position Step",
+	"Tool.TransformGizmoTool.Grid.PosStep.Tooltip": "Grid spacing used to snap the object's position, in meters.",
+	"Tool.TransformGizmoTool.Grid.RotStep": "Rotation Step",
+	"Tool.TransformGizmoTool.Grid.RotStep.Tooltip": "Grid spacing used to snap the object's rotation, in degrees.",
+
+	"ExtraSnap.Title": "Extra Snap",
+	"ExtraSnap.ObjectSurface.Tooltip": "Snap to the surface of any object.",
+	"ExtraSnap.Upright.Tooltip": "Keep the object upright while snapping to a surface.",
+	"ExtraSnap.ObjectSide.Tooltip": "Snap and align the object flush against the side of the nearest object.",
+	"ExtraSnap.ObjectSideSnapMode.Title": "Object Side Snap Mode",
+	"ExtraSnap.ObjectSide.FreeMove.Tooltip": "Allow free movement of the object without snapping.",
+	"ExtraSnap.ObjectSide.SnapToCenter.Tooltip": "Snap and align the object to the center of the nearest side of the nearest object.",
+	"ExtraSnap.ObjectSide.SnapToCorner.Tooltip": "Snap and align the object flush against the corner of the nearest object.",
 
 	"ExtraPanelHeaderName[ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel]": "Transform Panel",
 
