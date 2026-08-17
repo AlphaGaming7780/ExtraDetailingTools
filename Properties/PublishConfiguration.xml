@@ -107,7 +107,7 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Dependency for the mod, can be set multiple times-->
 	<Dependency Id="75724" />
 	<Dependency Id="75250" />
-	<Dependency Id="74604" />
+	<Dependency Id="146114" />
 	<!-- Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture" -->
 	<RequiredDLC Value=""/>
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
