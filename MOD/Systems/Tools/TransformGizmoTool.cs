@@ -1146,7 +1146,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     m_Type = GizmosRaycastType.ALL,
                     m_Line = ToolRaycastSystem.CalculateRaycastLine(Camera.main),
-                    m_Tolerance = m_Mode == Mode.Rotate ? 0.1f : 0,
+                    m_Tolerance = m_Mode == Mode.Rotate ? 0.15f : 0,
                     m_Debug = false
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);
@@ -1501,11 +1501,10 @@ namespace ExtraDetailingTools.Systems.Tools
 
                             if (!EntityManager.HasComponent<Game.Common.Terrain>(entity))
                             {
-                                float3 up = math.normalize(hit.m_HitDirection);
-                                float3 r = math.abs(up.y) < 0.99f ? math.up() : math.forward();
-                                float3 right = math.normalize(math.cross(up, r));
-                                float3 fwd = math.cross(right, up);
-                                newRot = quaternion.LookRotationSafe(fwd, up);
+                                float3 newUp = math.normalizesafe(hit.m_HitDirection, math.up());
+                                float3 dragStartUp = math.rotate(m_DragStartGizmoRot, math.up());
+                                quaternion tilt = ShortestRotation(dragStartUp, newUp);
+                                newRot = math.mul(tilt, m_DragStartGizmoRot);
                             }
                             else if (EntityManager.TryGetComponent<Transform>(m_SelectedEntity, out var transformComponent))
                             {
@@ -2200,7 +2199,41 @@ namespace ExtraDetailingTools.Systems.Tools
                 
             return float3.zero;
         }
-    
+
+        // Unity.Mathematics has no FromToRotation - shortest rotation that takes "from" onto "to", built
+        // from the standard axis/angle-between-two-vectors construction (atan2(|cross|, dot) is the robust
+        // way to get the angle, avoiding the precision loss acos(dot) has near 0/180 degrees).
+        private static quaternion ShortestRotation(float3 from, float3 to)
+        {
+            // NaN comparisons are always false, so a degenerate input wouldn't be caught by the
+            // axisLength < 1e-6f check below - it'd fall through to atan2/AxisAngle and silently produce a
+            // NaN quaternion instead. Matches LookRotationSafe's own isfinite guard.
+            if (!math.all(math.isfinite(from)) || !math.all(math.isfinite(to)))
+            {
+                return quaternion.identity;
+            }
+
+            float3 axis = math.cross(from, to);
+            float axisLength = math.length(axis);
+            float dot = math.dot(from, to);
+
+            if (axisLength < 1e-6f)
+            {
+                if (dot > 0f)
+                {
+                    return quaternion.identity;
+                }
+
+                // from/to are anti-parallel - cross product can't give an axis, pick any perpendicular one.
+                float3 reference = math.abs(from.x) < 0.99f ? new float3(1f, 0f, 0f) : new float3(0f, 1f, 0f);
+                float3 perpendicular = math.normalize(math.cross(from, reference));
+                return quaternion.AxisAngle(perpendicular, math.PI);
+            }
+
+            float angle = math.atan2(axisLength, dot);
+            return quaternion.AxisAngle(axis / axisLength, angle);
+        }
+
         private bool AllowHightlight(Entity entity)
         {
             if (m_Mode == Mode.Default) return true;

@@ -19,21 +19,198 @@ export interface Float3 {
 
 export const kTransformPanel$ = "TransformPanel";
 
-export const pos$ = bindValue<Float3>("EDT", 'TransformPanel.pos');
-export const rot$ = bindValue<Float3>("EDT", 'TransformPanel.rot');
-export const scale$ = bindValue<Float3>("EDT", 'TransformPanel.scale');
-export const incPos$ = bindValue<number>("EDT", 'TransformPanel.incpos');
-export const incRot$ = bindValue<number>("EDT", 'TransformPanel.incrot');
-export const incScale$ = bindValue<number>("EDT", 'TransformPanel.incscale');
-export const localAxis$ = bindValue<boolean>("EDT", 'TransformGizmoTool.LocalAxis');
-export const moveSubBuildings$ = bindValue<boolean>("EDT", 'TransformGizmoTool.MoveSubBuildings');
+export const pos$ = bindValue<Float3>("EDT", 'TransformPanel.pos', { x: 0, y: 0, z: 0 });
+export const rot$ = bindValue<Float3>("EDT", 'TransformPanel.rot', { x: 0, y: 0, z: 0 });
+export const scale$ = bindValue<Float3>("EDT", 'TransformPanel.scale', { x: 0, y: 0, z: 0 });
+export const incPos$ = bindValue<number>("EDT", 'TransformPanel.incpos', 0);
+export const incRot$ = bindValue<number>("EDT", 'TransformPanel.incrot', 0);
+export const incScale$ = bindValue<number>("EDT", 'TransformPanel.incscale', 0);
+export const localAxis$ = bindValue<boolean>("EDT", 'TransformGizmoTool.LocalAxis', false);
+export const moveSubBuildings$ = bindValue<boolean>("EDT", 'TransformGizmoTool.MoveSubBuildings', false);
 
-export const canPastPos$ = bindValue<boolean>("EDT", "TransformPanel.canpastpos");
-export const canPastRot$ = bindValue<boolean>("EDT", "TransformPanel.canpastrot");
-export const canPastScale$ = bindValue<boolean>("EDT", "TransformPanel.canpastscale");
+export const canPastPos$ = bindValue<boolean>("EDT", "TransformPanel.canpastpos", false);
+export const canPastRot$ = bindValue<boolean>("EDT", "TransformPanel.canpastrot", false);
+export const canPastScale$ = bindValue<boolean>("EDT", "TransformPanel.canpastscale", false);
 
-export const asSubBuilding$ = bindValue<boolean>("EDT", "TransformPanel.assubbuilding");
-export const allowScaling$ = bindValue<boolean>("EDT", "TransformPanel.allowscaling");
+export const asSubBuilding$ = bindValue<boolean>("EDT", "TransformPanel.assubbuilding", false);
+export const allowScaling$ = bindValue<boolean>("EDT", "TransformPanel.allowscaling", false);
+
+function PastButton(
+	translate: (id: string, fallback?: string | null) => string | null,
+	id: string, axis: string, canPast: boolean, onPast: (id: string, axis: string) => void
+): JSX.Element {
+	return canPast ? <>
+		<Tooltip tooltip={translate(`TransformPanel.PAST_${id}_${axis}`)}>
+			<button className={classNames(ActionButtonSCSS.button)} onClick={() => { onPast(id, axis) }}>
+				<img className={classNames(ActionButtonSCSS.icon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
+			</button>
+		</Tooltip>
+	</> : <></>
+}
+
+interface InputsProps {
+	id: string;
+	inputValue: Float3;
+	useIncrement: boolean;
+	increment?: number;
+	canPast?: boolean;
+	onCommitValue: (inputId: string, value: string) => void;
+	onScroll: (e: WheelEvent) => void;
+	onTriggerPos: (x: number, y: number, z: number) => void;
+	onTriggerRot: (x: number, y: number, z: number) => void;
+	onTriggerScale: (scale: Float3) => void;
+	onIncrementCommit: (v: number) => void;
+	onPast: (id: string, axis: string) => void;
+}
+
+// A real component (called as <Inputs .../>, not Inputs(...) as a plain function) - it was
+// previously the latter, with useState/useEffect calls inside it that, since a plain function call
+// doesn't give React its own Fiber/hook list, got silently folded into TransformPanel's own hook
+// sequence instead. That's only safe if the exact same set of hooks fires in the exact same order
+// on every render of TransformPanel - which held by luck while the SCALE section was permanently
+// hidden (allowScaling always false, see TransformPanel.SCALE's own conditional render), but was
+// one allowScaling flip away from a Rules-of-Hooks violation (a hook count that changes between
+// renders), which React does not fail loudly for - it can silently hand back a stale/wrong value at
+// a shifted hook slot, matching an "undefined has no property x" crash with no obvious cause in this
+// component's own code. Giving Inputs its own component identity (a stable module-level reference,
+// so React doesn't remount it on every parent render either - see why this isn't just inlined back
+// into TransformPanel) fixes this structurally, not just for the current always-false case.
+function Inputs({
+	id, inputValue, useIncrement, increment = 0, canPast = true,
+	onCommitValue, onScroll, onTriggerPos, onTriggerRot, onTriggerScale, onIncrementCommit, onPast
+}: InputsProps): JSX.Element {
+	const { translate } = useLocalization();
+
+	const [X, setX] = useState(inputValue.x.toString())
+	const [Y, setY] = useState(inputValue.y.toString())
+	const [Z, setZ] = useState(inputValue.z.toString())
+	const [editing, setEditing] = useState<string | null>(null)
+
+	useEffect(() => {
+		if (editing !== "X") setX(inputValue.x.toString())
+		if (editing !== "Y") setY(inputValue.y.toString())
+		if (editing !== "Z") setZ(inputValue.z.toString())
+	}, [inputValue])
+
+	function onInputChange(event: ChangeEvent<HTMLInputElement>, setter: any) {
+		setter(event.target.value)
+	}
+
+	function onInputBlur(e: React.FocusEvent<HTMLInputElement>) {
+		setEditing(null);
+		onCommitValue(e.target.id, e.target.value);
+	}
+
+	function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+		// cohtml doesn't remap e.key per the OS keyboard layout, so "a" only matches on QWERTY. AZERTY
+		// swaps A/Q, so also accept "q" for the same physical select-all key.
+		if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "a" || e.key.toLowerCase() === "q")) {
+			e.stopPropagation();
+			e.currentTarget.select();
+			return;
+		}
+		if (e.key === "Enter") {
+			onCommitValue((e.target as HTMLInputElement).id, (e.target as HTMLInputElement).value);
+			(e.target as HTMLInputElement).blur();
+		}
+	}
+
+	function onInputWheel(e: WheelEvent) {
+		setEditing(null);
+		onScroll(e);
+	}
+
+	function onLabelMouseDown(axis: string, e: ReactMouseEvent) {
+		e.preventDefault();
+		let lastX = e.clientX;
+		const startValue = axis === "X" ? inputValue.x : axis === "Y" ? inputValue.y : inputValue.z;
+		let accumulatedDelta = 0;
+		const pixelsPerStep = remToPx(100);
+		let lastSoundTime = 0;
+		const soundThrottleMs = 80;
+
+		const onMouseMove = (moveEvent: globalThis.MouseEvent) => {
+			const deltaX = moveEvent.clientX - lastX;
+			if (deltaX === 0) return;
+			lastX = moveEvent.clientX;
+			const valueDelta = (deltaX / pixelsPerStep) * increment;
+			accumulatedDelta += valueDelta;
+
+			if (id === "SCALE") {
+				const newScale: Float3 = { ...inputValue };
+				if (axis === "X") newScale.x = startValue + accumulatedDelta;
+				else if (axis === "Y") newScale.y = startValue + accumulatedDelta;
+				else newScale.z = startValue + accumulatedDelta;
+				onTriggerScale(newScale);
+			} else {
+				const x = axis === "X" ? valueDelta : 0;
+				const y = axis === "Y" ? valueDelta : 0;
+				const z = axis === "Z" ? valueDelta : 0;
+				if (id === "POS") onTriggerPos(x, y, z);
+				else if (id === "ROT") onTriggerRot(x, y, z);
+			}
+
+			const now = Date.now();
+			if (now - lastSoundTime > soundThrottleMs) {
+				trigger("audio", "playSound", deltaX > 0 ? "increase-elevation" : "decrease-elevation", 1);
+				lastSoundTime = now;
+			}
+		};
+
+		const onMouseUp = () => {
+			document.removeEventListener('mousemove', onMouseMove);
+			document.removeEventListener('mouseup', onMouseUp);
+			document.body.style.cursor = '';
+		};
+
+		document.body.style.cursor = 'url(cursor://horizontal-can-resize)';
+		document.addEventListener('mousemove', onMouseMove);
+		document.addEventListener('mouseup', onMouseUp);
+	}
+
+	return <>
+		<div className={classNames(InfoRowSCSS.right, TransformPanelSCSS.TransfromSectionInputs)}>
+			{useIncrement ?
+				<StepInput
+					id={`${id}I`}
+					value={increment}
+					onCommit={onIncrementCommit}
+					label={translate(`TransformPanel.step`)}
+					tooltip={translate(`TransformPanel.${id}_I`)}
+					showHandle
+				/>
+				: <></>
+			}
+			{canPast ? PastButton(translate, id, "X", canPast, onPast) : <></>}
+			<Tooltip tooltip={translate(`TransformPanel.${id}_X`)}>
+				<div>
+					<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown("X", e)}>X</span>
+					<span>
+						<input id={`${id}X`} value={X} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => onInputChange(event, setX)} onFocus={() => setEditing("X")} onBlur={onInputBlur} onKeyDown={onInputKeyDown} onWheel={onInputWheel} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+					</span>
+				</div>
+			</Tooltip>
+			{canPast ? PastButton(translate, id, "Y", canPast, onPast) : <></>}
+			<Tooltip tooltip={translate(`TransformPanel.${id}_Y`)}>
+				<div>
+					<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown("Y", e)}>Y</span>
+					<span>
+						<input id={`${id}Y`} value={Y} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => onInputChange(event, setY)} onFocus={() => setEditing("Y")} onBlur={onInputBlur} onKeyDown={onInputKeyDown} onWheel={onInputWheel} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+					</span>
+				</div>
+			</Tooltip>
+			{canPast ? PastButton(translate, id, "Z", canPast, onPast) : <></>}
+			<Tooltip tooltip={translate(`TransformPanel.${id}_Z`)}>
+				<div>
+					<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown("Z", e)}>Z</span>
+					<span>
+						<input id={`${id}Z`} value={Z} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => onInputChange(event, setZ)} onFocus={() => setEditing("Z")} onBlur={onInputBlur} onKeyDown={onInputKeyDown} onWheel={onInputWheel} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
+					</span>
+				</div>
+			</Tooltip>
+		</div>
+	</>;
+}
 
 export const TransformPanel = () => {
 	const pos: Float3 = useValue(pos$);
@@ -157,155 +334,6 @@ export const TransformPanel = () => {
 		</>
 	}
 
-	function PastButton(id: string, axis: string = "all", canPast: boolean = true): JSX.Element {
-		return canPast ? <>
-			<Tooltip tooltip={translate(`TransformPanel.PAST_${id}_${axis}`)}>
-				<button className={classNames(ActionButtonSCSS.button)} onClick={() => { triggerPast(id, axis)}}>
-					<img className={classNames(ActionButtonSCSS.icon)} src="coui://extralib/Icons/Misc/Past.svg"></img>
-				</button>
-			</Tooltip>
-		</> : <></>
-	}
-
-	function Inputs(id: string, inputValue: Float3, useIncrement: Boolean, increment: number = 0, canPast: boolean = true): JSX.Element {
-
-		const [X, setX] = useState(inputValue.x.toString())
-		const [Y, setY] = useState(inputValue.y.toString())
-		const [Z, setZ] = useState(inputValue.z.toString())
-		const [editing, setEditing] = useState<string | null>(null)
-
-		useEffect(() => {
-			if (editing !== "X") setX(inputValue.x.toString())
-			if (editing !== "Y") setY(inputValue.y.toString())
-			if (editing !== "Z") setZ(inputValue.z.toString())
-		}, [inputValue])
-
-		function onInputChange(event: ChangeEvent<HTMLInputElement>, setter: any) {
-			setter(event.target.value)
-		}
-
-		function onInputBlur(e: React.FocusEvent<HTMLInputElement>) {
-			setEditing(null);
-			commitValue(e.target.id, e.target.value);
-		}
-
-		function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-			// cohtml doesn't remap e.key per the OS keyboard layout, so "a" only matches on QWERTY. AZERTY
-			// swaps A/Q, so also accept "q" for the same physical select-all key.
-			if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "a" || e.key.toLowerCase() === "q")) {
-				e.stopPropagation();
-				e.currentTarget.select();
-				return;
-			}
-			if (e.key === "Enter") {
-				commitValue((e.target as HTMLInputElement).id, (e.target as HTMLInputElement).value);
-				(e.target as HTMLInputElement).blur();
-			}
-		}
-
-		function onInputWheel(e: WheelEvent) {
-			setEditing(null);
-			OnScroll(e);
-		}
-
-		function onLabelMouseDown(axis: string, e: ReactMouseEvent) {
-			e.preventDefault();
-			let lastX = e.clientX;
-			const startValue = axis === "X" ? inputValue.x : axis === "Y" ? inputValue.y : inputValue.z;
-			let accumulatedDelta = 0;
-			const pixelsPerStep = remToPx(100);
-			let lastSoundTime = 0;
-			const soundThrottleMs = 80;
-
-			const onMouseMove = (moveEvent: globalThis.MouseEvent) => {
-				const deltaX = moveEvent.clientX - lastX;
-				if (deltaX === 0) return;
-				lastX = moveEvent.clientX;
-				const valueDelta = (deltaX / pixelsPerStep) * increment;
-				accumulatedDelta += valueDelta;
-
-				if (id === "SCALE") {
-					const newScale: Float3 = { ...inputValue };
-					if (axis === "X") newScale.x = startValue + accumulatedDelta;
-					else if (axis === "Y") newScale.y = startValue + accumulatedDelta;
-					else newScale.z = startValue + accumulatedDelta;
-					triggerScale(newScale);
-				} else {
-					const x = axis === "X" ? valueDelta : 0;
-					const y = axis === "Y" ? valueDelta : 0;
-					const z = axis === "Z" ? valueDelta : 0;
-					if (id === "POS") triggerPos(x, y, z);
-					else if (id === "ROT") triggerRot(x, y, z);
-				}
-
-				const now = Date.now();
-				if (now - lastSoundTime > soundThrottleMs) {
-					trigger("audio", "playSound", deltaX > 0 ? "increase-elevation" : "decrease-elevation", 1);
-					lastSoundTime = now;
-				}
-			};
-
-			const onMouseUp = () => {
-				document.removeEventListener('mousemove', onMouseMove);
-				document.removeEventListener('mouseup', onMouseUp);
-				document.body.style.cursor = '';
-			};
-
-			document.body.style.cursor = 'url(cursor://horizontal-can-resize)';
-			document.addEventListener('mousemove', onMouseMove);
-			document.addEventListener('mouseup', onMouseUp);
-		}
-
-		return <>
-			<div className={classNames(InfoRowSCSS.right, TransformPanelSCSS.TransfromSectionInputs)}>
-				{useIncrement ?
-					<StepInput
-						id={`${id}I`}
-						value={increment}
-						onCommit={(v) => {
-							switch (id) {
-								case "POS": PositionIncrement = v; triggerIncPos(); break;
-								case "ROT": RotationIncrement = v; triggerIncRot(); break;
-								case "SCALE": ScaleIncrement = v; triggerIncScale(); break;
-							}
-						}}
-						label={translate(`TransformPanel.step`)}
-						tooltip={translate(`TransformPanel.${id}_I`)}
-						showHandle
-					/>
-					: <></>
-				}
-				{canPast ? PastButton(id, "X", canPast) : <></>}
-				<Tooltip tooltip={translate(`TransformPanel.${id}_X`)}>
-					<div>
-						<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown("X", e)}>X</span>
-						<span>
-							<input id={`${id}X`} value={X} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => onInputChange(event, setX)} onFocus={() => setEditing("X")} onBlur={onInputBlur} onKeyDown={onInputKeyDown} onWheel={onInputWheel} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
-						</span>
-					</div>
-				</Tooltip>
-				{canPast ? PastButton(id, "Y", canPast) : <></>}
-				<Tooltip tooltip={translate(`TransformPanel.${id}_Y`)}>
-					<div>
-						<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown("Y", e)}>Y</span>
-						<span>
-							<input id={`${id}Y`} value={Y} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => onInputChange(event, setY)} onFocus={() => setEditing("Y")} onBlur={onInputBlur} onKeyDown={onInputKeyDown} onWheel={onInputWheel} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
-						</span>
-					</div>
-				</Tooltip>
-				{canPast ? PastButton(id, "Z", canPast) : <></>}
-				<Tooltip tooltip={translate(`TransformPanel.${id}_Z`)}>
-					<div>
-						<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown("Z", e)}>Z</span>
-						<span>
-							<input id={`${id}Z`} value={Z} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => onInputChange(event, setZ)} onFocus={() => setEditing("Z")} onBlur={onInputBlur} onKeyDown={onInputKeyDown} onWheel={onInputWheel} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
-						</span>
-					</div>
-				</Tooltip>
-			</div>
-		</>;
-	}
-
 	return <>
 		<div className={classNames(InfoRowSCSS.infoRow, InfoRowSCSS.subRow, InfoRowSCSS.link, TransformPanelSCSS.TransfromSection)} >
 			<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
@@ -352,7 +380,13 @@ export const TransformPanel = () => {
 
 			</div>
 
-			{Inputs("POS", pos, true, PositionIncrement, canPastPos)}
+			<Inputs
+				id="POS" inputValue={pos} useIncrement increment={PositionIncrement} canPast={canPastPos}
+				onCommitValue={commitValue} onScroll={OnScroll}
+				onTriggerPos={triggerPos} onTriggerRot={triggerRot} onTriggerScale={triggerScale}
+				onIncrementCommit={(v) => { PositionIncrement = v; triggerIncPos(); }}
+				onPast={triggerPast}
+			/>
 
 			<div className={classNames(InfoRowSCSS.left, InfoRowSCSS.link)} style={{ width: "100%" }}>
 				{translate("PhotoMode.PROPERTY_TITLE[Rotation]")}
@@ -372,7 +406,13 @@ export const TransformPanel = () => {
 				}
 			</div>
 
-			{Inputs("ROT", rot, true, RotationIncrement, canPastRot)}
+			<Inputs
+				id="ROT" inputValue={rot} useIncrement increment={RotationIncrement} canPast={canPastRot}
+				onCommitValue={commitValue} onScroll={OnScroll}
+				onTriggerPos={triggerPos} onTriggerRot={triggerRot} onTriggerScale={triggerScale}
+				onIncrementCommit={(v) => { RotationIncrement = v; triggerIncRot(); }}
+				onPast={triggerPast}
+			/>
 
 			{allowScaling ?
 				<>
@@ -393,7 +433,13 @@ export const TransformPanel = () => {
 								: <></>
 						}
 					</div>
-					{Inputs("SCALE", scale, true, ScaleIncrement, canPastScale)}
+					<Inputs
+						id="SCALE" inputValue={scale} useIncrement increment={ScaleIncrement} canPast={canPastScale}
+						onCommitValue={commitValue} onScroll={OnScroll}
+						onTriggerPos={triggerPos} onTriggerRot={triggerRot} onTriggerScale={triggerScale}
+						onIncrementCommit={(v) => { ScaleIncrement = v; triggerIncScale(); }}
+						onPast={triggerPast}
+					/>
 				</>
 			: <></>}
 		</div>
