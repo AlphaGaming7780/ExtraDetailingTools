@@ -19,7 +19,6 @@ using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Systems.Duplicate
 {
-    [UpdateBefore(typeof(ModificationBarrier2))]
     public partial class DuplicateEntitySystem : GameSystemBase
     {
         private struct PendingDuplicate

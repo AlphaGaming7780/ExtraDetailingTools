@@ -14,6 +14,8 @@ namespace ExtraDetailingTools.ExtraSnap
 {
     public abstract class ExtraSnapBase : IDisposable, IJsonWritable
     {
+        protected readonly Harmony m_Harmony;
+
         protected ExtraSnapUISystem m_ExtraSnapUISystem;
 
         public bool IsDirty { get; internal set; } = true;
@@ -24,6 +26,8 @@ namespace ExtraDetailingTools.ExtraSnap
         {
             m_ExtraSnapUISystem = World.DefaultGameObjectInjectionWorld
                 .GetOrCreateSystemManaged<ExtraSnapUISystem>();
+
+            m_Harmony = new Harmony(GetType().FullName);
         }
 
         protected TriggerBinding AddTriggerBinding(string key, Action action) => m_ExtraSnapUISystem.AddTriggerBinding(this, key, action);
@@ -38,13 +42,35 @@ namespace ExtraDetailingTools.ExtraSnap
         {
             IsDirty = true;
         }
+
+        internal protected void Patch(Type toolType, MethodInfo snapPostfix, MethodInfo raycastPostfix)
+        {
+            if (toolType == null)
+                throw new ArgumentNullException(nameof(toolType));
+            if (snapPostfix == null)
+                throw new ArgumentNullException(nameof(snapPostfix));
+            if (raycastPostfix == null)
+                throw new ArgumentNullException(nameof(raycastPostfix));
+
+            var snapMethod = toolType.GetMethod("SnapControlPoint",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (snapMethod == null)
+                throw new MissingMethodException(toolType.Name, "SnapControlPoint");
+
+            var raycastMethod = toolType.GetMethod("InitializeRaycast",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (raycastMethod == null)
+                throw new MissingMethodException(toolType.Name, "InitializeRaycast");
+
+            m_Harmony.Patch(snapMethod, postfix: new HarmonyMethod(snapPostfix));
+            m_Harmony.Patch(raycastMethod, postfix: new HarmonyMethod(raycastPostfix));
+        }
     }
 
     public abstract class ExtraSnapBase<TTool, TSnap> : ExtraSnapBase
         where TTool : ToolBaseSystem
         where TSnap : Enum
     {
-        private readonly Harmony _harmony;
 
         protected static ExtraSnapBase<TTool, TSnap> m_Instance;
 
@@ -109,35 +135,17 @@ namespace ExtraDetailingTools.ExtraSnap
             m_ToolRaycastSystem = World.DefaultGameObjectInjectionWorld
                 .GetOrCreateSystemManaged<ToolRaycastSystem>();
 
-            _harmony = new Harmony(GetType().FullName);
-
-            Patch();
-        }
-
-        private void Patch()
-        {
-            var snapMethod = typeof(TTool).GetMethod("SnapControlPoint", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (snapMethod == null)
-                throw new MissingMethodException(typeof(TTool).Name, "SnapControlPoint");
-
-            var raycastMethod = typeof(TTool).GetMethod("InitializeRaycast", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (raycastMethod == null)
-                throw new MissingMethodException(typeof(TTool).Name, "InitializeRaycast");
-
-            _harmony.Patch(
-                snapMethod,
-                postfix: new HarmonyMethod(typeof(ExtraSnapBase<TTool, TSnap>).GetMethod(nameof(PostfixSnapControlPoint), BindingFlags.Static | BindingFlags.NonPublic))
-            );
-
-            _harmony.Patch(
-                raycastMethod,
-                postfix: new HarmonyMethod(typeof(ExtraSnapBase<TTool, TSnap>).GetMethod(nameof(PostfixInitializeRaycast), BindingFlags.Static | BindingFlags.NonPublic))
+            Patch(
+                typeof(TTool),
+                AccessTools.Method(typeof(ExtraSnapBase<TTool, TSnap>), nameof(PostfixSnapControlPoint)),
+                AccessTools.Method(typeof(ExtraSnapBase<TTool, TSnap>), nameof(PostfixInitializeRaycast))
             );
         }
+
 
         public override void Dispose()
         {
-            _harmony?.UnpatchAll(_harmony.Id);
+            m_Harmony?.UnpatchAll(m_Harmony.Id);
         }
 
         private static void PostfixSnapControlPoint(ref JobHandle __result)
@@ -165,7 +173,7 @@ namespace ExtraDetailingTools.ExtraSnap
             instance.InitializeRaycast();
         }
 
-        protected Snap GetActualToolSnap() 
+        protected Snap GetActualToolSnap()
         {
             m_Tool.GetAvailableSnapMask(out var onMask, out var offMask);
             return ToolBaseSystem.GetActualSnap(m_Tool.selectedSnap, onMask, offMask);

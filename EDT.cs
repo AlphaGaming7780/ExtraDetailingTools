@@ -15,6 +15,7 @@ using ExtraDetailingTools.Systems.UI;
 using ExtraLib.Debugger;
 using ExtraLib.Helpers;
 using Game;
+using Game.Common;
 using Game.Modding;
 using Game.SceneFlow;
 using Game.Tools;
@@ -68,7 +69,7 @@ namespace ExtraDetailingTools
                 updateSystem.UpdateAt<UI>(SystemUpdatePhase.UIUpdate);
                 updateSystem.UpdateAt<ExtraSnapUISystem>(SystemUpdatePhase.UIUpdate);
                 updateSystem.UpdateAt<DuplicateEntityBarrier>(SystemUpdatePhase.PostTool);
-                updateSystem.UpdateAt<DuplicateEntitySystem>(SystemUpdatePhase.Modification2);
+                updateSystem.UpdateBefore<DuplicateEntitySystem, ModificationBarrier2>(SystemUpdatePhase.Modification2);
                 updateSystem.UpdateAt<EditTempEntitiesSystem>(SystemUpdatePhase.ModificationEnd);
                 updateSystem.UpdateAt<GizmosRenderSystem>(SystemUpdatePhase.Rendering);
                 updateSystem.UpdateAt<GizmosRaycastSystem>(SystemUpdatePhase.Raycast);
