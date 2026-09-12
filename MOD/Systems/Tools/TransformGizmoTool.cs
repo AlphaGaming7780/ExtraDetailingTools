@@ -679,6 +679,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 quaternion rotationOffset = math.mul(rotation, math.inverse(transform.m_Rotation));
 
                 // I need that ? Nop, get updated by the game.
+                // TODO: Bring back, when this job is called after Modif Barrière (Like by UI) this doesn't get updated.
                 //if (EntityManager.TryGetComponent(entity, out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData) && EntityManager.TryGetComponent(selectedEntity, out CullingInfo cullingInfo))
                 //{
                 //    Bounds3 bounds3 = ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
