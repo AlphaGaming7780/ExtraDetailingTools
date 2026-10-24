@@ -67,7 +67,7 @@ namespace ExtraDetailingTools.ExtraSnap
             m_ObjectSearchSystem = World.DefaultGameObjectInjectionWorld.GetOrCreateSystemManaged<SearchSystem>();
             m_RotationPtr = GetRotationPtr();
             m_SelectedSnap = ObjectToolExtraSnap.ALL;
-            m_SelectedSnap &= ~(ObjectToolExtraSnap.ObjectSide);
+            m_SelectedSnap &= ~(ObjectToolExtraSnap.ObjectSide | ObjectToolExtraSnap.Upright);
 
             m_ObjectSideSnap = AddTriggerBinding<ObjectSideSnapMode>("SetObjectSideSnapMode", (v) => SetObjectSideSnapMode(v), new EnumReader<ObjectSideSnapMode>());
         }

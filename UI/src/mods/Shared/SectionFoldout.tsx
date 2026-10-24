@@ -2,7 +2,6 @@ import classNames from "classnames";
 import { FocusKey } from "cs2/bindings";
 import { FOCUS_AUTO } from "cs2/ui";
 import { ReactNode } from "react";
-import { InfoRowSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
 import { InfoSectionFoldout } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section-foldout";
 import { InfoSectionSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
 import { MouseToolOptionsSCSS } from "../../../game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.module.scss";
@@ -35,11 +34,13 @@ export function SectionFoldout(props: SectionFoldoutProps): JSX.Element {
 
 	return <InfoSectionFoldout
 		header={
-			<div className={InfoRowSCSS.infoRow} style={{ paddingLeft: "0rem", paddingTop: "0rem", paddingBottom: "0rem" }}>
-				<div className={classNames(MouseToolOptionsSCSS.label, InfoRowSCSS.left)} style={{ flexGrow: 1, height: "28rem" }}>
+			<div className={styles.header}>
+				<div className={MouseToolOptionsSCSS.label}>
 					{title}
 				</div>
-				{headerRight ?? <></>}
+				<div className={classNames(MouseToolOptionsSCSS.content, styles.headerContent)}>
+					{headerRight}
+				</div>
 			</div>
 		}
 		initialExpanded={startExpanded}

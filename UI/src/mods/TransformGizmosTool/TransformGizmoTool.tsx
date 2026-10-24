@@ -392,7 +392,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					
 					{ currentXZHandleMode === XZHandleMode.FollowSurface &&
 						<Section
-							title={translate("Tool.TransformGizmoTool.FollowSurface", "Follow Surface")}
+							title={translate("Toolbar.SNAPPING_TITLE", "Snapping")}
 						>
 							<ToolButton
 								focusKey={FOCUS_DISABLED$}
