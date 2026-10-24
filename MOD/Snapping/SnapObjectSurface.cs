@@ -161,19 +161,6 @@ namespace ExtraDetailingTools.Snapping
             return math.normalizesafe(normal, math.up());
         }
 
-        // Tilts rotation so its up axis matches up, keeping its yaw.
-        public static quaternion AlignUp(quaternion rotation, float3 up)
-        {
-            float3 forward = math.forward(rotation);
-            forward.y = 0f;
-            if (!MathUtils.TryNormalize(ref forward)) forward = new float3(0f, 0f, 1f);
-
-            // Forward projected on the surface plane.
-            float3 surfaceForward = forward - up * math.dot(forward, up);
-            if (!MathUtils.TryNormalize(ref surfaceForward)) return rotation;
-            return quaternion.LookRotationSafe(surfaceForward, up);
-        }
-
         // Adapted from the vanilla ObjectToolSystem SnapJob.AlignObject: Wall objects face the hit normal,
         // the others get their up axis on it (or stay upright).
         private static void AlignObject(ref SnapContext context, Entity prefab, bool upright, ref ControlPoint controlPoint, ref quaternion parentRotation, bool alignRotation)

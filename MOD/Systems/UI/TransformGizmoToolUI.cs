@@ -32,6 +32,7 @@ namespace ExtraDetailingTools.Systems.UI
         private ValueBinding<bool> m_HasSubBuildingsValueBinding;
         private GetterValueBinding<bool> m_MoveSubBuildingsValueGetter;
         private GetterValueBinding<int> m_XZHandleModeValueGetter;
+        private GetterValueBinding<bool> m_UprightValueGetter;
         private GetterValueBinding<int> m_RaycastFilterValueGetter;
         private GetterValueBinding<bool> m_AnarchyAvailableValueGetter;
         private GetterValueBinding<bool> m_AddPreventOverrideValueGetter;
@@ -73,6 +74,8 @@ namespace ExtraDetailingTools.Systems.UI
 
             AddBinding(m_XZHandleModeValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.XZHandleMode", () => (int)m_TransformGizmoTool.xzHandleMode));
             AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.XZHandleMode", SetXZHandleMode));
+            AddBinding(m_UprightValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.Upright", () => m_TransformGizmoTool.m_Upright));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.Upright", SetUpright));
 
             AddBinding(m_RaycastFilterValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.RaycastFilter", () => (int)m_TransformGizmoTool.raycastFilter));
             AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.RaycastFilter", SetRaycastFilter));
@@ -187,6 +190,12 @@ namespace ExtraDetailingTools.Systems.UI
         {
             m_TransformGizmoTool.xzHandleMode = value;
             m_XZHandleModeValueGetter.Update();
+        }
+
+        public void SetUpright(bool enabled)
+        {
+            m_TransformGizmoTool.m_Upright = enabled;
+            m_UprightValueGetter.Update();
         }
 
         public void SetRaycastFilter(int value)

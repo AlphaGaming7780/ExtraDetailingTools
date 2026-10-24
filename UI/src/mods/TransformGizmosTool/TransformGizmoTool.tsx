@@ -49,6 +49,7 @@ const rot$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Rotation`, 
 // const scale$ = bindValue<Float3>(kGroupName, `${kToolId}.Scale`, {x: 0, y: 0, z:0});
 const localAxis$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.LocalAxis`, false);
 const xzHandleMode$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.XZHandleMode`, 0);
+const upright$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.Upright`, false);
 const snapToSurface$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.SnapToSurface`, false);
 const moveSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, false);
 const raycastFilter$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.RaycastFilter`, 0);
@@ -85,6 +86,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const isCopyable : boolean = useValue(isCopyable$);
 		const currentMode : number = useValue(toolMode$);
 		const currentXZHandleMode : number = useValue(xzHandleMode$);
+		const upright : boolean = useValue(upright$);
 		const raycastFilter : number = useValue(raycastFilter$);
 		const gridEnabled : boolean = useValue(gridEnabled$);
 		const posOffset : number = useValue(posOffset$);
@@ -132,6 +134,11 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const SetXZHandleMode = (xzHandleMode : number) =>
 		{
 			trigger(kGroupName, `${kTransformGizmoToolId}.XZHandleMode`, xzHandleMode);
+		}
+
+		const SetUpright = (enabled : boolean) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.Upright`, enabled);
 		}
 
 		const SetGridEnabled = (enabled : boolean) =>
@@ -383,6 +390,20 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						}
 					>
 					
+					{ currentXZHandleMode === XZHandleMode.FollowSurface &&
+						<Section
+							title={translate("Tool.TransformGizmoTool.FollowSurface", "Follow Surface")}
+						>
+							<ToolButton
+								focusKey={FOCUS_DISABLED$}
+								tooltip={translate("Tool.TransformGizmoTool.Upright.Tooltip", "Keep the object upright instead of tilting it to the surface.")}
+								src="Media/Tools/Snap Options/Upright.svg"
+								selected={upright}
+								onSelect={() => SetUpright(!upright)}
+							/>
+						</Section>
+					}
+
 					{ currentXZHandleMode === XZHandleMode.FollowSurface &&
 						<Section
 							title={translate("Tool.TransformGizmoTool.RaycastFilter", "Raycast Filter")}

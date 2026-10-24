@@ -967,6 +967,8 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private AudioManager m_AudioManager;
         private TerrainSystem m_TerrainSystem;
+        private WaterSystem m_WaterSystem;
+        private Game.Objects.SearchSystem m_ObjectSearchSystem;
         private GizmosRaycastSystem m_GimzosRaycastSystem;
         private ToolOutputBarrier m_ToolOutputBarrier;
         private SelectedInfoUISystem m_SelectedInfoUISystem;
@@ -1015,6 +1017,9 @@ namespace ExtraDetailingTools.Systems.Tools
         private quaternion m_DragStartPrimaryRot;
         private float3 m_DragGizmoPos;
         private quaternion m_DragGizmoRot;
+
+        // Follow Surface: keep the object upright instead of tilting it to the surface.
+        internal bool m_Upright = false;
 
         // Grid
         internal bool m_GridEnabled = false;
@@ -1104,6 +1109,8 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             m_TerrainSystem = World.GetOrCreateSystemManaged<TerrainSystem>();
+            m_WaterSystem = World.GetOrCreateSystemManaged<WaterSystem>();
+            m_ObjectSearchSystem = World.GetOrCreateSystemManaged<Game.Objects.SearchSystem>();
             m_ToolOutputBarrier = World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_AudioManager = World.GetOrCreateSystemManaged<AudioManager>();
             m_GimzosRaycastSystem = World.GetOrCreateSystemManaged<GizmosRaycastSystem>();
@@ -1666,7 +1673,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         EDT.Logger.Error("Dragging without any drag entry.");
                     }
-                    else if (TryGetDragDelta(out DragDelta delta))
+                    else if (TryGetDragDelta(inputDeps, out DragDelta delta))
                     {
                         inputDeps = ApplyDragDelta(inputDeps, delta);
                     }
@@ -1678,7 +1685,7 @@ namespace ExtraDetailingTools.Systems.Tools
         }
 
         // Delta of the group pivot for this frame. Without hit, returns false and the objects / gizmo keep the last value.
-        private bool TryGetDragDelta(out DragDelta delta)
+        private bool TryGetDragDelta(JobHandle inputDeps, out DragDelta delta)
         {
             delta = new DragDelta
             {
@@ -1690,30 +1697,15 @@ namespace ExtraDetailingTools.Systems.Tools
             {
                 if (!GetRaycastResult(out Entity entity, out RaycastHit hit)) return false;
 
-                delta.Position = hit.m_HitPosition - m_DragStartGizmoPos;
-
-                // Tilt only makes sense for a single object, a group would need a per-entity surface sample.
-                if (m_DragEntries.Count == 1)
+                ControlPoint raw = new ControlPoint(entity, hit)
                 {
-                    if (EntityManager.HasComponent<Game.Common.Terrain>(entity))
-                    {
-                        // The terrain hit normal is unusable (heightmap space), use the slope under the object's footprint.
-                        if (EntityManager.TryGetComponent(m_DragEntries[0].Original, out PrefabRef prefabRef)
-                            && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
-                        {
-                            TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
-                            float3 normal = SnapObjectSurface.CalculateTerrainNormal(ref heightData, hit.m_HitPosition, m_DragStartPrimaryRot, geometryData.m_Bounds);
-                            quaternion target = SnapObjectSurface.AlignUp(m_DragStartPrimaryRot, normal);
-                            delta.Rotation = math.normalize(math.mul(target, math.inverse(m_DragStartPrimaryRot)));
-                        }
-                    }
-                    else
-                    {
-                        float3 newUp = math.normalizesafe(hit.m_HitDirection, math.up());
-                        float3 dragStartUp = math.rotate(m_DragStartPrimaryRot, math.up());
-                        delta.Rotation = SnapMath.ShortestRotation(dragStartUp, newUp);
-                    }
-                }
+                    m_Position = hit.m_HitPosition,
+                    m_Rotation = m_DragStartPrimaryRot,
+                };
+                ControlPoint snapped = SnapFollowSurface(inputDeps, raw);
+
+                delta.Position = snapped.m_Position - m_DragStartGizmoPos;
+                delta.Rotation = math.normalize(math.mul(snapped.m_Rotation, math.inverse(m_DragStartPrimaryRot)));
                 return true;
             }
 
@@ -1776,6 +1768,35 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             return true;
+        }
+
+        // Surface snap + tilt (SnapObjectSurface, same code as ExtraSnap) in TransformToolSnapJob, completed right
+        // away: the drag delta is needed on the main thread.
+        private ControlPoint SnapFollowSurface(JobHandle inputDeps, ControlPoint raw)
+        {
+            SnapContext context = SnapContext.Create(this, m_TerrainSystem, m_WaterSystem, m_ObjectSearchSystem, out JobHandle contextDeps);
+            NativeReference<ControlPoint> result = new NativeReference<ControlPoint>(Allocator.TempJob);
+
+            JobHandle jobHandle = new TransformToolSnapJob
+            {
+                m_Mode = m_Mode,
+                m_SelectedEntity = m_DragEntries[m_DragPrimaryIndex].Original,
+                m_Handle = Handle.XZ,
+                m_ControlPoint = raw,
+                m_Result = result,
+                m_XZHandleMode = XZHandleMode.FollowSurface,
+                // Tilt only makes sense for a single object, a group would need a per-entity surface sample.
+                m_AlignToSurface = m_DragEntries.Count == 1,
+                m_Upright = m_Upright,
+                m_EditorMode = m_ToolSystem.actionMode.IsEditor(),
+                m_Context = context,
+            }.Schedule(JobHandle.CombineDependencies(inputDeps, contextDeps));
+            SnapContext.AddReaders(m_WaterSystem, m_ObjectSearchSystem, jobHandle);
+
+            jobHandle.Complete();
+            ControlPoint snapped = result.Value;
+            result.Dispose();
+            return snapped;
         }
 
         // Every entity keeps its offset to its pivot: pos = pivot + posDelta + rotDelta * (start - pivot).

@@ -22,10 +22,12 @@ namespace ExtraDetailingTools.Systems.Tools
         // natural fit for the FollowSurface handle, whose raw input already IS a ControlPoint-shaped
         // (Entity, RaycastHit) pair from GetRaycastResult.
         //
-        // m_ControlPoint doubles as input and output: the caller sets it to the raw candidate BEFORE any
-        // snapping (for the axis/plane-drag case, built by hand with m_OriginalEntity = Entity.Null and
-        // m_SnapPriority = default, same idiom ObjectTool's own snap functions use for their
-        // starting/baseline point), and Execute() overwrites it with the snapped result.
+        // m_ControlPoint is the raw candidate BEFORE any snapping (for the axis/plane-drag case, built by hand
+        // with m_OriginalEntity = Entity.Null and m_SnapPriority = default, same idiom ObjectTool's own snap
+        // functions use for their starting/baseline point; for FollowSurface, built from the raycast hit with
+        // the drag start rotation). Execute() writes the snapped result in m_Result.
+        //
+        // Only scheduled for the FollowSurface handle for now (TransformGizmoTool.SnapFollowSurface).
 #if RELEASE
         [BurstCompile]
 #endif
@@ -36,7 +38,8 @@ namespace ExtraDetailingTools.Systems.Tools
 
             [ReadOnly] public Handle m_Handle;
 
-            public ControlPoint m_ControlPoint;
+            [ReadOnly] public ControlPoint m_ControlPoint;
+            public NativeReference<ControlPoint> m_Result;
 
             [ReadOnly] public float3 m_DragStartGizmoPos;
             [ReadOnly] public quaternion m_DragStartGizmoRot;
@@ -45,6 +48,10 @@ namespace ExtraDetailingTools.Systems.Tools
 
             // Sphere Mode
             [ReadOnly] public XZHandleMode m_XZHandleMode;
+            // FollowSurface: tilt the object to the surface (or keep it upright). Off for a group.
+            [ReadOnly] public bool m_AlignToSurface;
+            [ReadOnly] public bool m_Upright;
+            [ReadOnly] public bool m_EditorMode;
 
             // Grid Snap
             [ReadOnly] public bool m_GridEnabled;
@@ -73,7 +80,17 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     if(m_XZHandleMode == XZHandleMode.FollowSurface)
                     {
-                    
+                        // Same baseline as the vanilla SnapJob: the hit entity is only kept if the surface snap uses it
+                        // (AlignToSurface reads the terrain from the raw point).
+                        best.m_OriginalEntity = Entity.Null;
+                        SnapObjectSurface.SnapSurface(ref m_Context, m_ControlPoint, ref best);
+
+                        if (m_AlignToSurface && m_Context.m_PrefabRefData.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef))
+                        {
+                            // No 45 degrees alignment on the parent: the gizmo keeps the rotation of the object.
+                            quaternion parentRotation = quaternion.identity;
+                            SnapObjectSurface.AlignToSurface(ref m_Context, prefabRef.m_Prefab, true, m_Upright, m_EditorMode, m_ControlPoint, ref best, ref parentRotation, false);
+                        }
                     }
                 }
                 else
@@ -117,8 +134,8 @@ namespace ExtraDetailingTools.Systems.Tools
 
 
 
-                // Object Side Snap - integration test for SnapObjectSide. m_ControlPoint is still the raw
-                // candidate here (only overwritten at the very end), so it's a valid "true raw reference"
+                // Object Side Snap - integration test for SnapObjectSide. m_ControlPoint is the raw
+                // candidate (never overwritten), so it's a valid "true raw reference"
                 // for Apply's own internal edge scoring, same requirement as the grid competing above.
                 if (m_ObjectSideSnapEnabled && m_Mode == Mode.Move && m_Context.m_PrefabRefData.HasComponent(m_SelectedEntity))
                 {
@@ -130,7 +147,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     }
                 }
 
-                m_ControlPoint = best;
+                m_Result.Value = best;
             }
         }
     }

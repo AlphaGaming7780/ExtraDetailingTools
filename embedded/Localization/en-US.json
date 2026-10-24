@@ -68,6 +68,8 @@
 	"Tool.TransformGizmoTool.XZHandleModes.FixedY.Tooltip": "Fixed Y axis",
 	"Tool.TransformGizmoTool.XZHandleModes.FixedZ.Tooltip": "Fixed Z axis",
 
+	"Tool.TransformGizmoTool.FollowSurface": "Follow Surface",
+	"Tool.TransformGizmoTool.Upright.Tooltip": "Keep the object upright instead of tilting it to the surface.",
 	"Tool.TransformGizmoTool.RaycastFilter": "Raycast Filter",
 	"Tool.TransformGizmoTool.RaycastFilter.StaticObject.Tooltip": "Static Objects",
 	"Tool.TransformGizmoTool.RaycastFilter.Decals.Tooltip": "Decals",
