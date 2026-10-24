@@ -205,6 +205,7 @@ namespace ExtraDetailingTools.ExtraSnap
                 m_BuildingData = m_Tool.GetComponentLookup<BuildingData>(true),
                 m_StackData = m_Tool.GetComponentLookup<StackData>(true),
                 m_MovingObjectData = m_Tool.GetComponentLookup<MovingObjectData>(true),
+                m_TerrainEntityData = m_Tool.GetComponentLookup<Game.Common.Terrain>(true),
                 m_WaterSurfaceData = waterSurfaceData,
                 m_TerrainHeightData = m_TerrainSystem.GetHeightData(),
                 m_ObjectSearchTree = objectSearchTree,
@@ -263,6 +264,8 @@ namespace ExtraDetailingTools.ExtraSnap
             [ReadOnly] public ComponentLookup<StackData> m_StackData;
 
             [ReadOnly] public ComponentLookup<MovingObjectData> m_MovingObjectData;
+
+            [ReadOnly] public ComponentLookup<Game.Common.Terrain> m_TerrainEntityData;
 
             [ReadOnly] public WaterSurfaceData<SurfaceWater> m_WaterSurfaceData;
 
@@ -460,6 +463,16 @@ namespace ExtraDetailingTools.ExtraSnap
                 // block manual rotation, so this is intentionally always false.
                 RotationRef.m_IsSnapped = false;
                 RotationRef.m_IsAligned &= RotationRef.m_Rotation.Equals(bestSnapPosition.m_Rotation);
+
+                // The terrain hit normal is unusable (heightmap space), replace it by the slope under the object's footprint.
+                if ((m_Snap & (ObjectToolExtraSnap.ObjectSurface | ObjectToolExtraSnap.Upright)) == ObjectToolExtraSnap.ObjectSurface
+                    && m_TerrainEntityData.HasComponent(bestSnapPosition.m_OriginalEntity)
+                    && m_ObjectGeometryData.TryGetComponent(m_Prefab, out var terrainGeometryData)
+                    && !(m_PlaceableObjectData.TryGetComponent(m_Prefab, out var terrainPlaceableData) && (terrainPlaceableData.m_Flags & Game.Objects.PlacementFlags.Wall) != Game.Objects.PlacementFlags.None))
+                {
+                    bestSnapPosition.m_HitDirection = Snapping.SnapObjectSurface.CalculateTerrainNormal(ref m_TerrainHeightData, bestSnapPosition.m_Position, bestSnapPosition.m_Rotation, terrainGeometryData.m_Bounds);
+                }
+
                 AlignObject(ref bestSnapPosition, ref RotationRef.m_ParentRotation, RotationRef.m_IsAligned);
                 RotationRef.m_Rotation = bestSnapPosition.m_Rotation;
 

@@ -21,6 +21,7 @@ using Game.UI.InGame;
 using Game.Vehicles;
 using ExtraDetailingTools.Systems;
 using ExtraDetailingTools.Systems.Duplicate;
+using ExtraDetailingTools.Snapping;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -1692,11 +1693,26 @@ namespace ExtraDetailingTools.Systems.Tools
                 delta.Position = hit.m_HitPosition - m_DragStartGizmoPos;
 
                 // Tilt only makes sense for a single object, a group would need a per-entity surface sample.
-                if (m_DragEntries.Count == 1 && !EntityManager.HasComponent<Game.Common.Terrain>(entity))
+                if (m_DragEntries.Count == 1)
                 {
-                    float3 newUp = math.normalizesafe(hit.m_HitDirection, math.up());
-                    float3 dragStartUp = math.rotate(m_DragStartPrimaryRot, math.up());
-                    delta.Rotation = ShortestRotation(dragStartUp, newUp);
+                    if (EntityManager.HasComponent<Game.Common.Terrain>(entity))
+                    {
+                        // The terrain hit normal is unusable (heightmap space), use the slope under the object's footprint.
+                        if (EntityManager.TryGetComponent(m_DragEntries[0].Original, out PrefabRef prefabRef)
+                            && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
+                        {
+                            TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
+                            float3 normal = SnapObjectSurface.CalculateTerrainNormal(ref heightData, hit.m_HitPosition, m_DragStartPrimaryRot, geometryData.m_Bounds);
+                            quaternion target = SnapObjectSurface.AlignUp(m_DragStartPrimaryRot, normal);
+                            delta.Rotation = math.normalize(math.mul(target, math.inverse(m_DragStartPrimaryRot)));
+                        }
+                    }
+                    else
+                    {
+                        float3 newUp = math.normalizesafe(hit.m_HitDirection, math.up());
+                        float3 dragStartUp = math.rotate(m_DragStartPrimaryRot, math.up());
+                        delta.Rotation = ShortestRotation(dragStartUp, newUp);
+                    }
                 }
                 return true;
             }
