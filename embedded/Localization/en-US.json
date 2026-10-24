@@ -101,6 +101,7 @@
 	"ExtraSnap.ObjectSide.SnapToCorner.Tooltip": "Snap and align the object flush against the corner of the nearest object.",
 
 	"ExtraPanelHeaderName[ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel]": "Transform Panel",
+	"ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel": "Open EDT's Transform Gizmo Tool.",
 
 	"TransformPanel.COPY_POS": "Copy the position.",
 	"TransformPanel.PAST_POS": "Paste the position.",
