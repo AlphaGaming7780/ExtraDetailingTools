@@ -14,10 +14,9 @@ namespace ExtraDetailingTools.Systems.Tools
 {
     public partial class TransformGizmoTool
     {
-        // Gizmo position / rotation for this frame, written by TransformToolSnapJob.
+        // Gizmo position / rotation of the drag, written by TransformToolSnapJob (kept as is without hit).
         private struct DragGizmoResult
         {
-            public bool m_Valid; // False without hit: the objects / gizmo keep the last value.
             public float3 m_Position;
             public quaternion m_Rotation;
         }
@@ -101,9 +100,10 @@ namespace ExtraDetailingTools.Systems.Tools
                     ? FollowSurface(ref delta)
                     : DragPlane(ref delta);
 
+                // No hit: default transforms (UpdateObjectJob keeps the current ones), the gizmo isn't written.
                 if (!valid)
                 {
-                    m_Gizmo.Value = default;
+                    for (int i = 0; i < m_Results.Length; i++) m_Results[i] = default;
                     return;
                 }
 
@@ -275,7 +275,6 @@ namespace ExtraDetailingTools.Systems.Tools
 
                 m_Gizmo.Value = new DragGizmoResult
                 {
-                    m_Valid = true,
                     m_Position = m_DragStartGizmoPos + gizmoPosDelta,
                     m_Rotation = math.mul(gizmoRotDelta, m_DragStartGizmoRot),
                 };

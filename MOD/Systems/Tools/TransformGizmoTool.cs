@@ -435,6 +435,9 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public XZHandleMode m_XZHandleMode;
             [ReadOnly] public float3 m_Position;
             [ReadOnly] public quaternion m_Rotation;
+            // Dragging: the gizmo written by TransformToolSnapJob is used instead of m_Position / m_Rotation.
+            [ReadOnly] public bool m_UseDragGizmo;
+            [ReadOnly] public NativeReference<DragGizmoResult> m_DragGizmo;
 
             [ReadOnly] public EntityCommandBuffer m_CommandBuffer;
 
@@ -459,8 +462,8 @@ namespace ExtraDetailingTools.Systems.Tools
                     return;
                 }
 
-                float3 pos = m_Position;
-                quaternion rot = m_Rotation;
+                float3 pos = m_UseDragGizmo ? m_DragGizmo.Value.m_Position : m_Position;
+                quaternion rot = m_UseDragGizmo ? m_DragGizmo.Value.m_Rotation : m_Rotation;
 
                 float distance = math.distance(pos, m_CameraPosition);
                 float targetFraction = m_HandleScreenSize / kReferenceScreenHeight;
@@ -649,9 +652,9 @@ namespace ExtraDetailingTools.Systems.Tools
 #endif
         private struct UpdateObjectJob : IJob
         {
-            [ReadOnly] public float3 m_Position;
-            [ReadOnly] public quaternion m_Rotation;
-            [ReadOnly] public Entity m_SelectedEntity;
+            // One per entity. A default position / rotation keeps the current one.
+            [ReadOnly] public NativeArray<Entity> m_Entities;
+            [ReadOnly] public NativeArray<Transform> m_Transforms;
             [ReadOnly] public bool m_MoveSubBuildings;
             [ReadOnly] public ComponentLookup<Transform> m_TransformLookup;
             [ReadOnly] public ComponentLookup<Building> m_BuildingLookup;
@@ -670,9 +673,13 @@ namespace ExtraDetailingTools.Systems.Tools
 
             public void Execute()
             {
-                isTemp = m_TempLookup.HasComponent(m_SelectedEntity);
+                for (int i = 0; i < m_Entities.Length; i++)
+                {
+                    Entity entity = m_Entities[i];
+                    isTemp = m_TempLookup.HasComponent(entity);
 
-                UpdateObject(m_SelectedEntity, m_Position, m_Rotation);
+                    UpdateObject(entity, m_Transforms[i].m_Position, m_Transforms[i].m_Rotation);
+                }
             }
 
 
@@ -1002,8 +1009,9 @@ namespace ExtraDetailingTools.Systems.Tools
         private readonly List<DragEntry> m_DragEntries = new();
         private int m_DragPrimaryIndex;
         private quaternion m_DragStartPrimaryRot;
-        private float3 m_DragGizmoPos;
-        private quaternion m_DragGizmoRot;
+        // Gizmo of the drag: written by TransformToolSnapJob, read by UpdateGizmosJob, never on the main thread.
+        private NativeReference<DragGizmoResult> m_DragGizmo;
+        private JobHandle m_DragGizmoDeps;
 
         // Follow Surface: keep the object upright instead of tilting it to the surface.
         internal bool m_Upright = false;
@@ -1109,6 +1117,8 @@ namespace ExtraDetailingTools.Systems.Tools
             m_HandleQuery = GetEntityQuery(ComponentType.ReadOnly<TransformGizmosHandle>());
             m_DefinitionQuery = GetDefinitionQuery();
 
+            m_DragGizmo = new NativeReference<DragGizmoResult>(Allocator.Persistent);
+
             m_UndoHistory = new();
             m_RedoHistory = new();
 
@@ -1123,6 +1133,8 @@ namespace ExtraDetailingTools.Systems.Tools
 
         protected override void OnDestroy()
         {
+            m_DragGizmoDeps.Complete();
+            m_DragGizmo.Dispose();
             base.OnDestroy();
         }
 
@@ -1706,11 +1718,12 @@ namespace ExtraDetailingTools.Systems.Tools
             NativeArray<Transform> startTransforms = new NativeArray<Transform>(count, Allocator.TempJob);
             NativeArray<float3> pivots = new NativeArray<float3>(count, Allocator.TempJob);
             NativeArray<Transform> results = new NativeArray<Transform>(count, Allocator.TempJob);
-            NativeReference<DragGizmoResult> gizmo = new NativeReference<DragGizmoResult>(Allocator.TempJob);
+            NativeArray<Entity> temps = new NativeArray<Entity>(count, Allocator.TempJob);
             for (int i = 0; i < count; i++)
             {
                 startTransforms[i] = m_DragEntries[i].StartTransform;
                 pivots[i] = m_DragEntries[i].Pivot;
+                temps[i] = m_DragEntries[i].Temp;
             }
 
             SnapContext context = SnapContext.Create(this, m_TerrainSystem, m_WaterSystem, m_ObjectSearchSystem, out JobHandle contextDeps);
@@ -1744,29 +1757,19 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_Pivots = pivots,
                 m_PrimaryIndex = m_DragPrimaryIndex,
                 m_Results = results,
-                m_Gizmo = gizmo,
-            }.Schedule(JobHandle.CombineDependencies(inputDeps, contextDeps));
+                m_Gizmo = m_DragGizmo,
+            }.Schedule(JobHandle.CombineDependencies(inputDeps, contextDeps, m_DragGizmoDeps));
             SnapContext.AddReaders(m_WaterSystem, m_ObjectSearchSystem, jobHandle);
+            startTransforms.Dispose(jobHandle);
+            pivots.Dispose(jobHandle);
 
-            // TODO (step 5 bis): chain UpdateObjectJob / UpdateGizmosJob on the job instead of completing it here.
-            jobHandle.Complete();
+            // The temps are drag entries (Temp): no main thread part, see UpdateObject.
+            jobHandle = ScheduleUpdateObjects(jobHandle, temps, results, m_ToolOutputBarrier);
+            temps.Dispose(jobHandle);
+            results.Dispose(jobHandle);
 
-            DragGizmoResult gizmoResult = gizmo.Value;
-            if (gizmoResult.m_Valid)
-            {
-                for (int i = 0; i < count; i++)
-                {
-                    inputDeps = UpdateObject(inputDeps, m_DragEntries[i].Temp, results[i].m_Position, results[i].m_Rotation);
-                }
-                m_DragGizmoPos = gizmoResult.m_Position;
-                m_DragGizmoRot = gizmoResult.m_Rotation;
-            }
-
-            startTransforms.Dispose();
-            pivots.Dispose();
-            results.Dispose();
-            gizmo.Dispose();
-            return inputDeps;
+            m_DragGizmoDeps = jobHandle;
+            return jobHandle;
         }
 
         private JobHandle Apply(JobHandle inputDeps, bool singleFrameOnly = false, bool toggleSelected = false, bool additive = false, bool setPrimary = false)
@@ -2033,7 +2036,7 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             if (m_State == State.Dragging)
             {
-                return UpdateGizmos(inputDeps, true, m_DragGizmoPos, m_DragGizmoRot);
+                return UpdateGizmos(inputDeps, true, default, quaternion.identity, true);
             }
 
             List<Entity> entities = new();
@@ -2048,7 +2051,7 @@ namespace ExtraDetailingTools.Systems.Tools
             return UpdateGizmos(inputDeps, true, gizmoPos, gizmoRot);
         }
 
-        private JobHandle UpdateGizmos(JobHandle inputDeps, bool hasGizmo, float3 position, quaternion rotation)
+        private JobHandle UpdateGizmos(JobHandle inputDeps, bool hasGizmo, float3 position, quaternion rotation, bool useDragGizmo = false)
         {
             var c = m_HandleQuery.ToEntityListAsync(Allocator.TempJob, out JobHandle dep);
 
@@ -2068,13 +2071,16 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_XZHandleMode = m_XZHandleMode,
                 m_Position = position,
                 m_Rotation = rotation,
+                m_UseDragGizmo = useDragGizmo,
+                m_DragGizmo = m_DragGizmo,
                 m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
                 m_TerrainHeightData = m_TerrainSystem.GetHeightData(),
                 m_CameraPosition = cam.transform.position,
                 m_TanFOV = tanFOV,
                 m_HandleScreenSize = EDT.m_Settings.HandleScreenSize,
-            }, JobHandle.CombineDependencies(inputDeps, dep));
+            }, JobHandle.CombineDependencies(inputDeps, dep, m_DragGizmoDeps));
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
+            m_DragGizmoDeps = jobHandle;
             jobHandle = c.Dispose(jobHandle);
             return jobHandle;
         }
@@ -2137,9 +2143,24 @@ namespace ExtraDetailingTools.Systems.Tools
                 }
             }
 
+            NativeArray<Entity> entities = new NativeArray<Entity>(1, Allocator.TempJob);
+            NativeArray<Transform> transforms = new NativeArray<Transform>(1, Allocator.TempJob);
+            entities[0] = entity;
+            transforms[0] = new Transform(position, rotation);
+            JobHandle jobHandle = ScheduleUpdateObjects(inputDeps, entities, transforms, ecb);
+            entities.Dispose(jobHandle);
+            transforms.Dispose(jobHandle);
+            return jobHandle;
+        }
+
+        // entities / transforms: one per entity, a default position / rotation keeps the current one. The main thread
+        // part of UpdateObject (non Temp entities) is not done here.
+        private JobHandle ScheduleUpdateObjects(JobHandle inputDeps, NativeArray<Entity> entities, NativeArray<Transform> transforms, SafeCommandBufferSystem ecb)
+        {
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateObjectJob
             {
-                m_SelectedEntity = entity,
+                m_Entities = entities,
+                m_Transforms = transforms,
                 m_BuildingLookup = GetComponentLookup<Building>(true),
                 m_TransformLookup = GetComponentLookup<Transform>(true),
                 m_TempLookup = GetComponentLookup<Temp>(true),
@@ -2151,8 +2172,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_SubNetLookup = GetBufferLookup<SubNet>(true),
                 m_SubObjectLookup = GetBufferLookup<SubObject>(true),
                 m_MoveSubBuildings = m_MoveSubBuildings,
-                m_Position = position,
-                m_Rotation = rotation,
                 m_CommandBuffer = ecb.CreateCommandBuffer(),
             }, inputDeps);
             ecb.AddJobHandleForProducer(jobHandle);
@@ -2515,8 +2534,9 @@ namespace ExtraDetailingTools.Systems.Tools
             m_DragStartGizmoPos = gizmoPos;
             m_DragStartGizmoRot = gizmoRot;
             m_DragStartPrimaryRot = transforms[primaryIndex].m_Rotation;
-            m_DragGizmoPos = gizmoPos;
-            m_DragGizmoRot = gizmoRot;
+            // The gizmo jobs of the previous frames may still use it.
+            m_DragGizmoDeps.Complete();
+            m_DragGizmo.Value = new DragGizmoResult { m_Position = gizmoPos, m_Rotation = gizmoRot };
 
             if(m_XZHandleMode != XZHandleMode.FollowSurface || m_SelectedHandle != Handle.XZ)
             {
