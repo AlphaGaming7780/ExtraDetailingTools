@@ -1268,9 +1268,8 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground;
                         m_ToolRaycastSystem.typeMask |= TypeMask.Terrain;
-                        // TODO: the water raycast works on the coarse water grid and hits above the terrain on a slope
-                        // (object off the cursor / floating). Workaround tested, same as the vanilla ObjectTool: add
-                        // "&& IsPrimaryPlacedOnWater()" below. Not kept: any object must be able to snap on water.
+                        // Any object can snap on water. The false water hits on a dry slope (coarse water grid) are fixed
+                        // in TransformToolSnapJob.FixWaterHit. Vanilla alternative, not used: "&& IsPrimaryPlacedOnWater()".
                         if(!m_RaycastFilter.HasFlag(RaycastFilter.Water))
                         {
                             m_ToolRaycastSystem.typeMask |= TypeMask.Water;
@@ -1725,6 +1724,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_RayDirection = ray.direction,
                 m_CameraRight = camera.transform.right,
                 m_CameraForward = camera.transform.forward,
+                m_RaycastLine = ToolRaycastSystem.CalculateRaycastLine(camera),
                 m_AxisDir = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot),
                 m_DragStartGizmoPos = m_DragStartGizmoPos,
                 m_DragStartGizmoRot = m_DragStartGizmoRot,
@@ -1735,7 +1735,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_ControlPoint = raw,
                 m_Upright = m_Upright,
                 m_EditorMode = m_ToolSystem.actionMode.IsEditor(),
-                m_Underground = m_Underground,
                 m_GridEnabled = m_GridEnabled,
                 m_SnapEach = m_PivotSettings.Aggregation == PivotAggregation.Individual,
                 m_PosOffset = (float)m_PosOffset,

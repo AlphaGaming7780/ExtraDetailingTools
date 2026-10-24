@@ -1,5 +1,7 @@
+using Colossal.Mathematics;
 using ExtraDetailingTools.Snapping;
 using Game.Prefabs;
+using Game.Simulation;
 using Game.Tools;
 using Unity.Burst;
 using Unity.Collections;
@@ -41,6 +43,7 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public float3 m_RayDirection;
             [ReadOnly] public float3 m_CameraRight;
             [ReadOnly] public float3 m_CameraForward;
+            [ReadOnly] public Line3.Segment m_RaycastLine; // Same line as the tool raycast (FollowSurface).
 
             // Drag start, see StartDragging.
             [ReadOnly] public float3 m_AxisDir;
@@ -55,7 +58,6 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public ControlPoint m_ControlPoint;
             [ReadOnly] public bool m_Upright;
             [ReadOnly] public bool m_EditorMode;
-            [ReadOnly] public bool m_Underground;
 
             // Grid Snap. Individual: every entity snaps on its own.
             [ReadOnly] public bool m_GridEnabled;
@@ -117,11 +119,14 @@ namespace ExtraDetailingTools.Systems.Tools
             {
                 if (!m_HasHit) return false;
 
+                ControlPoint raw = m_ControlPoint;
+                FixWaterHit(ref raw);
+
                 // Same baseline as the vanilla SnapJob: the hit entity is only kept if the surface snap uses it
                 // (AlignToSurface reads the terrain from the raw point).
-                ControlPoint best = m_ControlPoint;
+                ControlPoint best = raw;
                 best.m_OriginalEntity = Entity.Null;
-                SnapObjectSurface.SnapSurface(ref m_Context, m_ControlPoint, ref best);
+                SnapObjectSurface.SnapSurface(ref m_Context, raw, ref best);
 
                 // Tilt only makes sense for a single object, a group would need a per-entity surface sample: the
                 // pivot of the group just follows the hit.
@@ -131,20 +136,36 @@ namespace ExtraDetailingTools.Systems.Tools
                     return true;
                 }
 
-                // Same order as ExtraSnap. No height in underground mode, it would be put back on the terrain.
-                if (!m_Underground)
-                {
-                    SnapObjectSurface.CalculateHeight(ref m_Context, prefabRef.m_Prefab, ref best);
-                }
+                // No CalculateHeight (unlike ExtraSnap): the object stays where the raycast hits (water surface,
+                // underground, object), the height is not recomputed from the terrain.
                 // No 45 degrees alignment on the parent: the gizmo keeps the rotation of the object.
                 quaternion parentRotation = quaternion.identity;
-                SnapObjectSurface.AlignToSurface(ref m_Context, prefabRef.m_Prefab, true, m_Upright, m_EditorMode, m_ControlPoint, ref best, ref parentRotation, false);
+                SnapObjectSurface.AlignToSurface(ref m_Context, prefabRef.m_Prefab, true, m_Upright, m_EditorMode, raw, ref best, ref parentRotation, false);
 
                 // The origin of the object goes on the snapped point, whatever the pivot:
                 // best = pivot + posDelta + rotDelta * (start - pivot).
                 delta.Rotation = math.normalize(math.mul(best.m_Rotation, math.inverse(m_DragStartPrimaryRot)));
                 delta.Position = best.m_Position - m_Pivots[0] - math.rotate(delta.Rotation, m_StartTransforms[0].m_Position - m_Pivots[0]);
                 return true;
+            }
+
+            // The water raycast (WaterUtils.Raycast) works on the coarse water grid: on a dry slope it hits above the
+            // terrain, earlier on the line than the terrain raycast, and wins. Both hits have the terrain entity as
+            // owner, but only the terrain hit has a normal. Without real water at the water hit (same depth threshold as
+            // CalculateHeight), take the terrain hit.
+            private void FixWaterHit(ref ControlPoint raw)
+            {
+                // Terrain hit (or water not raycasted): nothing to fix, no extra raycast.
+                if (math.any(raw.m_HitDirection != 0f) || !m_Context.m_TerrainEntityData.HasComponent(raw.m_OriginalEntity)) return;
+
+                WaterUtils.SampleHeight(ref m_Context.m_WaterSurfaceData, ref m_Context.m_TerrainHeightData, raw.m_HitPosition, out float waterDepth);
+                if (waterDepth >= 0.2f) return;
+
+                if (!TerrainUtils.Raycast(ref m_Context.m_TerrainHeightData, m_RaycastLine, false, out float t, out float3 normal, out _)) return;
+
+                raw.m_Position = MathUtils.Position(m_RaycastLine, t);
+                raw.m_HitPosition = raw.m_Position;
+                raw.m_HitDirection = normal;
             }
 
             private bool DragPlane(ref Delta delta)
