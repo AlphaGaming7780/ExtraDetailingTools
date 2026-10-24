@@ -39,8 +39,12 @@
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/DuplicateBinding/binding]": "Duplicate",
 
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.AddToSelectionBinding]": "Add to selection",
-	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.AddToSelectionBinding]": "Add or remove the hovered object from the current selection.",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.AddToSelectionBinding]": "Add the hovered object to the selection (it becomes the primary one), or remove it if it is already selected.",
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/AddToSelectionBinding/binding]": "Add to selection",
+
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.SetPrimaryBinding]": "Set primary object",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.SetPrimaryBinding]": "Make the hovered object the primary one (used by the Primary pivot and the local axis), adding it to the selection if needed.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/SetPrimaryBinding/binding]": "Set primary object",
 
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Gizmo Handle Size",
 	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Screen size, in pixels, of the Transform Gizmo Tool's handles.",

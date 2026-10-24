@@ -1027,6 +1027,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private ProxyAction m_RotateAction;
         private ProxyAction m_DuplicateAction;
         private ProxyAction m_AddToSelectionAction;
+        private ProxyAction m_SetPrimaryAction;
 
         // Undo / Redo
         private Stack<ActionHistory> m_UndoHistory;
@@ -1122,6 +1123,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_RotateAction = EDT.m_Settings.GetAction(EDT.m_Settings.EnterRotateBinding.actionName);
             m_DuplicateAction = EDT.m_Settings.GetAction(EDT.m_Settings.DuplicateBinding.actionName);
             m_AddToSelectionAction = EDT.m_Settings.GetAction(EDT.m_Settings.AddToSelectionBinding.actionName);
+            m_SetPrimaryAction = EDT.m_Settings.GetAction(EDT.m_Settings.SetPrimaryBinding.actionName);
         }
 
         protected override void OnDestroy()
@@ -1156,6 +1158,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_RotateAction.shouldBeEnabled = true;
             m_DuplicateAction.shouldBeEnabled = true;
             m_AddToSelectionAction.shouldBeEnabled = true;
+            m_SetPrimaryAction.shouldBeEnabled = true;
             SetSelectedEntity(m_ToolSystem.selected);
             m_WasAnEntitySelected = m_SelectedEntity != Entity.Null;
             m_ToolSystem.selected = Entity.Null;
@@ -1172,6 +1175,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_RotateAction.shouldBeEnabled = false;
             m_DuplicateAction.shouldBeEnabled = false;
             m_AddToSelectionAction.shouldBeEnabled = false;
+            m_SetPrimaryAction.shouldBeEnabled = false;
             var es = m_HandleQuery.ToEntityArray(Allocator.Temp);
             foreach (Entity e in es)
             {
@@ -1238,6 +1242,26 @@ namespace ExtraDetailingTools.Systems.Tools
                     m_Debug = false
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);
+
+                // Objects under the cursor, for Ctrl+Click.
+                if (m_State == State.Idle)
+                {
+                    m_ToolRaycastSystem.collisionMask = m_Underground ? CollisionMask.Underground : CollisionMask.OnGround | CollisionMask.Overground;
+
+                    if (!m_RaycastFilter.HasFlag(RaycastFilter.StaticObject))
+                    {
+                        m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
+
+                        if (!m_RaycastFilter.HasFlag(RaycastFilter.Decals))
+                            m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Decals;
+
+                        if (!m_RaycastFilter.HasFlag(RaycastFilter.Buildings))
+                            m_ToolRaycastSystem.raycastFlags |= RaycastFlags.BuildingLots | RaycastFlags.SubBuildings;
+                    }
+
+                    if (!m_RaycastFilter.HasFlag(RaycastFilter.MovingObject))
+                        m_ToolRaycastSystem.typeMask |= TypeMask.MovingObjects;
+                }
 
                 if (m_XZHandleMode == XZHandleMode.FollowSurface)
                 {
@@ -1442,7 +1466,7 @@ namespace ExtraDetailingTools.Systems.Tools
                             SetSelection(actionHistory.PreviousSelection, actionHistory.SelectedEntity);
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
-                            SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                            if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
                             m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
                         else if (actionType == ActionType.Transform)
@@ -1466,7 +1490,7 @@ namespace ExtraDetailingTools.Systems.Tools
                                 SetSelectionFiltered(actionHistory.PreviousSelection, actionHistory.SelectedEntity);
                                 m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
-                                SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                                if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
                                 m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                             }
                         }
@@ -1505,7 +1529,7 @@ namespace ExtraDetailingTools.Systems.Tools
                             SetSelection(actionHistory.Selection, actionHistory.Entity);
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
-                            SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                            if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
                             m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
                         else if (actionType == ActionType.Transform)
@@ -1527,11 +1551,16 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     case Mode.Default:
                         {
-                            // Checked first: Shift+Click also triggers the apply action.
+                            // Checked first: Ctrl+Click / Alt+Click also trigger the apply action.
                             if (m_AddToSelectionAction.WasPressedThisFrame())
                             {
                                 m_AdditivePress = true;
                                 return Apply(inputDeps, additive: true);
+                            }
+                            else if (m_SetPrimaryAction.WasPressedThisFrame())
+                            {
+                                m_AdditivePress = true;
+                                return Apply(inputDeps, setPrimary: true);
                             }
                             else if(applyAction.WasPressedThisFrame())
                             {
@@ -1539,7 +1568,7 @@ namespace ExtraDetailingTools.Systems.Tools
                                 return Apply(inputDeps, base.applyAction.WasReleasedThisFrame(), base.cancelAction.WasPressedThisFrame());
                             } else if(applyAction.WasReleasedThisFrame())
                             {
-                                // The release of a Shift+Click must not replace the selection.
+                                // The release of a Ctrl+Click / Alt+Click must not replace the selection.
                                 if (m_AdditivePress)
                                 {
                                     m_AdditivePress = false;
@@ -1559,6 +1588,18 @@ namespace ExtraDetailingTools.Systems.Tools
                             if (cancelAction.WasReleasedThisFrame())
                             {
                                 return Cancel(inputDeps);
+                            }
+                            else if (m_State == State.Idle && (m_AddToSelectionAction.WasPressedThisFrame() || m_SetPrimaryAction.WasPressedThisFrame()))
+                            {
+                                // Ctrl+Click / Alt+Click on an object, checked before the gizmo (they also trigger the apply action).
+                                if (GetRaycastResult(out Entity hovered, out RaycastHit _))
+                                {
+                                    if (EntityManager.TryGetComponent(hovered, out Temp temp) && temp.m_Original != Entity.Null) hovered = temp.m_Original;
+                                    if (m_SetPrimaryAction.WasPressedThisFrame()) SetPrimaryInSelection(hovered);
+                                    else ToggleInSelection(hovered);
+                                    PlaySelectedSound(hovered, forcePlay: true);
+                                }
+                                return Update(inputDeps);
                             }
                             else if ((m_State == State.Idle && base.applyAction.WasPressedThisFrame()) || (m_State == State.Dragging && base.applyAction.WasReleasedThisFrame()))
                             {
@@ -1765,14 +1806,14 @@ namespace ExtraDetailingTools.Systems.Tools
             return inputDeps;
         }
 
-        private JobHandle Apply(JobHandle inputDeps, bool singleFrameOnly = false, bool toggleSelected = false, bool additive = false)
+        private JobHandle Apply(JobHandle inputDeps, bool singleFrameOnly = false, bool toggleSelected = false, bool additive = false, bool setPrimary = false)
         {
 
             if(m_Mode == Mode.Default)
             {
                 applyMode = ApplyMode.None;
                 m_SelectedHandle = Handle.None;
-                JobHandle jobHandle = SelectTempEntity(inputDeps, toggleSelected, additive);
+                JobHandle jobHandle = SelectTempEntity(inputDeps, toggleSelected, additive, setPrimary);
                 return jobHandle;
             }
 
@@ -1871,11 +1912,11 @@ namespace ExtraDetailingTools.Systems.Tools
             return inputDeps;
         }
 
-        private JobHandle SelectTempEntity(JobHandle inputDeps, bool toggleSelected, bool additive = false)
+        private JobHandle SelectTempEntity(JobHandle inputDeps, bool toggleSelected, bool additive = false, bool setPrimary = false)
         {
             if (m_TempQuery.IsEmptyIgnoreFilter)
             {
-                if (!additive) SetSelectedEntity(Entity.Null);
+                if (!additive && !setPrimary) SetSelectedEntity(Entity.Null);
                 return inputDeps;
             }
             NativeList<ArchetypeChunk> chunks = m_TempQuery.ToArchetypeChunkListAsync(Allocator.TempJob, out JobHandle outJobHandle);
@@ -1917,19 +1958,14 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_LastSelectedIndex = -1;
             }
 
-            if (additive)
+            if (additive || setPrimary)
             {
                 if (hovered != Entity.Null && selectedEntity != Entity.Null)
                 {
-                    ToggleInSelection(selectedEntity);
+                    if (setPrimary) SetPrimaryInSelection(selectedEntity);
+                    else ToggleInSelection(selectedEntity);
                     PlaySelectedSound(selectedEntity, forcePlay: true);
                 }
-            }
-            else if (hovered != Entity.Null && selectedEntity != Entity.Null && m_SelectedEntities.Count > 1 && m_SelectedEntities.Contains(selectedEntity))
-            {
-                // Click on an entity of a multi selection: keep the group, it becomes the primary one.
-                SelectEntities(m_SelectedEntities, selectedEntity, switchMode: true);
-                PlaySelectedSound(selectedEntity, forcePlay: true);
             }
             else if (m_SelectedEntity != selectedEntity || m_SelectedIndex != m_LastSelectedIndex || (hovered != Entity.Null && m_SelectedEntities.Count > 1))
             {
@@ -2249,7 +2285,7 @@ namespace ExtraDetailingTools.Systems.Tools
             if (switchMode) SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
         }
 
-        // Shift+Click: adds the entity (it becomes the primary one) or removes it.
+        // Ctrl+Click: adds the entity (it becomes the primary one) or removes it.
         private void ToggleInSelection(Entity entity)
         {
             List<Entity> selection = new(m_SelectedEntities);
@@ -2264,6 +2300,16 @@ namespace ExtraDetailingTools.Systems.Tools
                 primary = entity;
             }
             SelectEntities(selection, primary, switchMode: false);
+            if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default);
+        }
+
+        // Alt+Click: the entity becomes the primary one, added to the selection if needed.
+        private void SetPrimaryInSelection(Entity entity)
+        {
+            if (entity == m_SelectedEntity) return;
+            List<Entity> selection = new(m_SelectedEntities);
+            if (!selection.Contains(entity)) selection.Add(entity);
+            SelectEntities(selection, entity, switchMode: false);
         }
 
         // Drops deleted entities (undo of a duplicate, removed by another tool, ...).

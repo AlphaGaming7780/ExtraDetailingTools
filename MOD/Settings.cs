@@ -14,6 +14,7 @@ namespace ExtraDetailingTools
     [SettingsUIKeyboardAction(nameof(RedoBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
     [SettingsUIKeyboardAction(nameof(DuplicateBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
     [SettingsUIMouseAction(nameof(AddToSelectionBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
+    [SettingsUIMouseAction(nameof(SetPrimaryBinding), "EDT.InTransformTool", Usages.kDefaultUsage, Usages.kToolUsage)]
     internal class Settings : ModSetting
     {   
 
@@ -56,9 +57,13 @@ namespace ExtraDetailingTools
         [SettingsUISection(kTTTSection, kKeybindingGroup, kQuickActionsGroup)]
         public ProxyBinding DuplicateBinding { get; set; }
 
-        [SettingsUIMouseBinding(BindingMouse.Left, nameof(AddToSelectionBinding), shift: true)]
+        [SettingsUIMouseBinding(BindingMouse.Left, nameof(AddToSelectionBinding), ctrl: true)]
         [SettingsUISection(kTTTSection, kKeybindingGroup)]
         public ProxyBinding AddToSelectionBinding { get; set; }
+
+        [SettingsUIMouseBinding(BindingMouse.Left, nameof(SetPrimaryBinding), alt: true)]
+        [SettingsUISection(kTTTSection, kKeybindingGroup)]
+        public ProxyBinding SetPrimaryBinding { get; set; }
 
         [SettingsUISection(kTTTSection, kQOLGroup)]
         [SettingsUISlider(min = 50f, max = 500f, step = 10f, unit = "integer")]
