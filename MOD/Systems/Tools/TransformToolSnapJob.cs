@@ -120,7 +120,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 if (!m_HasHit) return false;
 
                 ControlPoint raw = m_ControlPoint;
-                FixWaterHit(ref raw);
+                bool onWater = FixWaterHit(ref raw);
 
                 // Same baseline as the vanilla SnapJob: the hit entity is only kept if the surface snap uses it
                 // (AlignToSurface reads the terrain from the raw point).
@@ -139,8 +139,9 @@ namespace ExtraDetailingTools.Systems.Tools
                 // No CalculateHeight (unlike ExtraSnap): the object stays where the raycast hits (water surface,
                 // underground, object), the height is not recomputed from the terrain.
                 // No 45 degrees alignment on the parent: the gizmo keeps the rotation of the object.
+                // Upright on water, the terrain under it doesn't matter.
                 quaternion parentRotation = quaternion.identity;
-                SnapObjectSurface.AlignToSurface(ref m_Context, prefabRef.m_Prefab, true, m_Upright, m_EditorMode, raw, ref best, ref parentRotation, false);
+                SnapObjectSurface.AlignToSurface(ref m_Context, prefabRef.m_Prefab, true, m_Upright || onWater, m_EditorMode, raw, ref best, ref parentRotation, false);
 
                 // The origin of the object goes on the snapped point, whatever the pivot:
                 // best = pivot + posDelta + rotDelta * (start - pivot).
@@ -153,19 +154,21 @@ namespace ExtraDetailingTools.Systems.Tools
             // terrain, earlier on the line than the terrain raycast, and wins. Both hits have the terrain entity as
             // owner, but only the terrain hit has a normal. Without real water at the water hit (same depth threshold as
             // CalculateHeight), take the terrain hit.
-            private void FixWaterHit(ref ControlPoint raw)
+            // Returns true when the point is on real water.
+            private bool FixWaterHit(ref ControlPoint raw)
             {
                 // Terrain hit (or water not raycasted): nothing to fix, no extra raycast.
-                if (math.any(raw.m_HitDirection != 0f) || !m_Context.m_TerrainEntityData.HasComponent(raw.m_OriginalEntity)) return;
+                if (math.any(raw.m_HitDirection != 0f) || !m_Context.m_TerrainEntityData.HasComponent(raw.m_OriginalEntity)) return false;
 
                 WaterUtils.SampleHeight(ref m_Context.m_WaterSurfaceData, ref m_Context.m_TerrainHeightData, raw.m_HitPosition, out float waterDepth);
-                if (waterDepth >= 0.2f) return;
+                if (waterDepth >= 0.2f) return true;
 
-                if (!TerrainUtils.Raycast(ref m_Context.m_TerrainHeightData, m_RaycastLine, false, out float t, out float3 normal, out _)) return;
+                if (!TerrainUtils.Raycast(ref m_Context.m_TerrainHeightData, m_RaycastLine, false, out float t, out float3 normal, out _)) return false;
 
                 raw.m_Position = MathUtils.Position(m_RaycastLine, t);
                 raw.m_HitPosition = raw.m_Position;
                 raw.m_HitDirection = normal;
+                return false;
             }
 
             private bool DragPlane(ref Delta delta)
