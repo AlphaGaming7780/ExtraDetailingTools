@@ -60,6 +60,10 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly]
             public NativeArray<bool> m_AllowHighlights;
 
+            // Highlighted in green. Entity.Null with a single selection.
+            [ReadOnly]
+            public Entity m_Primary;
+
             // Originals that already got a definition, so overlapping selections (two upgrades of the same
             // building, an attached object and its parent, ...) don't create the same temp twice.
             public NativeParallelHashSet<Entity> m_Added;
@@ -226,7 +230,9 @@ namespace ExtraDetailingTools.Systems.Tools
                 }
                 else if (m_AllowHighlight)
                 {
-                    component.m_Flags |= CreationFlags.Select;
+                    // TempFlags.Parent is drawn with the owner color (green): marks the primary of a multi-selection.
+                    // GenerateObjectsSystem ignores Parent when Select is set, so it replaces it.
+                    component.m_Flags |= entity == m_Primary ? CreationFlags.Parent : CreationFlags.Select;
                 }
                 m_CommandBuffer.AddComponent(e, default(Updated));
                 if (ownerDefinition.m_Prefab != Entity.Null)
@@ -1668,8 +1674,17 @@ namespace ExtraDetailingTools.Systems.Tools
                         }
                     }
 
+                    // Object under the cursor (target of Shift+Click / Alt+Click), not while hovering a gizmo
+                    // handle: a drag starts from there and must not carry this extra temp.
+                    Entity hovered = Entity.Null;
+                    if (m_SelectedHandle == Handle.None && GetRaycastResult(out Entity hit, out RaycastHit _))
+                    {
+                        if (EntityManager.TryGetComponent(hit, out Temp temp) && temp.m_Original != Entity.Null) hit = temp.m_Original;
+                        if (EntityManager.HasComponent<Transform>(hit)) hovered = hit;
+                    }
+
                     applyMode = ApplyMode.Clear;
-                    inputDeps = UpdateDefinitions(inputDeps, Entity.Null, m_SelectedIndex);
+                    inputDeps = UpdateDefinitions(inputDeps, hovered, m_SelectedIndex);
                 }
                 else if (m_State == State.Dragging)
                 {
@@ -1964,7 +1979,9 @@ namespace ExtraDetailingTools.Systems.Tools
             NativeArray<Temp> temps = m_TempQuery.ToComponentDataArray<Temp>(Allocator.Temp);
             for (int i = 0; i < temps.Length; i++)
             {
-                if (temps[i].m_Original == original && (temps[i].m_Flags & TempFlags.Select) != 0)
+                // The primary of a multi-selection has a Parent temp instead (green highlight).
+                TempFlags selectFlags = original == m_SelectedEntity ? TempFlags.Select | TempFlags.Parent : TempFlags.Select;
+                if (temps[i].m_Original == original && (temps[i].m_Flags & selectFlags) != 0)
                 {
                     found = true;
                     break;
@@ -2001,6 +2018,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     m_Entities = definitionEntities,
                     m_AllowHighlights = allowHighlights,
+                    m_Primary = m_SelectedEntities.Count > 1 ? m_SelectedEntity : Entity.Null,
                     m_Added = added,
                     m_Position = default,
                     m_SetPosition = false,
@@ -2575,6 +2593,8 @@ namespace ExtraDetailingTools.Systems.Tools
             {
                 Temp temp = temps[entry.Original];
                 temp.m_Flags |= TempFlags.Dragging;
+                // Restored by the definitions recreated once back to Idle.
+                if (!AllowDragHightlight(entry.Original)) temp.m_Flags &= ~(TempFlags.Select | TempFlags.Parent);
                 entityCommandBuffer.SetComponent(entry.Temp, temp);
                 entityCommandBuffer.AddComponent(entry.Temp, default(Updated));
 
@@ -2646,10 +2666,15 @@ namespace ExtraDetailingTools.Systems.Tools
             return float3.zero;
         }
 
+        // Idle: the selection stays highlighted in Move / Rotate too, to see what Shift+Click / Alt+Click change.
         private bool AllowHightlight(Entity entity)
         {
-            if (m_Mode == Mode.Default) return true;
+            return m_Mode == Mode.Default || m_AllowHightlight != AllowHightlightState.Disabled;
+        }
 
+        // While dragging, the highlight hides where the objects go: removed from the dragged temps (see StartDragging).
+        private bool AllowDragHightlight(Entity entity)
+        {
             if (m_AllowHightlight == AllowHightlightState.Enabled) return true;
             if (m_AllowHightlight == AllowHightlightState.Disabled) return false;
 
