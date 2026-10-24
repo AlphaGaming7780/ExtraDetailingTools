@@ -1,6 +1,11 @@
 using Colossal.Mathematics;
+using Game.Objects;
+using Game.Prefabs;
 using Game.Simulation;
+using Game.Tools;
+using Unity.Entities;
 using Unity.Mathematics;
+using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Snapping
 {
@@ -10,6 +15,122 @@ namespace ExtraDetailingTools.Snapping
     {
         // Below a heightmap cell (~3.5 m), the 4 samples fall in the same cell and the slope gets noisy.
         public const float kMinTerrainSampleHalfSize = 1f;
+
+        // Snaps on the surface of the object hit by the raycast. Sub-objects are resolved to their top owner,
+        // the mesh index is kept in m_ElementIndex.x (same as the vanilla ObjectToolSystem SnapJob).
+        public static void SnapSurface(ref SnapContext context, ControlPoint controlPoint, ref ControlPoint bestSnapPosition)
+        {
+            if (!context.m_TransformData.HasComponent(controlPoint.m_OriginalEntity)) return;
+
+            int parentMesh = controlPoint.m_ElementIndex.x;
+            Entity entity = controlPoint.m_OriginalEntity;
+            while (context.m_OwnerData.HasComponent(entity))
+            {
+                if (context.m_LocalTransformCacheData.HasComponent(entity) && !context.m_ServiceUpgradeData.HasComponent(entity))
+                {
+                    parentMesh = context.m_LocalTransformCacheData[entity].m_ParentMesh;
+                    parentMesh += math.select(1000, -1000, parentMesh < 0);
+                }
+                entity = context.m_OwnerData[entity].m_Owner;
+            }
+            if (!context.m_TransformData.HasComponent(entity)) return;
+
+            Transform transform = context.m_TransformData[entity];
+            ControlPoint snapPosition = controlPoint;
+            snapPosition.m_OriginalEntity = entity;
+            snapPosition.m_ElementIndex.x = parentMesh;
+            snapPosition.m_Position = controlPoint.m_HitPosition;
+            snapPosition.m_Direction = math.forward(transform.m_Rotation).xz;
+            snapPosition.m_SnapPriority = ToolUtils.CalculateSnapPriority(0f, 1f, 1f, controlPoint.m_HitPosition, snapPosition.m_Position, snapPosition.m_Direction);
+            ToolUtils.AddSnapPosition(ref bestSnapPosition, snapPosition);
+        }
+
+        // Height of the snapped point: placement offset on an object, terrain / water height otherwise.
+        // Adapted from the vanilla ObjectToolSystem SnapJob.CalculateHeight.
+        public static void CalculateHeight(ref SnapContext context, Entity prefab, ref ControlPoint controlPoint)
+        {
+            if (!context.m_PlaceableObjectData.HasComponent(prefab))
+            {
+                return;
+            }
+            PlaceableObjectData placeableObjectData = context.m_PlaceableObjectData[prefab];
+
+            if (context.m_TransformData.HasComponent(controlPoint.m_OriginalEntity))
+            {
+                controlPoint.m_Position.y += placeableObjectData.m_PlacementOffset.y;
+                return;
+            }
+            float height;
+            if ((placeableObjectData.m_Flags & PlacementFlags.RoadSide) != PlacementFlags.None && context.m_BuildingData.HasComponent(prefab))
+            {
+                BuildingData buildingData = context.m_BuildingData[prefab];
+                float3 worldPosition = Game.Buildings.BuildingUtils.CalculateFrontPosition(new Transform(controlPoint.m_Position, controlPoint.m_Rotation), buildingData.m_LotSize.y);
+                height = TerrainUtils.SampleHeight(ref context.m_TerrainHeightData, worldPosition);
+            }
+            else
+            {
+                height = TerrainUtils.SampleHeight(ref context.m_TerrainHeightData, controlPoint.m_Position);
+            }
+            if ((placeableObjectData.m_Flags & PlacementFlags.Hovering) != PlacementFlags.None)
+            {
+                float waterHeight = WaterUtils.SampleHeight(ref context.m_WaterSurfaceData, ref context.m_TerrainHeightData, controlPoint.m_Position);
+                waterHeight += placeableObjectData.m_PlacementOffset.y;
+                controlPoint.m_Elevation = math.max(0f, waterHeight - height);
+                height = math.max(height, waterHeight);
+            }
+            else if ((placeableObjectData.m_Flags & (PlacementFlags.Shoreline | PlacementFlags.Floating)) == 0)
+            {
+                height += placeableObjectData.m_PlacementOffset.y;
+            }
+            else
+            {
+                float waterHeight = WaterUtils.SampleHeight(ref context.m_WaterSurfaceData, ref context.m_TerrainHeightData, controlPoint.m_Position, out float waterDepth);
+                if (waterDepth >= 0.2f)
+                {
+                    waterHeight += placeableObjectData.m_PlacementOffset.y;
+                    if ((placeableObjectData.m_Flags & PlacementFlags.Floating) != PlacementFlags.None)
+                    {
+                        controlPoint.m_Elevation = math.max(0f, waterHeight - height);
+                    }
+                    height = math.max(height, waterHeight);
+                }
+            }
+            controlPoint.m_Position.y = height;
+        }
+
+        // Tilts the object to the surface it's on (or keeps it upright), then applies the vertical offset of
+        // Wall / Hanging objects.
+        //
+        // raw: the raycast point before the snaps. The vanilla SnapJob clears m_OriginalEntity of the snapped
+        // point unless it snapped on an object, so the terrain is read from it.
+        // parentRotation: set to the rotation of the object the point is on (identity otherwise).
+        // alignRotation: snaps the rotation around the normal to 45 degrees steps of parentRotation.
+        public static void AlignToSurface(ref SnapContext context, Entity prefab, bool objectSurface, bool upright, bool editorMode, ControlPoint raw, ref ControlPoint controlPoint, ref quaternion parentRotation, bool alignRotation)
+        {
+            context.m_PlaceableObjectData.TryGetComponent(prefab, out PlaceableObjectData placeableObjectData);
+            bool hasGeometry = context.m_ObjectGeometryData.TryGetComponent(prefab, out ObjectGeometryData geometryData);
+
+            // The terrain hit normal is unusable (heightmap space), replace it by the slope under the object's footprint.
+            if (objectSurface && !upright && hasGeometry
+                && context.m_TerrainEntityData.HasComponent(raw.m_OriginalEntity)
+                && !context.m_TransformData.HasComponent(controlPoint.m_OriginalEntity)
+                && (placeableObjectData.m_Flags & PlacementFlags.Wall) == PlacementFlags.None)
+            {
+                controlPoint.m_HitDirection = CalculateTerrainNormal(ref context.m_TerrainHeightData, controlPoint.m_Position, controlPoint.m_Rotation, geometryData.m_Bounds);
+            }
+
+            AlignObject(ref context, prefab, upright, ref controlPoint, ref parentRotation, alignRotation);
+
+            if ((controlPoint.m_OriginalEntity == Entity.Null || controlPoint.m_ElementIndex.x == -1 || controlPoint.m_HitDirection.y > 0.99f)
+                && hasGeometry
+                && geometryData.m_Bounds.min.y <= -0.01f
+                && (((placeableObjectData.m_Flags & (PlacementFlags.Wall | PlacementFlags.Hanging)) != PlacementFlags.None && upright)
+                    || (editorMode && context.m_MovingObjectData.HasComponent(prefab))))
+            {
+                controlPoint.m_Elevation -= geometryData.m_Bounds.min.y;
+                controlPoint.m_Position.y -= geometryData.m_Bounds.min.y;
+            }
+        }
 
         // The terrain raycast normal (TerrainUtils.Raycast / SampleHeight(out normal)) is computed in heightmap
         // space (cells / raw height units) and never scaled back to world space, so it's unusable. Instead,
@@ -51,6 +172,82 @@ namespace ExtraDetailingTools.Snapping
             float3 surfaceForward = forward - up * math.dot(forward, up);
             if (!MathUtils.TryNormalize(ref surfaceForward)) return rotation;
             return quaternion.LookRotationSafe(surfaceForward, up);
+        }
+
+        // Adapted from the vanilla ObjectToolSystem SnapJob.AlignObject: Wall objects face the hit normal,
+        // the others get their up axis on it (or stay upright).
+        private static void AlignObject(ref SnapContext context, Entity prefab, bool upright, ref ControlPoint controlPoint, ref quaternion parentRotation, bool alignRotation)
+        {
+            PlaceableObjectData placeableObjectData = default(PlaceableObjectData);
+            if (context.m_PlaceableObjectData.HasComponent(prefab))
+            {
+                placeableObjectData = context.m_PlaceableObjectData[prefab];
+            }
+            if ((placeableObjectData.m_Flags & PlacementFlags.Hanging) != PlacementFlags.None)
+            {
+                ObjectGeometryData objectGeometryData = context.m_ObjectGeometryData[prefab];
+                controlPoint.m_Position.y -= objectGeometryData.m_Bounds.max.y;
+            }
+            parentRotation = quaternion.identity;
+            if (context.m_TransformData.HasComponent(controlPoint.m_OriginalEntity))
+            {
+                Entity entity = controlPoint.m_OriginalEntity;
+                PrefabRef prefabRef = context.m_PrefabRefData[entity];
+                parentRotation = context.m_TransformData[entity].m_Rotation;
+                while (context.m_OwnerData.HasComponent(entity) && !context.m_BuildingData.HasComponent(prefabRef.m_Prefab))
+                {
+                    entity = context.m_OwnerData[entity].m_Owner;
+                    prefabRef = context.m_PrefabRefData[entity];
+                    if (context.m_TransformData.HasComponent(entity))
+                    {
+                        parentRotation = context.m_TransformData[entity].m_Rotation;
+                    }
+                }
+            }
+            if ((placeableObjectData.m_Flags & PlacementFlags.Wall) != PlacementFlags.None)
+            {
+                float3 @float = math.forward(controlPoint.m_Rotation);
+                float3 value = controlPoint.m_HitDirection;
+                value.y = math.select(value.y, 0f, upright);
+                if (!MathUtils.TryNormalize(ref value))
+                {
+                    value = @float;
+                    value.y = math.select(value.y, 0f, upright);
+                    if (!MathUtils.TryNormalize(ref value))
+                    {
+                        value = new float3(0f, 0f, 1f);
+                    }
+                }
+                float3 value2 = math.cross(@float, value);
+                if (MathUtils.TryNormalize(ref value2))
+                {
+                    float angle = math.acos(math.clamp(math.dot(@float, value), -1f, 1f));
+                    controlPoint.m_Rotation = math.normalizesafe(math.mul(quaternion.AxisAngle(value2, angle), controlPoint.m_Rotation), quaternion.identity);
+                    if (alignRotation)
+                    {
+                        SnapMath.AlignRotation(ref controlPoint.m_Rotation, parentRotation, zAxis: true);
+                    }
+                }
+                controlPoint.m_Position += math.forward(controlPoint.m_Rotation) * placeableObjectData.m_PlacementOffset.z;
+                return;
+            }
+            float3 float2 = math.rotate(controlPoint.m_Rotation, new float3(0f, 1f, 0f));
+            float3 hitDirection = controlPoint.m_HitDirection;
+            hitDirection = math.select(hitDirection, new float3(0f, 1f, 0f), upright);
+            if (!MathUtils.TryNormalize(ref hitDirection))
+            {
+                hitDirection = float2;
+            }
+            float3 value3 = math.cross(float2, hitDirection);
+            if (MathUtils.TryNormalize(ref value3))
+            {
+                float angle2 = math.acos(math.clamp(math.dot(float2, hitDirection), -1f, 1f));
+                controlPoint.m_Rotation = math.normalizesafe(math.mul(quaternion.AxisAngle(value3, angle2), controlPoint.m_Rotation), quaternion.identity);
+                if (alignRotation)
+                {
+                    SnapMath.AlignRotation(ref controlPoint.m_Rotation, parentRotation, zAxis: false);
+                }
+            }
         }
 
         private static float3 SampleCorner(ref TerrainHeightData terrain, float3 position, float3 right, float3 forward, float x, float z)

@@ -1711,7 +1711,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         float3 newUp = math.normalizesafe(hit.m_HitDirection, math.up());
                         float3 dragStartUp = math.rotate(m_DragStartPrimaryRot, math.up());
-                        delta.Rotation = ShortestRotation(dragStartUp, newUp);
+                        delta.Rotation = SnapMath.ShortestRotation(dragStartUp, newUp);
                     }
                 }
                 return true;
@@ -2759,40 +2759,6 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             return float3.zero;
-        }
-
-        // Unity.Mathematics has no FromToRotation - shortest rotation that takes "from" onto "to", built
-        // from the standard axis/angle-between-two-vectors construction (atan2(|cross|, dot) is the robust
-        // way to get the angle, avoiding the precision loss acos(dot) has near 0/180 degrees).
-        private static quaternion ShortestRotation(float3 from, float3 to)
-        {
-            // NaN comparisons are always false, so a degenerate input wouldn't be caught by the
-            // axisLength < 1e-6f check below - it'd fall through to atan2/AxisAngle and silently produce a
-            // NaN quaternion instead. Matches LookRotationSafe's own isfinite guard.
-            if (!math.all(math.isfinite(from)) || !math.all(math.isfinite(to)))
-            {
-                return quaternion.identity;
-            }
-
-            float3 axis = math.cross(from, to);
-            float axisLength = math.length(axis);
-            float dot = math.dot(from, to);
-
-            if (axisLength < 1e-6f)
-            {
-                if (dot > 0f)
-                {
-                    return quaternion.identity;
-                }
-
-                // from/to are anti-parallel - cross product can't give an axis, pick any perpendicular one.
-                float3 reference = math.abs(from.x) < 0.99f ? new float3(1f, 0f, 0f) : new float3(0f, 1f, 0f);
-                float3 perpendicular = math.normalize(math.cross(from, reference));
-                return quaternion.AxisAngle(perpendicular, math.PI);
-            }
-
-            float angle = math.atan2(axisLength, dot);
-            return quaternion.AxisAngle(axis / axisLength, angle);
         }
 
         private bool AllowHightlight(Entity entity)

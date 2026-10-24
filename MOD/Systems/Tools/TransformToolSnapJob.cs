@@ -56,13 +56,8 @@ namespace ExtraDetailingTools.Systems.Tools
             // best/ToolUtils.AddSnapPosition accumulator.
             [ReadOnly] public bool m_ObjectSideSnapEnabled;
             [ReadOnly] public ObjectSideSnapMode m_ObjectSideSnapMode;
-            [ReadOnly] public NativeQuadTree<Entity, QuadTreeBoundsXZ> m_ObjectSearchTree;
 
-
-            [ReadOnly] public ComponentLookup<Owner> m_OwnerLookup;
-            [ReadOnly] public ComponentLookup<PrefabRef> m_PrefabRefLookup;
-            [ReadOnly] public ComponentLookup<ObjectGeometryData> m_ObjectGeometryDataLookup;
-            [ReadOnly] public ComponentLookup<Transform> m_TransformLookup;
+            public SnapContext m_Context;
 
 
             public void Execute()
@@ -120,24 +115,13 @@ namespace ExtraDetailingTools.Systems.Tools
                 // Object Side Snap - integration test for SnapObjectSide. m_ControlPoint is still the raw
                 // candidate here (only overwritten at the very end), so it's a valid "true raw reference"
                 // for Apply's own internal edge scoring, same requirement as the grid competing above.
-                if (m_ObjectSideSnapEnabled && m_Mode == Mode.Move && m_PrefabRefLookup.HasComponent(m_SelectedEntity))
+                if (m_ObjectSideSnapEnabled && m_Mode == Mode.Move && m_Context.m_PrefabRefData.HasComponent(m_SelectedEntity))
                 {
-                    Entity selectedPrefab = m_PrefabRefLookup[m_SelectedEntity].m_Prefab;
-                    if (m_ObjectGeometryDataLookup.HasComponent(selectedPrefab))
+                    Entity selectedPrefab = m_Context.m_PrefabRefData[m_SelectedEntity].m_Prefab;
+                    if (m_Context.m_ObjectGeometryData.HasComponent(selectedPrefab))
                     {
-                        ObjectGeometryData placedGeometryData = m_ObjectGeometryDataLookup[selectedPrefab];
-                        SnapObjectSide.Apply(
-                            m_ObjectSideSnapMode,
-                            m_ControlPoint,
-                            ref best,
-                            m_ControlPoint.m_Rotation,
-                            placedGeometryData,
-                            m_ObjectSearchTree,
-                            m_OwnerLookup,
-                            m_TransformLookup,
-                            m_PrefabRefLookup,
-                            m_ObjectGeometryDataLookup
-                        );
+                        ObjectGeometryData placedGeometryData = m_Context.m_ObjectGeometryData[selectedPrefab];
+                        SnapObjectSide.Apply(ref m_Context, m_ObjectSideSnapMode, m_ControlPoint, ref best, m_ControlPoint.m_Rotation, placedGeometryData);
                     }
                 }
 
@@ -151,7 +135,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     return pos;
 
                 quaternion rot = quaternion.identity;
-                if (m_UseLocalAxis && m_TransformLookup.TryGetComponent(m_SelectedEntity, out Transform transform))
+                if (m_UseLocalAxis && m_Context.m_TransformData.TryGetComponent(m_SelectedEntity, out Transform transform))
                 {
                     rot = transform.m_Rotation;
                 }
