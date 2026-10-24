@@ -653,6 +653,50 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
+        // Lookups of UpdateObjectJob, one set per system that schedules it (TransformGizmoTool, TransformRequestSystem).
+        // Created in OnCreate so the types are part of that system's dependency, updated before each schedule.
+        internal struct UpdateObjectLookups
+        {
+            public ComponentLookup<Transform> m_Transform;
+            public ComponentLookup<Building> m_Building;
+            public ComponentLookup<Curve> m_Curve;
+            public ComponentLookup<Temp> m_Temp;
+            public ComponentLookup<ServiceUpgrade> m_ServiceUpgrade;
+            public BufferLookup<InstalledUpgrade> m_InstalledUpgrade;
+            public BufferLookup<SubArea> m_SubArea;
+            public BufferLookup<Node> m_Node;
+            public BufferLookup<SubObject> m_SubObject;
+            public BufferLookup<SubNet> m_SubNet;
+
+            public UpdateObjectLookups(ref SystemState state)
+            {
+                m_Transform = state.GetComponentLookup<Transform>(true);
+                m_Building = state.GetComponentLookup<Building>(true);
+                m_Curve = state.GetComponentLookup<Curve>(true);
+                m_Temp = state.GetComponentLookup<Temp>(true);
+                m_ServiceUpgrade = state.GetComponentLookup<ServiceUpgrade>(true);
+                m_InstalledUpgrade = state.GetBufferLookup<InstalledUpgrade>(true);
+                m_SubArea = state.GetBufferLookup<SubArea>(true);
+                m_Node = state.GetBufferLookup<Node>(true);
+                m_SubObject = state.GetBufferLookup<SubObject>(true);
+                m_SubNet = state.GetBufferLookup<SubNet>(true);
+            }
+
+            public void Update(ref SystemState state)
+            {
+                m_Transform.Update(ref state);
+                m_Building.Update(ref state);
+                m_Curve.Update(ref state);
+                m_Temp.Update(ref state);
+                m_ServiceUpgrade.Update(ref state);
+                m_InstalledUpgrade.Update(ref state);
+                m_SubArea.Update(ref state);
+                m_Node.Update(ref state);
+                m_SubObject.Update(ref state);
+                m_SubNet.Update(ref state);
+            }
+        }
+
 #if RELEASE
         [BurstCompile]
 #endif
@@ -700,15 +744,6 @@ namespace ExtraDetailingTools.Systems.Tools
 
                 float3 positionOffset = position - transform.m_Position;
                 quaternion rotationOffset = math.mul(rotation, math.inverse(transform.m_Rotation));
-
-                // I need that ? Nop, get updated by the game.
-                // TODO: Bring back, when this job is called after Modif Barrière (Like by UI) this doesn't get updated.
-                //if (EntityManager.TryGetComponent(entity, out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData) && EntityManager.TryGetComponent(selectedEntity, out CullingInfo cullingInfo))
-                //{
-                //    Bounds3 bounds3 = ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
-                //    cullingInfo.m_Bounds = bounds3;
-                //    EntityManager.SetComponentData(entity, cullingInfo);
-                //}
 
                 UpdateSubElement(entity, transform, positionOffset, rotationOffset);
 
@@ -1019,6 +1054,8 @@ namespace ExtraDetailingTools.Systems.Tools
         private NativeReference<DragGizmoResult> m_DragGizmo;
         private JobHandle m_DragGizmoDeps;
 
+        private UpdateObjectLookups m_UpdateObjectLookups;
+
         // Follow Surface: keep the object upright instead of tilting it to the surface.
         internal bool m_Upright = false;
 
@@ -1124,6 +1161,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_DefinitionQuery = GetDefinitionQuery();
 
             m_DragGizmo = new NativeReference<DragGizmoResult>(Allocator.Persistent);
+            m_UpdateObjectLookups = new UpdateObjectLookups(ref CheckedStateRef);
 
             m_UndoHistory = new();
             m_RedoHistory = new();
@@ -1788,7 +1826,8 @@ namespace ExtraDetailingTools.Systems.Tools
             pivots.Dispose(jobHandle);
 
             // The temps are drag entries (Temp): no main thread part, see UpdateObject.
-            jobHandle = ScheduleUpdateObjects(jobHandle, temps, results, m_ToolOutputBarrier);
+            m_UpdateObjectLookups.Update(ref CheckedStateRef);
+            jobHandle = ScheduleUpdateObjects(jobHandle, temps, results, m_ToolOutputBarrier, m_UpdateObjectLookups);
             temps.Dispose(jobHandle);
             results.Dispose(jobHandle);
 
@@ -2124,10 +2163,12 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation)
         {
-            return UpdateObject(inputDeps, entity, position, rotation, m_ToolOutputBarrier);
+            m_UpdateObjectLookups.Update(ref CheckedStateRef);
+            return UpdateObject(inputDeps, entity, position, rotation, m_ToolOutputBarrier, m_UpdateObjectLookups);
         }
 
-        public JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation, SafeCommandBufferSystem ecb)
+        // lookups: those of the calling system (see UpdateObjectLookups), already updated.
+        internal JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
         {
             if (entity == Entity.Null) return inputDeps;
 
@@ -2174,7 +2215,7 @@ namespace ExtraDetailingTools.Systems.Tools
             NativeArray<Transform> transforms = new NativeArray<Transform>(1, Allocator.TempJob);
             entities[0] = entity;
             transforms[0] = new Transform(position, rotation);
-            JobHandle jobHandle = ScheduleUpdateObjects(inputDeps, entities, transforms, ecb);
+            JobHandle jobHandle = ScheduleUpdateObjects(inputDeps, entities, transforms, ecb, lookups);
             entities.Dispose(jobHandle);
             transforms.Dispose(jobHandle);
             return jobHandle;
@@ -2182,22 +2223,22 @@ namespace ExtraDetailingTools.Systems.Tools
 
         // entities / transforms: one per entity, a default position / rotation keeps the current one. The main thread
         // part of UpdateObject (non Temp entities) is not done here.
-        private JobHandle ScheduleUpdateObjects(JobHandle inputDeps, NativeArray<Entity> entities, NativeArray<Transform> transforms, SafeCommandBufferSystem ecb)
+        private JobHandle ScheduleUpdateObjects(JobHandle inputDeps, NativeArray<Entity> entities, NativeArray<Transform> transforms, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
         {
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateObjectJob
             {
                 m_Entities = entities,
                 m_Transforms = transforms,
-                m_BuildingLookup = GetComponentLookup<Building>(true),
-                m_TransformLookup = GetComponentLookup<Transform>(true),
-                m_TempLookup = GetComponentLookup<Temp>(true),
-                m_CurveLookup = GetComponentLookup<Curve>(true),
-                m_ServiceUpgradeLookup = GetComponentLookup<ServiceUpgrade>(true),
-                m_InstalledUpgradeLookup = GetBufferLookup<InstalledUpgrade>(true),
-                m_NodeLookup = GetBufferLookup<Node>(true),
-                m_SubAreaLookup = GetBufferLookup<SubArea>(true),
-                m_SubNetLookup = GetBufferLookup<SubNet>(true),
-                m_SubObjectLookup = GetBufferLookup<SubObject>(true),
+                m_BuildingLookup = lookups.m_Building,
+                m_TransformLookup = lookups.m_Transform,
+                m_TempLookup = lookups.m_Temp,
+                m_CurveLookup = lookups.m_Curve,
+                m_ServiceUpgradeLookup = lookups.m_ServiceUpgrade,
+                m_InstalledUpgradeLookup = lookups.m_InstalledUpgrade,
+                m_NodeLookup = lookups.m_Node,
+                m_SubAreaLookup = lookups.m_SubArea,
+                m_SubNetLookup = lookups.m_SubNet,
+                m_SubObjectLookup = lookups.m_SubObject,
                 m_MoveSubBuildings = m_MoveSubBuildings,
                 m_CommandBuffer = ecb.CreateCommandBuffer(),
             }, inputDeps);
@@ -2711,15 +2752,18 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
-        // Transform panel with more than one entity selected: the same world offset / rotation delta is applied
-        // to each selection root, rotating around the current pivots like a gizmo drag would.
-        public JobHandle TransformSelection(JobHandle inputDeps, float3 positionOffset, quaternion rotationDelta, SafeCommandBufferSystem ecb, out Transform primaryResult)
+        // Transform panel with more than one entity selected: the primary entity goes to primaryTarget, and the same
+        // world offset / rotation delta is applied to each selection root, rotating around the current pivots like a
+        // gizmo drag would. lookups: those of the calling system, already updated.
+        internal JobHandle TransformSelection(JobHandle inputDeps, Transform primaryTarget, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
         {
             List<Entity> entities = new();
             List<Transform> transforms = new();
             int primaryIndex = CollectRootTransforms(false, entities, transforms);
-            primaryResult = default;
             if (entities.Count == 0) return inputDeps;
+
+            float3 positionOffset = primaryTarget.m_Position - transforms[primaryIndex].m_Position;
+            quaternion rotationDelta = math.mul(primaryTarget.m_Rotation, math.inverse(transforms[primaryIndex].m_Rotation));
 
             float3[] pivots = new float3[entities.Count];
             ComputeGroupPivots(transforms, primaryIndex, out _, out _, pivots);
@@ -2729,8 +2773,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 Transform start = transforms[i];
                 float3 position = pivots[i] + positionOffset + math.mul(rotationDelta, start.m_Position - pivots[i]);
                 quaternion rotation = math.normalize(math.mul(rotationDelta, start.m_Rotation));
-                inputDeps = UpdateObject(inputDeps, entities[i], position, rotation, ecb);
-                if (i == primaryIndex) primaryResult = new Transform(position, rotation);
+                inputDeps = UpdateObject(inputDeps, entities[i], position, rotation, ecb, lookups);
             }
             return inputDeps;
         }

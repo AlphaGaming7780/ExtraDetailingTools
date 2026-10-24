@@ -74,6 +74,7 @@ namespace ExtraDetailingTools
                 updateSystem.UpdateAt<GizmosRenderSystem>(SystemUpdatePhase.Rendering);
                 updateSystem.UpdateAt<GizmosRaycastSystem>(SystemUpdatePhase.Raycast);
                 updateSystem.UpdateAt<TransformGizmoTool>(SystemUpdatePhase.ToolUpdate);
+                updateSystem.UpdateAt<TransformRequestSystem>(SystemUpdatePhase.ToolUpdate);
                 updateSystem.UpdateAt<TransformGizmoToolTooltip>(SystemUpdatePhase.UITooltip);
                 updateSystem.UpdateAt<TransformGizmoToolUI>(SystemUpdatePhase.UIUpdate);
 #if Extra4
