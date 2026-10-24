@@ -1369,17 +1369,22 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     List<Entity> entities = new();
                     List<Transform> transforms = new();
-                    CollectRootTransforms(false, entities, transforms);
+                    int primaryIndex = CollectRootTransforms(false, entities, transforms);
 
                     if (entities.Count > 0)
                     {
                         m_UndoHistory.Push(ActionHistory.NewTransform(entities.ToArray(), transforms.ToArray()));
 
+                        // Individual: every entity is put on the ground. Otherwise the pivot is, and the others follow
+                        // with the same delta (the group keeps its shape).
                         TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
+                        ComputeGroupPivots(transforms, primaryIndex, out float3 groupPivot, out _, null);
+                        float groupDelta = TerrainUtils.SampleHeight(ref heightData, groupPivot) - groupPivot.y;
+                        bool individual = m_PivotSettings.Aggregation == PivotAggregation.Individual;
                         for (int i = 0; i < entities.Count; i++)
                         {
                             float3 snapPos = transforms[i].m_Position;
-                            snapPos.y = TerrainUtils.SampleHeight(ref heightData, snapPos);
+                            snapPos.y = individual ? TerrainUtils.SampleHeight(ref heightData, snapPos) : snapPos.y + groupDelta;
                             inputDeps = UpdateObject(inputDeps, entities[i], snapPos);
                         }
                     }
@@ -1715,12 +1720,14 @@ namespace ExtraDetailingTools.Systems.Tools
             Ray ray = camera.ScreenPointToRay(Input.mousePosition);
 
             int count = m_DragEntries.Count;
+            NativeArray<Entity> originals = new NativeArray<Entity>(count, Allocator.TempJob);
             NativeArray<Transform> startTransforms = new NativeArray<Transform>(count, Allocator.TempJob);
             NativeArray<float3> pivots = new NativeArray<float3>(count, Allocator.TempJob);
             NativeArray<Transform> results = new NativeArray<Transform>(count, Allocator.TempJob);
             NativeArray<Entity> temps = new NativeArray<Entity>(count, Allocator.TempJob);
             for (int i = 0; i < count; i++)
             {
+                originals[i] = m_DragEntries[i].Original;
                 startTransforms[i] = m_DragEntries[i].StartTransform;
                 pivots[i] = m_DragEntries[i].Pivot;
                 temps[i] = m_DragEntries[i].Temp;
@@ -1753,6 +1760,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_PosOffset = (float)m_PosOffset,
                 m_RotOffset = (float)m_RotOffset,
                 m_Context = context,
+                m_Originals = originals,
                 m_StartTransforms = startTransforms,
                 m_Pivots = pivots,
                 m_PrimaryIndex = m_DragPrimaryIndex,
@@ -1760,6 +1768,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_Gizmo = m_DragGizmo,
             }.Schedule(JobHandle.CombineDependencies(inputDeps, contextDeps, m_DragGizmoDeps));
             SnapContext.AddReaders(m_WaterSystem, m_ObjectSearchSystem, jobHandle);
+            originals.Dispose(jobHandle);
             startTransforms.Dispose(jobHandle);
             pivots.Dispose(jobHandle);
 

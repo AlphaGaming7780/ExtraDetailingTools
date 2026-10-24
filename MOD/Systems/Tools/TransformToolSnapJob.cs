@@ -72,6 +72,7 @@ namespace ExtraDetailingTools.Systems.Tools
             public SnapContext m_Context;
 
             // One per drag entry.
+            [ReadOnly] public NativeArray<Entity> m_Originals;
             [ReadOnly] public NativeArray<Transform> m_StartTransforms;
             [ReadOnly] public NativeArray<float3> m_Pivots;
             [ReadOnly] public int m_PrimaryIndex;
@@ -86,6 +87,9 @@ namespace ExtraDetailingTools.Systems.Tools
                 // Raw (unsnapped) angle, used when each entity snaps on its own.
                 public float Angle;
                 public bool3 MovedAxes;
+                // FollowSurface in Individual: terrain the primary entity is on, the others are put on it too.
+                // Null when it's on an object / underground: the others just follow its delta.
+                public Entity SurfaceTerrain;
             }
 
             public void Execute()
@@ -128,9 +132,9 @@ namespace ExtraDetailingTools.Systems.Tools
                 best.m_OriginalEntity = Entity.Null;
                 SnapObjectSurface.SnapSurface(ref m_Context, raw, ref best);
 
-                // Tilt only makes sense for a single object, a group would need a per-entity surface sample: the
-                // pivot of the group just follows the hit.
-                if (m_StartTransforms.Length != 1 || !m_Context.m_PrefabRefData.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef))
+                // Tilt only for a single object, or in Individual (every entity tilts on its own, see FollowSurfaceEach).
+                // A group just has its pivot following the hit.
+                if ((m_StartTransforms.Length != 1 && !m_SnapEach) || !m_Context.m_PrefabRefData.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef))
                 {
                     delta.Position = best.m_Position - m_DragStartGizmoPos;
                     return true;
@@ -146,8 +150,46 @@ namespace ExtraDetailingTools.Systems.Tools
                 // The origin of the object goes on the snapped point, whatever the pivot:
                 // best = pivot + posDelta + rotDelta * (start - pivot).
                 delta.Rotation = math.normalize(math.mul(best.m_Rotation, math.inverse(m_DragStartPrimaryRot)));
-                delta.Position = best.m_Position - m_Pivots[0] - math.rotate(delta.Rotation, m_StartTransforms[0].m_Position - m_Pivots[0]);
+                delta.Position = best.m_Position - m_Pivots[m_PrimaryIndex] - math.rotate(delta.Rotation, m_StartTransforms[m_PrimaryIndex].m_Position - m_Pivots[m_PrimaryIndex]);
+
+                if (m_Context.m_TerrainEntityData.HasComponent(raw.m_OriginalEntity) && !m_Context.m_TransformData.HasComponent(best.m_OriginalEntity))
+                {
+                    delta.SurfaceTerrain = raw.m_OriginalEntity;
+                }
                 return true;
+            }
+
+            // FollowSurface in Individual, entities other than the primary one: same XZ move as the primary, then put on
+            // the terrain / water under it and tilted like the primary (AlignToSurface).
+            private Transform FollowSurfaceEach(int index, Delta delta)
+            {
+                Transform start = m_StartTransforms[index];
+                float3 position = start.m_Position + delta.Position;
+
+                // Primary on an object / underground: no surface to sample for the others, they keep their offset.
+                if (delta.SurfaceTerrain == Entity.Null || !m_Context.m_PrefabRefData.TryGetComponent(m_Originals[index], out PrefabRef prefabRef))
+                {
+                    return new Transform(position, start.m_Rotation);
+                }
+
+                // Same water threshold as FixWaterHit.
+                float waterHeight = WaterUtils.SampleHeight(ref m_Context.m_WaterSurfaceData, ref m_Context.m_TerrainHeightData, position, out float waterDepth);
+                bool onWater = waterDepth >= 0.2f;
+                position.y = onWater ? waterHeight : TerrainUtils.SampleHeight(ref m_Context.m_TerrainHeightData, position);
+
+                ControlPoint raw = default;
+                raw.m_OriginalEntity = delta.SurfaceTerrain;
+                raw.m_Position = position;
+                raw.m_HitPosition = position;
+                raw.m_HitDirection = math.up();
+                raw.m_Rotation = start.m_Rotation;
+
+                ControlPoint best = raw;
+                best.m_OriginalEntity = Entity.Null;
+                quaternion parentRotation = quaternion.identity;
+                SnapObjectSurface.AlignToSurface(ref m_Context, prefabRef.m_Prefab, true, m_Upright || onWater, m_EditorMode, raw, ref best, ref parentRotation, false);
+
+                return new Transform(best.m_Position, best.m_Rotation);
             }
 
             // The water raycast (WaterUtils.Raycast) works on the coarse water grid: on a dry slope it hits above the
@@ -240,9 +282,17 @@ namespace ExtraDetailingTools.Systems.Tools
                 float3 gizmoPosDelta = delta.Position;
                 quaternion gizmoRotDelta = delta.Rotation;
                 bool snapEach = m_GridEnabled && m_SnapEach && !IsFollowSurface();
+                bool surfaceEach = m_SnapEach && IsFollowSurface();
 
                 for (int i = 0; i < m_StartTransforms.Length; i++)
                 {
+                    // The primary entity uses the delta (it's the one on the hit), so does the gizmo.
+                    if (surfaceEach && i != m_PrimaryIndex)
+                    {
+                        m_Results[i] = FollowSurfaceEach(i, delta);
+                        continue;
+                    }
+
                     Transform start = m_StartTransforms[i];
                     float3 pivot = m_Pivots[i];
 
