@@ -1966,6 +1966,19 @@ namespace ExtraDetailingTools.Systems.Tools
             SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
         }
 
+        private void SelectEntities(NativeHashMap<Entity, int> entities)
+        {
+            if (entities.Count > 0)
+            {
+                Entity entity = entities[0];
+                SelectEntity(entity, entities[entity]);
+            }
+            else
+            {
+                SelectEntity(Entity.Null, -1);
+            }
+        }
+
         public void SnapOnGround()
         {
             m_RequestSnapOnGround = true;
