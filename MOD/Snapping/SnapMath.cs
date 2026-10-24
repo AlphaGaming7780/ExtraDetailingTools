@@ -16,6 +16,13 @@ namespace ExtraDetailingTools.Snapping
             return quaternion.RotateY(snappedYaw);
         }
 
+        // Yaw (radians) of the forward axis of rot, around the world Y axis.
+        public static float GetYaw(quaternion rot)
+        {
+            float3 forward = math.rotate(rot, new float3(0, 0, 1));
+            return math.atan2(forward.x, forward.z);
+        }
+
         // Copy of the vanilla ObjectToolSystem.AlignRotation (private): snaps the rotation around the surface
         // normal to the closest 45 degrees step of the parent rotation.
         public static void AlignRotation(ref quaternion rotation, quaternion parentRotation, bool zAxis)

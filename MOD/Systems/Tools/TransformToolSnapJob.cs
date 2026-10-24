@@ -82,7 +82,12 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         if (m_Mode == Mode.Move)
                         {
-                            float3 snappedPos = SnapPositionToGrid(m_DragStartGizmoPos, m_ControlPoint.m_Position);
+                            quaternion gridRot = quaternion.identity;
+                            if (m_UseLocalAxis && m_Context.m_TransformData.TryGetComponent(m_SelectedEntity, out Transform transform))
+                            {
+                                gridRot = transform.m_Rotation;
+                            }
+                            float3 snappedPos = SnapGrid.SnapPositionLocal(m_DragStartGizmoPos, m_ControlPoint.m_Position, gridRot, (float)m_PosOffset);
                             ControlPoint gridCandidate = m_ControlPoint;
                             gridCandidate.m_Position = snappedPos;
                             gridCandidate.m_HitPosition = snappedPos;
@@ -99,7 +104,7 @@ namespace ExtraDetailingTools.Systems.Tools
                             quaternion deltaRot = math.mul(m_ControlPoint.m_Rotation, math.inverse(m_DragStartGizmoRot));
                             float rawAngle = 2f * math.atan2(math.dot(deltaRot.value.xyz, m_AxisDir), deltaRot.value.w);
 
-                            float snappedAngle = SnapAngleToGrid(rawAngle);
+                            float snappedAngle = SnapGrid.SnapAngleIncremental(rawAngle, (float)m_RotOffset);
                             ControlPoint gridCandidate = m_ControlPoint;
                             gridCandidate.m_Rotation = math.mul(quaternion.AxisAngle(m_AxisDir, snappedAngle), m_DragStartGizmoRot);
                             // No position offset to score a rotation snap against - wins outright over the
@@ -126,43 +131,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 }
 
                 m_ControlPoint = best;
-            }
-
-            private float3 SnapPositionToGrid(float3 origin, float3 pos)
-            {
-                float step = (float)m_PosOffset;
-                if (step <= 0f)
-                    return pos;
-
-                quaternion rot = quaternion.identity;
-                if (m_UseLocalAxis && m_Context.m_TransformData.TryGetComponent(m_SelectedEntity, out Transform transform))
-                {
-                    rot = transform.m_Rotation;
-                }
-
-                float3 right = math.rotate(rot, new float3(1, 0, 0));
-                float3 up = math.rotate(rot, new float3(0, 1, 0));
-                float3 forward = math.rotate(rot, new float3(0, 0, 1));
-
-                float3 delta = pos - origin;
-                float3 localDelta = new float3(
-                    math.dot(delta, right),
-                    math.dot(delta, up),
-                    math.dot(delta, forward)
-                );
-
-                localDelta = math.round(localDelta / step) * step;
-
-                return origin + right * localDelta.x + up * localDelta.y + forward * localDelta.z;
-            }
-
-            private float SnapAngleToGrid(float angle)
-            {
-                float stepRad = math.radians((float)m_RotOffset);
-                if (stepRad <= 0f)
-                    return angle;
-
-                return math.round(angle / stepRad) * stepRad;
             }
         }
     }

@@ -2645,70 +2645,15 @@ namespace ExtraDetailingTools.Systems.Tools
             return handle == Handle.XZ ? absAxis < 0.5f : absAxis > 0.5f;
         }
 
-        // Local orientation: incremental along the gizmo axes. Global: X/Z absolute on the world grid, Y incremental.
+        // Rules in SnapGrid.SnapPosition / SnapGrid.SnapAngle.
         private float3 SnapPosition(float3 origin, float3 pos, bool3 movedAxes)
         {
-            float step = (float)m_PosOffset;
-            if (step <= 0f)
-                return pos;
-
-            if (m_UseLocalAxis)
-                return SnapPositionToGrid(origin, pos, m_DragStartGizmoRot);
-
-            float3 result = pos;
-            if (movedAxes.x) result.x = math.round(pos.x / step) * step;
-            if (movedAxes.y) result.y = origin.y + math.round((pos.y - origin.y) / step) * step;
-            if (movedAxes.z) result.z = math.round(pos.z / step) * step;
-            return result;
+            return SnapGrid.SnapPosition(origin, pos, (float)m_PosOffset, m_UseLocalAxis, m_DragStartGizmoRot, movedAxes);
         }
 
-        // Global + Y handle: the final yaw of refRot lands on the grid. Otherwise the angle is incremental.
         private float SnapAngle(float angle, quaternion refRot)
         {
-            if (!m_UseLocalAxis && m_SelectedHandle == Handle.Y)
-            {
-                float yaw = GetYaw(refRot);
-                return SnapAngleToGrid(yaw + angle) - yaw;
-            }
-
-            return SnapAngleToGrid(angle);
-        }
-
-        private static float GetYaw(quaternion rot)
-        {
-            float3 forward = math.rotate(rot, new float3(0, 0, 1));
-            return math.atan2(forward.x, forward.z);
-        }
-
-        private float3 SnapPositionToGrid(float3 origin, float3 pos, quaternion rot)
-        {
-            float step = (float)m_PosOffset;
-            if (step <= 0f)
-                return pos;
-
-            float3 right = math.rotate(rot, new float3(1, 0, 0));
-            float3 up = math.rotate(rot, new float3(0, 1, 0));
-            float3 forward = math.rotate(rot, new float3(0, 0, 1));
-
-            float3 delta = pos - origin;
-            float3 localDelta = new float3(
-                math.dot(delta, right),
-                math.dot(delta, up),
-                math.dot(delta, forward)
-            );
-
-            localDelta = math.round(localDelta / step) * step;
-
-            return origin + right * localDelta.x + up * localDelta.y + forward * localDelta.z;
-        }
-
-        private float SnapAngleToGrid(float angle)
-        {
-            float stepRad = math.radians((float)m_RotOffset);
-            if (stepRad <= 0f)
-                return angle;
-
-            return math.round(angle / stepRad) * stepRad;
+            return SnapGrid.SnapAngle(angle, (float)m_RotOffset, !m_UseLocalAxis && m_SelectedHandle == Handle.Y, refRot);
         }
 
         private Plane CreateDragPlane(float3 axisDir, float3 gizmoCenter)
