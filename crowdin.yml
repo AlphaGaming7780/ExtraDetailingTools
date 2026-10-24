@@ -1,3 +1,7 @@
+commit_message: "New translations %original_file_name% (%language%)"
+# Crowdin appends [ci skip] by default, which stops the progress workflow from running on merge.
+append_commit_message: false
+
 files:
   - source: embedded/Localization/en-US.json
     translation: /**/embedded/Localization/%locale%.json
