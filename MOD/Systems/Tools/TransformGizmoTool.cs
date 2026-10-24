@@ -1244,7 +1244,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);
 
-                // Objects under the cursor, for Ctrl+Click.
+                // Objects under the cursor, for Shift+Click / Alt+Click.
                 if (m_State == State.Idle)
                 {
                     m_ToolRaycastSystem.collisionMask = m_Underground ? CollisionMask.Underground : CollisionMask.OnGround | CollisionMask.Overground;
@@ -1552,7 +1552,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     case Mode.Default:
                         {
-                            // Checked first: Ctrl+Click / Alt+Click also trigger the apply action.
+                            // Checked first: Shift+Click / Alt+Click also trigger the apply action.
                             if (m_AddToSelectionAction.WasPressedThisFrame())
                             {
                                 m_AdditivePress = true;
@@ -1569,7 +1569,7 @@ namespace ExtraDetailingTools.Systems.Tools
                                 return Apply(inputDeps, base.applyAction.WasReleasedThisFrame(), base.cancelAction.WasPressedThisFrame());
                             } else if(applyAction.WasReleasedThisFrame())
                             {
-                                // The release of a Ctrl+Click / Alt+Click must not replace the selection.
+                                // The release of a Shift+Click / Alt+Click must not replace the selection.
                                 if (m_AdditivePress)
                                 {
                                     m_AdditivePress = false;
@@ -1592,7 +1592,7 @@ namespace ExtraDetailingTools.Systems.Tools
                             }
                             else if (m_State == State.Idle && (m_AddToSelectionAction.WasPressedThisFrame() || m_SetPrimaryAction.WasPressedThisFrame()))
                             {
-                                // Ctrl+Click / Alt+Click on an object, checked before the gizmo (they also trigger the apply action).
+                                // Shift+Click / Alt+Click on an object, checked before the gizmo (they also trigger the apply action).
                                 if (GetRaycastResult(out Entity hovered, out RaycastHit _))
                                 {
                                     if (EntityManager.TryGetComponent(hovered, out Temp temp) && temp.m_Original != Entity.Null) hovered = temp.m_Original;
@@ -2301,7 +2301,7 @@ namespace ExtraDetailingTools.Systems.Tools
             if (switchMode) SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
         }
 
-        // Ctrl+Click: adds the entity (it becomes the primary one) or removes it.
+        // Shift+Click: adds the entity (it becomes the primary one) or removes it.
         private void ToggleInSelection(Entity entity)
         {
             List<Entity> selection = new(m_SelectedEntities);

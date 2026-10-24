@@ -57,7 +57,7 @@ namespace ExtraDetailingTools
         [SettingsUISection(kTTTSection, kKeybindingGroup, kQuickActionsGroup)]
         public ProxyBinding DuplicateBinding { get; set; }
 
-        [SettingsUIMouseBinding(BindingMouse.Left, nameof(AddToSelectionBinding), ctrl: true)]
+        [SettingsUIMouseBinding(BindingMouse.Left, nameof(AddToSelectionBinding), shift: true)]
         [SettingsUISection(kTTTSection, kKeybindingGroup)]
         public ProxyBinding AddToSelectionBinding { get; set; }
 

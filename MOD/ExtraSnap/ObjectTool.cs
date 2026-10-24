@@ -465,8 +465,11 @@ namespace ExtraDetailingTools.ExtraSnap
                 RotationRef.m_IsAligned &= RotationRef.m_Rotation.Equals(bestSnapPosition.m_Rotation);
 
                 // The terrain hit normal is unusable (heightmap space), replace it by the slope under the object's footprint.
+                // The vanilla SnapJob clears bestSnapPosition.m_OriginalEntity unless it snapped on an object, so the
+                // terrain is read from the raw raycast, and only when nothing snapped on an object surface.
                 if ((m_Snap & (ObjectToolExtraSnap.ObjectSurface | ObjectToolExtraSnap.Upright)) == ObjectToolExtraSnap.ObjectSurface
-                    && m_TerrainEntityData.HasComponent(bestSnapPosition.m_OriginalEntity)
+                    && m_TerrainEntityData.HasComponent(controlPoint.m_OriginalEntity)
+                    && !m_TransformData.HasComponent(bestSnapPosition.m_OriginalEntity)
                     && m_ObjectGeometryData.TryGetComponent(m_Prefab, out var terrainGeometryData)
                     && !(m_PlaceableObjectData.TryGetComponent(m_Prefab, out var terrainPlaceableData) && (terrainPlaceableData.m_Flags & Game.Objects.PlacementFlags.Wall) != Game.Objects.PlacementFlags.None))
                 {
