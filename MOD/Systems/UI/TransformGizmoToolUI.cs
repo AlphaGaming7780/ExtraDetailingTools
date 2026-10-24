@@ -36,6 +36,10 @@ namespace ExtraDetailingTools.Systems.UI
         private GetterValueBinding<bool> m_AddPreventOverrideValueGetter;
         private GetterValueBinding<bool> m_AddTransformLockValueGetter;
 
+        // Multi selection bindings
+        private GetterValueBinding<int> m_PivotAggregationValueGetter;
+        private ValueBinding<int> m_SelectionCountValueBinding;
+
         // Grid bindings
         private GetterValueBinding<bool> m_GridEnabledValueGetter;
         private GetterValueBinding<double> m_PosOffsetValueGetter;
@@ -47,6 +51,7 @@ namespace ExtraDetailingTools.Systems.UI
             m_TransformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
             m_TransformGizmoTool.ModeChanged += OnToolModeChanged;
             m_TransformGizmoTool.SelectedEntityChanged += OnSelectedEntityChanged;
+            m_TransformGizmoTool.SelectionChanged += OnSelectionChanged;
             m_ToolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
             m_ExtraPanelsUISystem = World.GetOrCreateSystemManaged<ExtraPanelsUISystem>();
             m_TransformExtraPanel = m_ExtraPanelsUISystem.AddExtraPanel<TransformExtraPanel>();
@@ -88,6 +93,10 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.GridEnabled", SetGridEnabled));
             AddBinding(new TriggerBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffset", SetPosOffset));
             AddBinding(new TriggerBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffset", SetRotOffset));
+
+            AddBinding(m_PivotAggregationValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotAggregation", () => (int)m_TransformGizmoTool.pivotAggregation));
+            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotAggregation", SetPivotAggregation));
+            AddBinding(m_SelectionCountValueBinding = new ValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.SelectionCount", m_TransformGizmoTool.SelectionCount));
         }
 
         protected override void OnUpdate()
@@ -102,6 +111,7 @@ namespace ExtraDetailingTools.Systems.UI
         protected override void OnDestroy()
         {
             m_TransformGizmoTool.ModeChanged -= OnToolModeChanged;
+            m_TransformGizmoTool.SelectionChanged -= OnSelectionChanged;
             base.OnDestroy();
         }
 
@@ -113,6 +123,11 @@ namespace ExtraDetailingTools.Systems.UI
         private void OnSelectedEntityChanged(Entity entity)
         {
             m_IsCopyableValueBinding.Update(IsCopyable(entity));
+        }
+
+        private void OnSelectionChanged(IReadOnlyList<Entity> selection)
+        {
+            m_SelectionCountValueBinding.Update(selection.Count);
         }
 
         private bool IsCopyable(Entity entity)
@@ -218,6 +233,12 @@ namespace ExtraDetailingTools.Systems.UI
         {
             m_TransformGizmoTool.m_RotOffset = value;
             m_RotOffsetValueGetter.Update();
+        }
+
+        public void SetPivotAggregation(int value)
+        {
+            m_TransformGizmoTool.pivotAggregation = (TransformGizmoTool.PivotAggregation)value;
+            m_PivotAggregationValueGetter.Update();
         }
     }
 }

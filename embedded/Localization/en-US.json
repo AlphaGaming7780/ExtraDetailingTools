@@ -38,6 +38,10 @@
 	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.DuplicateBinding]": "Duplicate the selected object.",
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/DuplicateBinding/binding]": "Duplicate",
 
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.AddToSelectionBinding]": "Add to selection",
+	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.AddToSelectionBinding]": "Add or remove the hovered object from the current selection.",
+	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT/AddToSelectionBinding/binding]": "Add to selection",
+
 	"Options.OPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Gizmo Handle Size",
 	"Options.OPTION_DESCRIPTION[ExtraDetailingTools.ExtraDetailingTools.EDT.Settings.HandleScreenSize]": "Screen size, in pixels, of the Transform Gizmo Tool's handles.",
 
@@ -73,6 +77,13 @@
 	"Tool.TransformGizmoTool.Grid.PosStep.Tooltip": "Grid spacing used to snap the object's position, in meters.",
 	"Tool.TransformGizmoTool.Grid.RotStep": "Rotation Step",
 	"Tool.TransformGizmoTool.Grid.RotStep.Tooltip": "Grid spacing used to snap the object's rotation, in degrees.",
+	"Tool.TransformGizmoTool.Grid.LocalInfo": "Local axis: steps are relative to the current position.",
+	"Tool.TransformGizmoTool.Grid.WorldInfo": "Global axis: X/Z snap to the world grid, Y is relative.",
+
+	"Tool.TransformGizmoTool.Pivot": "Pivot",
+	"Tool.TransformGizmoTool.Pivot.Median.Tooltip": "Transform the selection around its median point.",
+	"Tool.TransformGizmoTool.Pivot.Primary.Tooltip": "Transform the selection around the primary (last selected) object.",
+	"Tool.TransformGizmoTool.Pivot.Individual.Tooltip": "Transform each object around its own origin.",
 
 	"ExtraSnap.Title": "Extra Snap",
 	"ExtraSnap.ObjectSurface.Tooltip": "Snap to the surface of any object.",
