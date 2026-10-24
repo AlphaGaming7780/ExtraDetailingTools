@@ -27,12 +27,18 @@ If you want example of builds that use this mod, you can check the about screens
 
 ## Transform Tool
 * The Transform Gizmos tool lets you move and rotate object using handles like in common 3D software like Unity, Blender, ...
+ * Multi-selection: Shift + Click to add or remove an object, Alt + Click to set the primary object.
+ * Pivot modes: Median, Bounds center, Primary object or Individual.
+ * Follow Surface: drag the sphere handle to move the object on terrain, objects or water, following the slope of the terrain or kept upright.
+ * Grid snapping in local or global axis, Snap on ground, Duplicate and Undo/Redo.
 * The Transform UI appears when you select a compatible asset. This allows you to change the positioning and rotation of the object along the XYZ axis. You are also able to change the increment (↕) value. This can provide a lot more precision for positioning and rotation.
 
 This menu also has a new 'delete' button, for all objects.
 
 ## Snap to surface toggle
 This is a feature found in the editor, now in game. This will allow you to place decals like graffiti and posters, on vertical walls. This can also be used to snap any object to any surface. From placing props on rooftops, right up to placing trees horizontally on walls.
+
+Extra Snap also adds an Upright toggle, and Object Side snapping when placing an object (align it against the side or the corner of the nearest object). Snap to surface and Upright also work when moving an object with the vanilla Move tool.
 
 ## ExtraAssetsMenu
 
@@ -101,7 +107,7 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.3.0.9" />
+	<ModVersion Value="1.3.0.10" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.5.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -113,8 +119,23 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
 	<ChangeLog>
-### Bug Fixes
-- Fixed the object's orientation resetting when moving it across surfaces with Snap to Surface enabled - it now keeps its heading instead of realigning from scratch on every surface change.
+### Features
+* Transform Gizmo Tool: multi-selection. Shift + Click adds an object to the selection (or removes it), Alt + Click makes it the primary object. Both are rebindable in Settings.
+  * New Pivot setting: Median, Bounds center, Primary object or Individual (each object moves and rotates around its own origin).
+  * Move, rotate, Duplicate, Snap on ground, Undo/Redo and the Transform panel work on the whole selection.
+  * Snap on ground keeps the shape of the group (the pivot is put on the ground and the other objects follow). In Individual, every object is put on the ground.
+* Follow Surface (sphere handle): the object now follows the slope of the terrain.
+  * New Upright toggle to keep the object straight instead of tilting it.
+  * In Individual, each object follows the surface under it.
+* Grid: steps follow the axis mode. Local axis is relative to the current position, Global axis snaps X/Z to the world grid.
+* Closing the Transform panel (X) also closes the Transform Gizmo Tool.
+* The Transform Gizmo Tool can now be opened in the editor too.
+* Extra Snap is now available when moving an existing object with the vanilla Move tool, not only when placing a new one.
+### Fixes
+* Follow Surface: the object no longer floats above the ground on slopes.
+* Selection highlights are kept when switching between the Default, Move, Rotate and Scale modes.
+* Smoother dragging with the gizmo, especially with many objects selected.
+* Moving an object from the Transform panel now updates it correctly, like the gizmo does.
 	</ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />

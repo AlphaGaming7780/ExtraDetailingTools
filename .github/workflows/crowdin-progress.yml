@@ -1,0 +1,49 @@
+name: Update translation progress
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to run against (manual test run)"
+        required: true
+        default: "main"
+
+permissions:
+  contents: write
+
+jobs:
+  update-progress:
+    # Only run for an actually-merged Crowdin PR - "closed" also fires when a PR is closed without merging,
+    # and we don't want to run on every pull_request event, just the merge into main.
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && startsWith(github.event.pull_request.title, 'New Crowdin updates'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.event.pull_request.base.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Update translation progress in PublishConfiguration.xml
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+        run: node scripts/update-crowdin-progress.mjs
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -- "**/PublishConfiguration.xml"
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -F /tmp/crowdin-commit-message.txt
+            git push
+          fi
