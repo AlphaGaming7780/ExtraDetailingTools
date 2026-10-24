@@ -35,7 +35,6 @@ using static Game.Input.UIBaseInputAction;
 using static Game.Tools.DefaultToolSystem;
 using Color = UnityEngine.Color;
 using Node = Game.Areas.Node;
-using Plane = UnityEngine.Plane;
 using RaycastHit = Game.Common.RaycastHit;
 using RaycastResult = Game.Common.RaycastResult;
 using ServiceUpgrade = Game.Buildings.ServiceUpgrade;
@@ -904,18 +903,6 @@ namespace ExtraDetailingTools.Systems.Tools
             public float3 Pivot;
         }
 
-        // Result of the drag for this frame, before it's applied to each entity.
-        private struct DragDelta
-        {
-            public float3 Position;
-            public quaternion Rotation;
-            // Raw (unsnapped) rotation, used when each entity snaps on its own (PivotAggregation.Individual).
-            public float3 Axis;
-            public float Angle;
-            public bool3 MovedAxes;
-            public bool SnapEach;
-        }
-
         public enum Handle
         {
             None, X, Y, Z, XZ,
@@ -1281,6 +1268,9 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground;
                         m_ToolRaycastSystem.typeMask |= TypeMask.Terrain;
+                        // TODO: the water raycast works on the coarse water grid and hits above the terrain on a slope
+                        // (object off the cursor / floating). Workaround tested, same as the vanilla ObjectTool: add
+                        // "&& IsPrimaryPlacedOnWater()" below. Not kept: any object must be able to snap on water.
                         if(!m_RaycastFilter.HasFlag(RaycastFilter.Water))
                         {
                             m_ToolRaycastSystem.typeMask |= TypeMask.Water;
@@ -1673,9 +1663,9 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         EDT.Logger.Error("Dragging without any drag entry.");
                     }
-                    else if (TryGetDragDelta(inputDeps, out DragDelta delta))
+                    else
                     {
-                        inputDeps = ApplyDragDelta(inputDeps, delta);
+                        inputDeps = UpdateDrag(inputDeps);
                     }
                 }
             }
@@ -1684,162 +1674,99 @@ namespace ExtraDetailingTools.Systems.Tools
             return inputDeps;
         }
 
-        // Delta of the group pivot for this frame. Without hit, returns false and the objects / gizmo keep the last value.
-        private bool TryGetDragDelta(JobHandle inputDeps, out DragDelta delta)
+        private bool IsPrimaryPlacedOnWater()
         {
-            delta = new DragDelta
-            {
-                Position = float3.zero,
-                Rotation = quaternion.identity,
-            };
+            if (m_DragEntries.Count == 0) return false;
+            Entity primary = m_DragEntries[m_DragPrimaryIndex].Original;
+            return EntityManager.TryGetComponent(primary, out PrefabRef prefabRef)
+                && EntityManager.TryGetComponent(prefabRef.m_Prefab, out PlaceableObjectData placeableObjectData)
+                && (placeableObjectData.m_Flags & (Game.Objects.PlacementFlags.Shoreline | Game.Objects.PlacementFlags.Floating | Game.Objects.PlacementFlags.Hovering)) != 0;
+        }
 
-            if (m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ)
+        // The whole drag (snaps included) runs in TransformToolSnapJob. The main thread gives the camera ray and the
+        // raycast result, then applies the result to the temps. Without hit, the objects / gizmo keep the last value.
+        private JobHandle UpdateDrag(JobHandle inputDeps)
+        {
+            bool followSurface = m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ;
+            ControlPoint raw = default;
+            bool hasHit = false;
+            if (followSurface && GetRaycastResult(out Entity entity, out RaycastHit hit))
             {
-                if (!GetRaycastResult(out Entity entity, out RaycastHit hit)) return false;
-
-                ControlPoint raw = new ControlPoint(entity, hit)
+                hasHit = true;
+                raw = new ControlPoint(entity, hit)
                 {
                     m_Position = hit.m_HitPosition,
                     m_Rotation = m_DragStartPrimaryRot,
                 };
-                ControlPoint snapped = SnapFollowSurface(inputDeps, raw);
-
-                delta.Position = snapped.m_Position - m_DragStartGizmoPos;
-                delta.Rotation = math.normalize(math.mul(snapped.m_Rotation, math.inverse(m_DragStartPrimaryRot)));
-                return true;
             }
 
-            float3 axisDir = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot);
-            Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (!dragPlane.Raycast(ray, out float enter)) return false;
+            Camera camera = Camera.main;
+            Ray ray = camera.ScreenPointToRay(Input.mousePosition);
 
-            float3 hitPos = ray.origin + ray.direction * enter;
-            delta.Axis = axisDir;
-            delta.MovedAxes = GetMovedAxes(m_SelectedHandle, axisDir);
-            // Individual: every entity snaps on its own, the raw delta is snapped later in ApplyDragDelta.
-            delta.SnapEach = m_GridEnabled && m_PivotSettings.Aggregation == PivotAggregation.Individual;
-
-            if (m_Mode == Mode.Move)
+            int count = m_DragEntries.Count;
+            NativeArray<Transform> startTransforms = new NativeArray<Transform>(count, Allocator.TempJob);
+            NativeArray<float3> pivots = new NativeArray<float3>(count, Allocator.TempJob);
+            NativeArray<Transform> results = new NativeArray<Transform>(count, Allocator.TempJob);
+            NativeReference<DragGizmoResult> gizmo = new NativeReference<DragGizmoResult>(Allocator.TempJob);
+            for (int i = 0; i < count; i++)
             {
-                float3 mouseDelta = hitPos - m_DragStartMouseHitPos;
-                float3 newPos;
-
-                if (m_SelectedHandle == Handle.XZ)
-                {
-                    newPos = m_DragStartGizmoPos + mouseDelta;
-                }
-                else
-                {
-                    float3 projectedDelta = math.dot(mouseDelta, axisDir) * axisDir;
-                    newPos = projectedDelta + m_DragStartGizmoPos;
-                }
-
-                if (m_GridEnabled && !delta.SnapEach)
-                {
-                    newPos = SnapPosition(m_DragStartGizmoPos, newPos, delta.MovedAxes);
-                }
-
-                delta.Position = newPos - m_DragStartGizmoPos;
-            }
-            else if (m_Mode == Mode.Rotate)
-            {
-                float3 currentDir = math.normalize(hitPos - m_DragStartGizmoPos);
-                float3 startDir = m_DragStartMouseHitPos;
-
-                float angle = math.atan2(
-                    math.dot(axisDir, math.cross(startDir, currentDir)),
-                    math.dot(startDir, currentDir)
-                );
-
-                delta.Angle = angle;
-
-                if (m_GridEnabled && !delta.SnapEach)
-                {
-                    angle = SnapAngle(angle, m_DragStartPrimaryRot);
-                }
-
-                delta.Rotation = quaternion.AxisAngle(axisDir, angle);
-            }
-            else
-            {
-                EDT.Logger.Warn($"Try to update in State.Dragging but the tool mode wasn't move or rotate, current tool mode: {m_Mode}");
-                return false;
+                startTransforms[i] = m_DragEntries[i].StartTransform;
+                pivots[i] = m_DragEntries[i].Pivot;
             }
 
-            return true;
-        }
-
-        // Surface snap + tilt (SnapObjectSurface, same code as ExtraSnap) in TransformToolSnapJob, completed right
-        // away: the drag delta is needed on the main thread.
-        private ControlPoint SnapFollowSurface(JobHandle inputDeps, ControlPoint raw)
-        {
             SnapContext context = SnapContext.Create(this, m_TerrainSystem, m_WaterSystem, m_ObjectSearchSystem, out JobHandle contextDeps);
-            NativeReference<ControlPoint> result = new NativeReference<ControlPoint>(Allocator.TempJob);
-
             JobHandle jobHandle = new TransformToolSnapJob
             {
                 m_Mode = m_Mode,
+                m_Handle = m_SelectedHandle,
+                m_UseLocalAxis = m_UseLocalAxis,
                 m_SelectedEntity = m_DragEntries[m_DragPrimaryIndex].Original,
-                m_Handle = Handle.XZ,
+                m_RayOrigin = ray.origin,
+                m_RayDirection = ray.direction,
+                m_CameraRight = camera.transform.right,
+                m_CameraForward = camera.transform.forward,
+                m_AxisDir = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot),
+                m_DragStartGizmoPos = m_DragStartGizmoPos,
+                m_DragStartGizmoRot = m_DragStartGizmoRot,
+                m_DragStartPrimaryRot = m_DragStartPrimaryRot,
+                m_DragStartMouseHitPos = m_DragStartMouseHitPos,
+                m_XZHandleMode = m_XZHandleMode,
+                m_HasHit = hasHit,
                 m_ControlPoint = raw,
-                m_Result = result,
-                m_XZHandleMode = XZHandleMode.FollowSurface,
-                // Tilt only makes sense for a single object, a group would need a per-entity surface sample.
-                m_AlignToSurface = m_DragEntries.Count == 1,
                 m_Upright = m_Upright,
                 m_EditorMode = m_ToolSystem.actionMode.IsEditor(),
+                m_Underground = m_Underground,
+                m_GridEnabled = m_GridEnabled,
+                m_SnapEach = m_PivotSettings.Aggregation == PivotAggregation.Individual,
+                m_PosOffset = (float)m_PosOffset,
+                m_RotOffset = (float)m_RotOffset,
                 m_Context = context,
+                m_StartTransforms = startTransforms,
+                m_Pivots = pivots,
+                m_PrimaryIndex = m_DragPrimaryIndex,
+                m_Results = results,
+                m_Gizmo = gizmo,
             }.Schedule(JobHandle.CombineDependencies(inputDeps, contextDeps));
             SnapContext.AddReaders(m_WaterSystem, m_ObjectSearchSystem, jobHandle);
 
+            // TODO (step 5 bis): chain UpdateObjectJob / UpdateGizmosJob on the job instead of completing it here.
             jobHandle.Complete();
-            ControlPoint snapped = result.Value;
-            result.Dispose();
-            return snapped;
-        }
 
-        // Every entity keeps its offset to its pivot: pos = pivot + posDelta + rotDelta * (start - pivot).
-        private JobHandle ApplyDragDelta(JobHandle inputDeps, DragDelta delta)
-        {
-            float3 gizmoPosDelta = delta.Position;
-            quaternion gizmoRotDelta = delta.Rotation;
-
-            for (int i = 0; i < m_DragEntries.Count; i++)
+            DragGizmoResult gizmoResult = gizmo.Value;
+            if (gizmoResult.m_Valid)
             {
-                DragEntry entry = m_DragEntries[i];
-                Transform start = entry.StartTransform;
-
-                float3 posDelta = delta.Position;
-                quaternion rotDelta = delta.Rotation;
-
-                if (delta.SnapEach)
+                for (int i = 0; i < count; i++)
                 {
-                    if (m_Mode == Mode.Move)
-                    {
-                        posDelta = SnapPosition(start.m_Position, start.m_Position + delta.Position, delta.MovedAxes) - start.m_Position;
-                    }
-                    else if (m_Mode == Mode.Rotate)
-                    {
-                        rotDelta = quaternion.AxisAngle(delta.Axis, SnapAngle(delta.Angle, start.m_Rotation));
-                    }
+                    inputDeps = UpdateObject(inputDeps, m_DragEntries[i].Temp, results[i].m_Position, results[i].m_Rotation);
                 }
-
-                float3 pos = entry.Pivot + posDelta + math.rotate(rotDelta, start.m_Position - entry.Pivot);
-                quaternion rot = math.mul(rotDelta, start.m_Rotation);
-
-                inputDeps = UpdateObject(inputDeps, entry.Temp, pos, rot);
-
-                // Individual: the gizmo is on the primary entity, follow its own snapped delta.
-                if (delta.SnapEach && i == m_DragPrimaryIndex)
-                {
-                    gizmoPosDelta = posDelta;
-                    gizmoRotDelta = rotDelta;
-                }
+                m_DragGizmoPos = gizmoResult.m_Position;
+                m_DragGizmoRot = gizmoResult.m_Rotation;
             }
 
-            m_DragGizmoPos = m_DragStartGizmoPos + gizmoPosDelta;
-            m_DragGizmoRot = math.mul(gizmoRotDelta, m_DragStartGizmoRot);
+            startTransforms.Dispose();
+            pivots.Dispose();
+            results.Dispose();
+            gizmo.Dispose();
             return inputDeps;
         }
 
@@ -2102,7 +2029,7 @@ namespace ExtraDetailingTools.Systems.Tools
             return jobHandle;
         }
 
-        // Idle: gizmo on the selection pivot. Dragging: the gizmo computed by ApplyDragDelta.
+        // Idle: gizmo on the selection pivot. Dragging: the gizmo computed by UpdateDrag.
         private JobHandle UpdateGizmos(JobHandle inputDeps)
         {
             if (m_State == State.Dragging)
@@ -2595,12 +2522,13 @@ namespace ExtraDetailingTools.Systems.Tools
             if(m_XZHandleMode != XZHandleMode.FollowSurface || m_SelectedHandle != Handle.XZ)
             {
                 float3 axisDir = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot);
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
+                Camera camera = Camera.main;
+                Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+                bool axisIsNormal = m_Mode == Mode.Rotate || m_SelectedHandle == Handle.XZ;
 
-                if (dragPlane.Raycast(ray, out float enter))
+                if (RaycastDragPlane(ray.origin, ray.direction, axisDir, m_DragStartGizmoPos, axisIsNormal, camera.transform.right, camera.transform.forward, out float3 hitPos))
                 {
-                    m_DragStartMouseHitPos = ray.origin + ray.direction * enter;
+                    m_DragStartMouseHitPos = hitPos;
                     if (m_Mode == Mode.Rotate)
                     {
                         m_DragStartMouseHitPos = math.normalize(m_DragStartMouseHitPos - m_DragStartGizmoPos);
@@ -2657,43 +2585,6 @@ namespace ExtraDetailingTools.Systems.Tools
             m_SelectedTempEntity = Entity.Null;
             m_SelectedHandle = Handle.None;
             SetState(State.Idle);
-        }
-
-        // Axes (world) the handle can move along, used by the world grid so a single axis drag doesn't snap the other ones.
-        private static bool3 GetMovedAxes(Handle handle, float3 axisDir)
-        {
-            float3 absAxis = math.abs(axisDir);
-            return handle == Handle.XZ ? absAxis < 0.5f : absAxis > 0.5f;
-        }
-
-        // Rules in SnapGrid.SnapPosition / SnapGrid.SnapAngle.
-        private float3 SnapPosition(float3 origin, float3 pos, bool3 movedAxes)
-        {
-            return SnapGrid.SnapPosition(origin, pos, (float)m_PosOffset, m_UseLocalAxis, m_DragStartGizmoRot, movedAxes);
-        }
-
-        private float SnapAngle(float angle, quaternion refRot)
-        {
-            return SnapGrid.SnapAngle(angle, (float)m_RotOffset, !m_UseLocalAxis && m_SelectedHandle == Handle.Y, refRot);
-        }
-
-        private Plane CreateDragPlane(float3 axisDir, float3 gizmoCenter)
-        {
-            if(m_Mode == Mode.Rotate || m_SelectedHandle == Handle.XZ)
-                return new Plane(axisDir, gizmoCenter);
-
-            // Camera vectors
-            float3 camForward = Camera.main.transform.forward;
-            float3 camRight = Camera.main.transform.right;
-
-            // Try to build a plane perpendicular to the axis using camRight
-            float3 planeNormal = math.normalize(math.cross(axisDir, camRight));
-
-            // If axis is parallel to camRight, fallback to camForward
-            if (math.lengthsq(planeNormal) < 1e-6f)
-                planeNormal = math.normalize(math.cross(axisDir, camForward));
-
-            return new Plane(planeNormal, gizmoCenter);
         }
 
         // rot: the gizmo rotation (identity in Global orientation).

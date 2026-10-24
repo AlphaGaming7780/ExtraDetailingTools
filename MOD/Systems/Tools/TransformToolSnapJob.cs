@@ -1,7 +1,4 @@
-using Colossal.Collections;
 using ExtraDetailingTools.Snapping;
-using Game.Common;
-using Game.Objects;
 using Game.Prefabs;
 using Game.Tools;
 using Unity.Burst;
@@ -15,140 +12,295 @@ namespace ExtraDetailingTools.Systems.Tools
 {
     public partial class TransformGizmoTool
     {
-        // Not wired into Update() yet. Uses the vanilla ControlPoint/ToolUtils.AddSnapPosition machinery
-        // (same as ObjectTool's own snap checks) instead of a custom candidate type, specifically so the
-        // existing Object Side snap functions (CheckSnapLineGeneric, FindNearbySideTarget, ...) can
-        // eventually be called from here unmodified - they already take/return ControlPoint. It's also a
-        // natural fit for the FollowSurface handle, whose raw input already IS a ControlPoint-shaped
-        // (Entity, RaycastHit) pair from GetRaycastResult.
+        // Gizmo position / rotation for this frame, written by TransformToolSnapJob.
+        private struct DragGizmoResult
+        {
+            public bool m_Valid; // False without hit: the objects / gizmo keep the last value.
+            public float3 m_Position;
+            public quaternion m_Rotation;
+        }
+
+        // The whole drag of a frame: drag plane intersection, grid, FollowSurface (surface snap + tilt, same code as
+        // ExtraSnap), Object Side, then the delta applied to every entity around its pivot. The main thread only gives
+        // the camera ray and the raycast result, and reads m_Results / m_Gizmo (see TransformGizmoTool.UpdateDrag).
         //
-        // m_ControlPoint is the raw candidate BEFORE any snapping (for the axis/plane-drag case, built by hand
-        // with m_OriginalEntity = Entity.Null and m_SnapPriority = default, same idiom ObjectTool's own snap
-        // functions use for their starting/baseline point; for FollowSurface, built from the raycast hit with
-        // the drag start rotation). Execute() writes the snapped result in m_Result.
-        //
-        // Only scheduled for the FollowSurface handle for now (TransformGizmoTool.SnapFollowSurface).
+        // Snaps compete through the vanilla ControlPoint / ToolUtils.AddSnapPosition machinery (same as ObjectTool),
+        // the raw unsnapped point being the baseline (m_SnapPriority = default).
 #if RELEASE
         [BurstCompile]
 #endif
         private struct TransformToolSnapJob : IJob
         {
             [ReadOnly] public Mode m_Mode;
-            [ReadOnly] public Entity m_SelectedEntity;
-
             [ReadOnly] public Handle m_Handle;
+            [ReadOnly] public bool m_UseLocalAxis;
+            [ReadOnly] public Entity m_SelectedEntity; // Original of the primary entity.
 
-            [ReadOnly] public ControlPoint m_ControlPoint;
-            public NativeReference<ControlPoint> m_Result;
+            // Camera ray (axis / plane drag).
+            [ReadOnly] public float3 m_RayOrigin;
+            [ReadOnly] public float3 m_RayDirection;
+            [ReadOnly] public float3 m_CameraRight;
+            [ReadOnly] public float3 m_CameraForward;
 
+            // Drag start, see StartDragging.
+            [ReadOnly] public float3 m_AxisDir;
             [ReadOnly] public float3 m_DragStartGizmoPos;
             [ReadOnly] public quaternion m_DragStartGizmoRot;
-            [ReadOnly] public float3 m_AxisDir;
-            [ReadOnly] public bool m_UseLocalAxis;
+            [ReadOnly] public quaternion m_DragStartPrimaryRot;
+            [ReadOnly] public float3 m_DragStartMouseHitPos;
 
-            // Sphere Mode
+            // Sphere Mode. FollowSurface: m_ControlPoint is built from the raycast hit, with the drag start rotation.
             [ReadOnly] public XZHandleMode m_XZHandleMode;
-            // FollowSurface: tilt the object to the surface (or keep it upright). Off for a group.
-            [ReadOnly] public bool m_AlignToSurface;
+            [ReadOnly] public bool m_HasHit;
+            [ReadOnly] public ControlPoint m_ControlPoint;
             [ReadOnly] public bool m_Upright;
             [ReadOnly] public bool m_EditorMode;
+            [ReadOnly] public bool m_Underground;
 
-            // Grid Snap
+            // Grid Snap. Individual: every entity snaps on its own.
             [ReadOnly] public bool m_GridEnabled;
-            [ReadOnly] public double m_PosOffset;
-            [ReadOnly] public double m_RotOffset;
+            [ReadOnly] public bool m_SnapEach;
+            [ReadOnly] public float m_PosOffset;
+            [ReadOnly] public float m_RotOffset;
 
-            // Object Side Snap - test wiring for SnapObjectSide (MOD/Snapping/SnapObjectSide.cs), Move mode
-            // only (no "side" concept for a rotation delta). Competes against the grid through the same
-            // best/ToolUtils.AddSnapPosition accumulator.
+            // Object Side Snap - test wiring for SnapObjectSide (MOD/Snapping/SnapObjectSide.cs), not enabled by the
+            // tool yet. Move mode only (no "side" concept for a rotation delta).
             [ReadOnly] public bool m_ObjectSideSnapEnabled;
             [ReadOnly] public ObjectSideSnapMode m_ObjectSideSnapMode;
 
             public SnapContext m_Context;
 
+            // One per drag entry.
+            [ReadOnly] public NativeArray<Transform> m_StartTransforms;
+            [ReadOnly] public NativeArray<float3> m_Pivots;
+            [ReadOnly] public int m_PrimaryIndex;
+
+            public NativeArray<Transform> m_Results;
+            public NativeReference<DragGizmoResult> m_Gizmo;
+
+            private struct Delta
+            {
+                public float3 Position;
+                public quaternion Rotation;
+                // Raw (unsnapped) angle, used when each entity snaps on its own.
+                public float Angle;
+                public bool3 MovedAxes;
+            }
 
             public void Execute()
             {
-                // Baseline candidate: no snap at all. m_RawControlPoint.m_SnapPriority is expected to be
-                // default (0,0), so it only survives if nothing else beats it - same convention ObjectTool's
-                // snap functions use (bestSnapPosition starts as the raw/unsnapped ControlPoint). Future
-                // snap sources (object-side, etc.) just need to build their own ControlPoint and call
-                // ToolUtils.AddSnapPosition - the grid below is only the first competitor, not a special case.
-                ControlPoint best = m_ControlPoint;
-
-                if (m_Handle == Handle.XZ)
+                Delta delta = new Delta
                 {
-                    if(m_XZHandleMode == XZHandleMode.FollowSurface)
-                    {
-                        // Same baseline as the vanilla SnapJob: the hit entity is only kept if the surface snap uses it
-                        // (AlignToSurface reads the terrain from the raw point).
-                        best.m_OriginalEntity = Entity.Null;
-                        SnapObjectSurface.SnapSurface(ref m_Context, m_ControlPoint, ref best);
+                    Position = float3.zero,
+                    Rotation = quaternion.identity,
+                };
 
-                        if (m_AlignToSurface && m_Context.m_PrefabRefData.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef))
-                        {
-                            // No 45 degrees alignment on the parent: the gizmo keeps the rotation of the object.
-                            quaternion parentRotation = quaternion.identity;
-                            SnapObjectSurface.AlignToSurface(ref m_Context, prefabRef.m_Prefab, true, m_Upright, m_EditorMode, m_ControlPoint, ref best, ref parentRotation, false);
-                        }
-                    }
+                bool valid = IsFollowSurface()
+                    ? FollowSurface(ref delta)
+                    : DragPlane(ref delta);
+
+                if (!valid)
+                {
+                    m_Gizmo.Value = default;
+                    return;
                 }
-                else
+
+                ApplyDelta(delta);
+            }
+
+            private bool IsFollowSurface()
+            {
+                return m_XZHandleMode == XZHandleMode.FollowSurface && m_Handle == Handle.XZ;
+            }
+
+            private bool FollowSurface(ref Delta delta)
+            {
+                if (!m_HasHit) return false;
+
+                // Same baseline as the vanilla SnapJob: the hit entity is only kept if the surface snap uses it
+                // (AlignToSurface reads the terrain from the raw point).
+                ControlPoint best = m_ControlPoint;
+                best.m_OriginalEntity = Entity.Null;
+                SnapObjectSurface.SnapSurface(ref m_Context, m_ControlPoint, ref best);
+
+                // Tilt only makes sense for a single object, a group would need a per-entity surface sample: the
+                // pivot of the group just follows the hit.
+                if (m_StartTransforms.Length != 1 || !m_Context.m_PrefabRefData.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef))
                 {
-                    if (m_GridEnabled)
+                    delta.Position = best.m_Position - m_DragStartGizmoPos;
+                    return true;
+                }
+
+                // Same order as ExtraSnap. No height in underground mode, it would be put back on the terrain.
+                if (!m_Underground)
+                {
+                    SnapObjectSurface.CalculateHeight(ref m_Context, prefabRef.m_Prefab, ref best);
+                }
+                // No 45 degrees alignment on the parent: the gizmo keeps the rotation of the object.
+                quaternion parentRotation = quaternion.identity;
+                SnapObjectSurface.AlignToSurface(ref m_Context, prefabRef.m_Prefab, true, m_Upright, m_EditorMode, m_ControlPoint, ref best, ref parentRotation, false);
+
+                // The origin of the object goes on the snapped point, whatever the pivot:
+                // best = pivot + posDelta + rotDelta * (start - pivot).
+                delta.Rotation = math.normalize(math.mul(best.m_Rotation, math.inverse(m_DragStartPrimaryRot)));
+                delta.Position = best.m_Position - m_Pivots[0] - math.rotate(delta.Rotation, m_StartTransforms[0].m_Position - m_Pivots[0]);
+                return true;
+            }
+
+            private bool DragPlane(ref Delta delta)
+            {
+                bool axisIsNormal = m_Mode == Mode.Rotate || m_Handle == Handle.XZ;
+                if (!RaycastDragPlane(m_RayOrigin, m_RayDirection, m_AxisDir, m_DragStartGizmoPos, axisIsNormal, m_CameraRight, m_CameraForward, out float3 hitPos)) return false;
+
+                delta.MovedAxes = GetMovedAxes(m_Handle, m_AxisDir);
+
+                if (m_Mode == Mode.Move)
+                {
+                    float3 mouseDelta = hitPos - m_DragStartMouseHitPos;
+                    float3 newPos = m_Handle == Handle.XZ
+                        ? m_DragStartGizmoPos + mouseDelta
+                        : m_DragStartGizmoPos + math.dot(mouseDelta, m_AxisDir) * m_AxisDir;
+
+                    ControlPoint raw = default;
+                    raw.m_Position = newPos;
+                    raw.m_HitPosition = newPos;
+                    raw.m_Rotation = m_DragStartPrimaryRot;
+                    ControlPoint best = raw;
+
+                    if (m_GridEnabled && !m_SnapEach)
+                    {
+                        ControlPoint gridCandidate = raw;
+                        gridCandidate.m_Position = SnapPosition(m_DragStartGizmoPos, newPos, delta.MovedAxes);
+                        gridCandidate.m_HitPosition = gridCandidate.m_Position;
+                        // Position-offset-based scoring (same formula ObjectTool's edge/corner snaps use), level 1 so
+                        // it always beats the raw point, and a closer object snap can still outrank it.
+                        gridCandidate.m_SnapPriority = ToolUtils.CalculateSnapPriority(1f, 1f, 1f, gridCandidate.m_Position - newPos);
+                        ToolUtils.AddSnapPosition(ref best, gridCandidate);
+                    }
+
+                    // Only the position is used, the rotation of the selection doesn't change in Move.
+                    if (m_ObjectSideSnapEnabled && m_Context.m_PrefabRefData.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef)
+                        && m_Context.m_ObjectGeometryData.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData placedGeometryData))
+                    {
+                        SnapObjectSide.Apply(ref m_Context, m_ObjectSideSnapMode, raw, ref best, raw.m_Rotation, placedGeometryData);
+                    }
+
+                    delta.Position = best.m_Position - m_DragStartGizmoPos;
+                    return true;
+                }
+
+                if (m_Mode == Mode.Rotate)
+                {
+                    // m_DragStartMouseHitPos is the start direction in Rotate.
+                    float3 currentDir = math.normalize(hitPos - m_DragStartGizmoPos);
+                    float angle = math.atan2(
+                        math.dot(m_AxisDir, math.cross(m_DragStartMouseHitPos, currentDir)),
+                        math.dot(m_DragStartMouseHitPos, currentDir)
+                    );
+
+                    delta.Angle = angle;
+                    if (m_GridEnabled && !m_SnapEach)
+                    {
+                        angle = SnapAngle(angle, m_DragStartPrimaryRot);
+                    }
+                    delta.Rotation = quaternion.AxisAngle(m_AxisDir, angle);
+                    return true;
+                }
+
+                return false;
+            }
+
+            // Every entity keeps its offset to its pivot: pos = pivot + posDelta + rotDelta * (start - pivot).
+            private void ApplyDelta(Delta delta)
+            {
+                float3 gizmoPosDelta = delta.Position;
+                quaternion gizmoRotDelta = delta.Rotation;
+                bool snapEach = m_GridEnabled && m_SnapEach && !IsFollowSurface();
+
+                for (int i = 0; i < m_StartTransforms.Length; i++)
+                {
+                    Transform start = m_StartTransforms[i];
+                    float3 pivot = m_Pivots[i];
+
+                    float3 posDelta = delta.Position;
+                    quaternion rotDelta = delta.Rotation;
+
+                    if (snapEach)
                     {
                         if (m_Mode == Mode.Move)
                         {
-                            quaternion gridRot = quaternion.identity;
-                            if (m_UseLocalAxis && m_Context.m_TransformData.TryGetComponent(m_SelectedEntity, out Transform transform))
-                            {
-                                gridRot = transform.m_Rotation;
-                            }
-                            float3 snappedPos = SnapGrid.SnapPositionLocal(m_DragStartGizmoPos, m_ControlPoint.m_Position, gridRot, (float)m_PosOffset);
-                            ControlPoint gridCandidate = m_ControlPoint;
-                            gridCandidate.m_Position = snappedPos;
-                            gridCandidate.m_HitPosition = snappedPos;
-                            // Position-offset-based scoring (same formula ObjectTool's edge/corner snaps use)
-                            // so a future closer object-snap candidate can naturally outrank the grid.
-                            gridCandidate.m_SnapPriority = ToolUtils.CalculateSnapPriority(1f, 1f, 1f, snappedPos - m_ControlPoint.m_Position);
-                            ToolUtils.AddSnapPosition(ref best, gridCandidate);
+                            posDelta = SnapPosition(start.m_Position, start.m_Position + delta.Position, delta.MovedAxes) - start.m_Position;
                         }
                         else if (m_Mode == Mode.Rotate)
                         {
-                            // m_AxisDir is known, so the delta is guaranteed to be a pure rotation around it -
-                            // recovering the signed angle from (currentRot * inverse(startRot)) via atan2 is
-                            // exact here, not a generic/fragile quaternion decomposition.
-                            quaternion deltaRot = math.mul(m_ControlPoint.m_Rotation, math.inverse(m_DragStartGizmoRot));
-                            float rawAngle = 2f * math.atan2(math.dot(deltaRot.value.xyz, m_AxisDir), deltaRot.value.w);
-
-                            float snappedAngle = SnapGrid.SnapAngleIncremental(rawAngle, (float)m_RotOffset);
-                            ControlPoint gridCandidate = m_ControlPoint;
-                            gridCandidate.m_Rotation = math.mul(quaternion.AxisAngle(m_AxisDir, snappedAngle), m_DragStartGizmoRot);
-                            // No position offset to score a rotation snap against - wins outright over the
-                            // unsnapped baseline (priority (0,0)) whenever the grid is enabled.
-                            gridCandidate.m_SnapPriority = new float2(1f, 0f);
-                            ToolUtils.AddSnapPosition(ref best, gridCandidate);
+                            rotDelta = quaternion.AxisAngle(m_AxisDir, SnapAngle(delta.Angle, start.m_Rotation));
                         }
                     }
-                }
 
+                    m_Results[i] = new Transform(
+                        pivot + posDelta + math.rotate(rotDelta, start.m_Position - pivot),
+                        math.mul(rotDelta, start.m_Rotation));
 
-
-                // Object Side Snap - integration test for SnapObjectSide. m_ControlPoint is the raw
-                // candidate (never overwritten), so it's a valid "true raw reference"
-                // for Apply's own internal edge scoring, same requirement as the grid competing above.
-                if (m_ObjectSideSnapEnabled && m_Mode == Mode.Move && m_Context.m_PrefabRefData.HasComponent(m_SelectedEntity))
-                {
-                    Entity selectedPrefab = m_Context.m_PrefabRefData[m_SelectedEntity].m_Prefab;
-                    if (m_Context.m_ObjectGeometryData.HasComponent(selectedPrefab))
+                    // Individual: the gizmo is on the primary entity, follow its own snapped delta.
+                    if (snapEach && i == m_PrimaryIndex)
                     {
-                        ObjectGeometryData placedGeometryData = m_Context.m_ObjectGeometryData[selectedPrefab];
-                        SnapObjectSide.Apply(ref m_Context, m_ObjectSideSnapMode, m_ControlPoint, ref best, m_ControlPoint.m_Rotation, placedGeometryData);
+                        gizmoPosDelta = posDelta;
+                        gizmoRotDelta = rotDelta;
                     }
                 }
 
-                m_Result.Value = best;
+                m_Gizmo.Value = new DragGizmoResult
+                {
+                    m_Valid = true,
+                    m_Position = m_DragStartGizmoPos + gizmoPosDelta,
+                    m_Rotation = math.mul(gizmoRotDelta, m_DragStartGizmoRot),
+                };
             }
+
+            // Rules in SnapGrid.SnapPosition / SnapGrid.SnapAngle.
+            private float3 SnapPosition(float3 origin, float3 pos, bool3 movedAxes)
+            {
+                return SnapGrid.SnapPosition(origin, pos, m_PosOffset, m_UseLocalAxis, m_DragStartGizmoRot, movedAxes);
+            }
+
+            private float SnapAngle(float angle, quaternion refRot)
+            {
+                return SnapGrid.SnapAngle(angle, m_RotOffset, !m_UseLocalAxis && m_Handle == Handle.Y, refRot);
+            }
+        }
+
+        // Intersection of the camera ray with the drag plane. axisIsNormal (Rotate, sphere handle): the plane is
+        // perpendicular to the axis. Otherwise it contains the axis and faces the camera as much as possible.
+        private static bool RaycastDragPlane(float3 rayOrigin, float3 rayDirection, float3 axisDir, float3 center, bool axisIsNormal, float3 cameraRight, float3 cameraForward, out float3 hitPos)
+        {
+            hitPos = default;
+
+            float3 planeNormal = axisDir;
+            if (!axisIsNormal)
+            {
+                // Built with the camera right, camera forward if the axis is parallel to it.
+                planeNormal = math.cross(axisDir, cameraRight);
+                if (math.lengthsq(planeNormal) < 1e-6f)
+                    planeNormal = math.cross(axisDir, cameraForward);
+            }
+            planeNormal = math.normalizesafe(planeNormal);
+
+            // Same as UnityEngine.Plane.Raycast: no hit when parallel or behind the ray.
+            float denominator = math.dot(rayDirection, planeNormal);
+            if (math.abs(denominator) < 1e-6f) return false;
+
+            float enter = math.dot(center - rayOrigin, planeNormal) / denominator;
+            if (enter < 0f) return false;
+
+            hitPos = rayOrigin + rayDirection * enter;
+            return true;
+        }
+
+        // Axes (world) the handle can move along, used by the world grid so a single axis drag doesn't snap the other ones.
+        private static bool3 GetMovedAxes(Handle handle, float3 axisDir)
+        {
+            float3 absAxis = math.abs(axisDir);
+            return handle == Handle.XZ ? absAxis < 0.5f : absAxis > 0.5f;
         }
     }
 }
