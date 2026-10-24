@@ -21,6 +21,7 @@ using Game.UI.InGame;
 using Game.Vehicles;
 using ExtraDetailingTools.Systems;
 using ExtraDetailingTools.Systems.Duplicate;
+using ExtraDetailingTools.Snapping;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -34,7 +35,6 @@ using static Game.Input.UIBaseInputAction;
 using static Game.Tools.DefaultToolSystem;
 using Color = UnityEngine.Color;
 using Node = Game.Areas.Node;
-using Plane = UnityEngine.Plane;
 using RaycastHit = Game.Common.RaycastHit;
 using RaycastResult = Game.Common.RaycastResult;
 using ServiceUpgrade = Game.Buildings.ServiceUpgrade;
@@ -53,8 +53,24 @@ namespace ExtraDetailingTools.Systems.Tools
 #endif
         private struct CreateDefinitionsJob : IJob
         {
+            // Selection roots (no entity owned by another one of the list) + the hovered entity in Default mode.
             [ReadOnly]
-            public Entity m_Entity;
+            public NativeArray<Entity> m_Entities;
+
+            [ReadOnly]
+            public NativeArray<bool> m_AllowHighlights;
+
+            // Highlighted in green. Entity.Null with a single selection.
+            [ReadOnly]
+            public Entity m_Primary;
+
+            // Originals that already got a definition, so overlapping selections (two upgrades of the same
+            // building, an attached object and its parent, ...) don't create the same temp twice.
+            public NativeParallelHashSet<Entity> m_Added;
+
+            private Entity m_Entity;
+
+            private bool m_AllowHighlight;
 
             [ReadOnly]
             public float3 m_Position;
@@ -136,10 +152,17 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly]
             public bool m_MoveSubBuildings;
 
-            [ReadOnly]
-            public bool AllowHighlight;
-
             public void Execute()
+            {
+                for (int i = 0; i < m_Entities.Length; i++)
+                {
+                    m_Entity = m_Entities[i];
+                    m_AllowHighlight = m_AllowHighlights[i];
+                    AddSelectedEntity();
+                }
+            }
+
+            private void AddSelectedEntity()
             {
                 Entity entity = m_Entity;
                 OwnerDefinition ownerDefinition = default(OwnerDefinition);
@@ -192,6 +215,10 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private void AddEntity(Entity entity, Entity owner, OwnerDefinition ownerDefinition, bool isParent, bool attachParentCreated)
             {
+                // Another entity of the list gets its own pass (with its own flags), don't add it here as a parent / upgrade.
+                if (entity != m_Entity && m_Entities.Contains(entity)) return;
+                if (!m_Added.Add(entity)) return;
+
                 Entity e = m_CommandBuffer.CreateEntity();
                 CreationDefinition component = new CreationDefinition
                 {
@@ -201,9 +228,11 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     component.m_Flags |= CreationFlags.Parent | CreationFlags.Duplicate;
                 }
-                else if (AllowHighlight)
+                else if (m_AllowHighlight)
                 {
-                    component.m_Flags |= CreationFlags.Select;
+                    // TempFlags.Parent is drawn with the owner color (green): marks the primary of a multi-selection.
+                    // GenerateObjectsSystem ignores Parent when Select is set, so it replaces it.
+                    component.m_Flags |= entity == m_Primary ? CreationFlags.Parent : CreationFlags.Select;
                 }
                 m_CommandBuffer.AddComponent(e, default(Updated));
                 if (ownerDefinition.m_Prefab != Entity.Null)
@@ -403,10 +432,8 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             [ReadOnly] public Mode m_Mode;
             [ReadOnly] public State m_State;
-            [ReadOnly] public Entity m_SelectedEntity;
+            [ReadOnly] public bool m_HasGizmo;
             [ReadOnly] public Handle m_SelectedHandle;
-            [ReadOnly] public ComponentLookup<Transform> m_TransformLookup;
-            [ReadOnly] public ComponentLookup<InterpolatedTransform> m_InterpolatedTransformLookup;
             [ReadOnly] public ComponentLookup<GizmosData> m_GizmosDataLookup;
             [ReadOnly] public ComponentLookup<Highlighted> m_HighlightedLookup;
 
@@ -414,6 +441,9 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public XZHandleMode m_XZHandleMode;
             [ReadOnly] public float3 m_Position;
             [ReadOnly] public quaternion m_Rotation;
+            // Dragging: the gizmo written by TransformToolSnapJob is used instead of m_Position / m_Rotation.
+            [ReadOnly] public bool m_UseDragGizmo;
+            [ReadOnly] public NativeReference<DragGizmoResult> m_DragGizmo;
 
             [ReadOnly] public EntityCommandBuffer m_CommandBuffer;
 
@@ -432,25 +462,14 @@ namespace ExtraDetailingTools.Systems.Tools
             public void Execute()
             {
                 m_ReuseIndex = 0;
-                if (m_Mode == Mode.Default)
+                if (m_Mode == Mode.Default || !m_HasGizmo)
                 {
                     DestroyAllEntities();
                     return;
                 }
 
-                Transform transform;
-                if (m_InterpolatedTransformLookup.TryGetComponent(m_SelectedEntity, out InterpolatedTransform interpolatedTransform))
-                {
-                    transform = interpolatedTransform.ToTransform();
-                }
-                else if (!m_TransformLookup.TryGetComponent(m_SelectedEntity, out transform))
-                {
-                    DestroyAllEntities();
-                    return;
-                }
-
-                float3 pos =     !m_Position.Equals(default) ? m_Position : transform.m_Position;
-                quaternion rot = !m_Rotation.Equals(default) ? m_Rotation : transform.m_Rotation;
+                float3 pos = m_UseDragGizmo ? m_DragGizmo.Value.m_Position : m_Position;
+                quaternion rot = m_UseDragGizmo ? m_DragGizmo.Value.m_Rotation : m_Rotation;
 
                 float distance = math.distance(pos, m_CameraPosition);
                 float targetFraction = m_HandleScreenSize / kReferenceScreenHeight;
@@ -634,14 +653,58 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
+        // Lookups of UpdateObjectJob, one set per system that schedules it (TransformGizmoTool, TransformRequestSystem).
+        // Created in OnCreate so the types are part of that system's dependency, updated before each schedule.
+        internal struct UpdateObjectLookups
+        {
+            public ComponentLookup<Transform> m_Transform;
+            public ComponentLookup<Building> m_Building;
+            public ComponentLookup<Curve> m_Curve;
+            public ComponentLookup<Temp> m_Temp;
+            public ComponentLookup<ServiceUpgrade> m_ServiceUpgrade;
+            public BufferLookup<InstalledUpgrade> m_InstalledUpgrade;
+            public BufferLookup<SubArea> m_SubArea;
+            public BufferLookup<Node> m_Node;
+            public BufferLookup<SubObject> m_SubObject;
+            public BufferLookup<SubNet> m_SubNet;
+
+            public UpdateObjectLookups(ref SystemState state)
+            {
+                m_Transform = state.GetComponentLookup<Transform>(true);
+                m_Building = state.GetComponentLookup<Building>(true);
+                m_Curve = state.GetComponentLookup<Curve>(true);
+                m_Temp = state.GetComponentLookup<Temp>(true);
+                m_ServiceUpgrade = state.GetComponentLookup<ServiceUpgrade>(true);
+                m_InstalledUpgrade = state.GetBufferLookup<InstalledUpgrade>(true);
+                m_SubArea = state.GetBufferLookup<SubArea>(true);
+                m_Node = state.GetBufferLookup<Node>(true);
+                m_SubObject = state.GetBufferLookup<SubObject>(true);
+                m_SubNet = state.GetBufferLookup<SubNet>(true);
+            }
+
+            public void Update(ref SystemState state)
+            {
+                m_Transform.Update(ref state);
+                m_Building.Update(ref state);
+                m_Curve.Update(ref state);
+                m_Temp.Update(ref state);
+                m_ServiceUpgrade.Update(ref state);
+                m_InstalledUpgrade.Update(ref state);
+                m_SubArea.Update(ref state);
+                m_Node.Update(ref state);
+                m_SubObject.Update(ref state);
+                m_SubNet.Update(ref state);
+            }
+        }
+
 #if RELEASE
         [BurstCompile]
 #endif
         private struct UpdateObjectJob : IJob
         {
-            [ReadOnly] public float3 m_Position;
-            [ReadOnly] public quaternion m_Rotation;
-            [ReadOnly] public Entity m_SelectedEntity;
+            // One per entity. A default position / rotation keeps the current one.
+            [ReadOnly] public NativeArray<Entity> m_Entities;
+            [ReadOnly] public NativeArray<Transform> m_Transforms;
             [ReadOnly] public bool m_MoveSubBuildings;
             [ReadOnly] public ComponentLookup<Transform> m_TransformLookup;
             [ReadOnly] public ComponentLookup<Building> m_BuildingLookup;
@@ -660,9 +723,13 @@ namespace ExtraDetailingTools.Systems.Tools
 
             public void Execute()
             {
-                isTemp = m_TempLookup.HasComponent(m_SelectedEntity);
+                for (int i = 0; i < m_Entities.Length; i++)
+                {
+                    Entity entity = m_Entities[i];
+                    isTemp = m_TempLookup.HasComponent(entity);
 
-                UpdateObject(m_SelectedEntity, m_Position, m_Rotation);
+                    UpdateObject(entity, m_Transforms[i].m_Position, m_Transforms[i].m_Rotation);
+                }
             }
 
 
@@ -677,14 +744,6 @@ namespace ExtraDetailingTools.Systems.Tools
 
                 float3 positionOffset = position - transform.m_Position;
                 quaternion rotationOffset = math.mul(rotation, math.inverse(transform.m_Rotation));
-
-                // I need that ? Nop, get updated by the game.
-                //if (EntityManager.TryGetComponent(entity, out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData) && EntityManager.TryGetComponent(selectedEntity, out CullingInfo cullingInfo))
-                //{
-                //    Bounds3 bounds3 = ObjectUtils.CalculateBounds(transform.m_Position, transform.m_Rotation, geometryData);
-                //    cullingInfo.m_Bounds = bounds3;
-                //    EntityManager.SetComponentData(entity, cullingInfo);
-                //}
 
                 UpdateSubElement(entity, transform, positionOffset, rotationOffset);
 
@@ -819,8 +878,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private enum ActionType
         {
             Select,
-            Move,
-            Rotate,
+            Transform,
             Create,
         }
 
@@ -833,6 +891,14 @@ namespace ExtraDetailingTools.Systems.Tools
             public quaternion Rotation;
             //public int m_SelectedIndex; // For later if I add Net support.
 
+            // Select: Entity / SelectedEntity are the new / previous primary entity, these are the full selections.
+            public Entity[] Selection;
+            public Entity[] PreviousSelection;
+
+            // Transform: the whole group, one transform per entity.
+            public Entity[] Entities;
+            public Transform[] Transforms;
+
             public ActionHistory(ActionType actionType, Entity entity, Entity selectedEntity, float3 position, quaternion rotation)
             {
                 ActionType = actionType;
@@ -840,27 +906,49 @@ namespace ExtraDetailingTools.Systems.Tools
                 SelectedEntity = selectedEntity;
                 Position = position;
                 Rotation = rotation;
+                Selection = null;
+                PreviousSelection = null;
+                Entities = null;
+                Transforms = null;
             }
 
-            public static ActionHistory NewSelect(Entity newSelected, Entity entity)
+            public static ActionHistory NewSelect(Entity newPrimary, Entity[] newSelection, Entity previousPrimary, Entity[] previousSelection)
             {
-                return new ActionHistory(ActionType.Select, newSelected, entity, default, default);
+                return new ActionHistory(ActionType.Select, newPrimary, previousPrimary, default, default)
+                {
+                    Selection = newSelection,
+                    PreviousSelection = previousSelection,
+                };
             }
 
-            public static ActionHistory NewMove(Entity entity, float3 position)
+            public static ActionHistory NewTransform(Entity[] entities, Transform[] transforms)
             {
-                return new ActionHistory(ActionType.Move, entity, entity, position, default);
+                return new ActionHistory(ActionType.Transform, Entity.Null, Entity.Null, default, default)
+                {
+                    Entities = entities,
+                    Transforms = transforms,
+                };
             }
 
-            public static ActionHistory NewRotation(Entity entity, quaternion rotation)
+            // Create: Entities / Entity are the duplicates and their primary, PreviousSelection / SelectedEntity
+            // the sources they were duplicated from. The same entry goes to the redo stack.
+            public static ActionHistory NewCreate(Entity[] created, Entity createdPrimary, Entity[] sources, Entity sourcePrimary)
             {
-                return new ActionHistory(ActionType.Rotate, entity, entity, default, rotation);
+                return new ActionHistory(ActionType.Create, createdPrimary, sourcePrimary, default, default)
+                {
+                    Entities = created,
+                    PreviousSelection = sources,
+                };
             }
+        }
 
-            public static ActionHistory NewCreate(Entity entity, Entity selectedEntity, float3 position, quaternion rotation)
-            {
-                return new ActionHistory(ActionType.Create, entity, selectedEntity, position, rotation);
-            }
+        // One selected entity being dragged. Pivot and start transform are frozen at StartDragging.
+        private struct DragEntry
+        {
+            public Entity Original;
+            public Entity Temp;
+            public Transform StartTransform;
+            public float3 Pivot;
         }
 
         public enum Handle
@@ -914,6 +1002,8 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private AudioManager m_AudioManager;
         private TerrainSystem m_TerrainSystem;
+        private WaterSystem m_WaterSystem;
+        private Game.Objects.SearchSystem m_ObjectSearchSystem;
         private GizmosRaycastSystem m_GimzosRaycastSystem;
         private ToolOutputBarrier m_ToolOutputBarrier;
         private SelectedInfoUISystem m_SelectedInfoUISystem;
@@ -932,8 +1022,21 @@ namespace ExtraDetailingTools.Systems.Tools
         private EntityQuery m_HandleQuery;
 
         private Entity m_LastRaycastEntity;
-        private Entity m_SelectedEntity;
-        private Entity m_SelectedTempEntity;
+        private Entity m_SelectedEntity; // Primary entity of the selection (last one added).
+        private Entity m_SelectedTempEntity; // Temp of the primary entity while dragging.
+
+        // Multi Selection
+        private readonly List<Entity> m_SelectedEntities = new();
+        private bool m_DefinitionsDirty = false;
+        private bool m_AdditivePress = false;
+
+        // Pivot, see TransformGizmoToolPivot.cs
+        private PivotSettings m_PivotSettings = new()
+        {
+            Source = PivotSource.Origin,
+            Aggregation = PivotAggregation.Median,
+            Orientation = PivotOrientation.LocalPrimary,
+        };
 
         private Handle m_SelectedHandle;
 
@@ -942,6 +1045,19 @@ namespace ExtraDetailingTools.Systems.Tools
         private float3 m_DragStartGizmoPos;
         private quaternion m_DragStartGizmoRot;
         private float3 m_DragStartMouseHitPos;
+
+        // Drag
+        private readonly List<DragEntry> m_DragEntries = new();
+        private int m_DragPrimaryIndex;
+        private quaternion m_DragStartPrimaryRot;
+        // Gizmo of the drag: written by TransformToolSnapJob, read by UpdateGizmosJob, never on the main thread.
+        private NativeReference<DragGizmoResult> m_DragGizmo;
+        private JobHandle m_DragGizmoDeps;
+
+        private UpdateObjectLookups m_UpdateObjectLookups;
+
+        // Follow Surface: keep the object upright instead of tilting it to the surface.
+        internal bool m_Upright = false;
 
         // Grid
         internal bool m_GridEnabled = false;
@@ -954,6 +1070,8 @@ namespace ExtraDetailingTools.Systems.Tools
         private ProxyAction m_MoveAction;
         private ProxyAction m_RotateAction;
         private ProxyAction m_DuplicateAction;
+        private ProxyAction m_AddToSelectionAction;
+        private ProxyAction m_SetPrimaryAction;
 
         // Undo / Redo
         private Stack<ActionHistory> m_UndoHistory;
@@ -965,7 +1083,8 @@ namespace ExtraDetailingTools.Systems.Tools
         private bool m_RequestRedo = false;
         private bool m_RequestDuplicate = false;
         private bool m_WaitingForDuplicate = false;
-        private Entity m_PendingDuplicateSource = Entity.Null;
+        private Entity[] m_PendingDuplicateSources = null;
+        private Entity m_PendingDuplicatePrimary = Entity.Null;
 
         // SIP Support
         private bool m_WasAnEntitySelected = false;
@@ -974,7 +1093,12 @@ namespace ExtraDetailingTools.Systems.Tools
         internal bool m_AddPreventOverride = true;
         internal bool m_AddTransformLock = true;
 
-        public bool m_UseLocalAxis { get; internal set; } = true;
+        // Kept for the UI / TransformSection, it's now the pivot orientation.
+        public bool m_UseLocalAxis
+        {
+            get => m_PivotSettings.Orientation != PivotOrientation.Global;
+            internal set => m_PivotSettings.Orientation = value ? PivotOrientation.LocalPrimary : PivotOrientation.Global;
+        }
         public bool m_MoveSubBuildings { get; internal set; } = true;
         public bool m_Underground { get; private set; } = false;
         public AllowHightlightState m_AllowHightlight { get; set; } = AllowHightlightState.Default;
@@ -986,14 +1110,20 @@ namespace ExtraDetailingTools.Systems.Tools
 
         public XZHandleMode xzHandleMode { get { return m_XZHandleMode; } internal set { m_XZHandleMode = value; } }
         public RaycastFilter raycastFilter { get { return m_RaycastFilter; } internal set { m_RaycastFilter = value; } }
+        public PivotAggregation pivotAggregation { get { return m_PivotSettings.Aggregation; } internal set { m_PivotSettings.Aggregation = value; } }
 
         public Entity SelectedTempEntity => m_SelectedTempEntity;
 
         public Entity SelectedEntity => m_SelectedEntity;
 
+        public IReadOnlyList<Entity> SelectedEntities => m_SelectedEntities;
+
+        public int SelectionCount => m_SelectedEntities.Count;
+
         // Events
         public event Action<Mode> ModeChanged;
         public event Action<Entity> SelectedEntityChanged;
+        public event Action<IReadOnlyList<Entity>> SelectionChanged;
 
         public override PrefabBase GetPrefab() { return null; }
 
@@ -1017,6 +1147,8 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             m_TerrainSystem = World.GetOrCreateSystemManaged<TerrainSystem>();
+            m_WaterSystem = World.GetOrCreateSystemManaged<WaterSystem>();
+            m_ObjectSearchSystem = World.GetOrCreateSystemManaged<Game.Objects.SearchSystem>();
             m_ToolOutputBarrier = World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_AudioManager = World.GetOrCreateSystemManaged<AudioManager>();
             m_GimzosRaycastSystem = World.GetOrCreateSystemManaged<GizmosRaycastSystem>();
@@ -1028,6 +1160,9 @@ namespace ExtraDetailingTools.Systems.Tools
             m_HandleQuery = GetEntityQuery(ComponentType.ReadOnly<TransformGizmosHandle>());
             m_DefinitionQuery = GetDefinitionQuery();
 
+            m_DragGizmo = new NativeReference<DragGizmoResult>(Allocator.Persistent);
+            m_UpdateObjectLookups = new UpdateObjectLookups(ref CheckedStateRef);
+
             m_UndoHistory = new();
             m_RedoHistory = new();
 
@@ -1036,10 +1171,14 @@ namespace ExtraDetailingTools.Systems.Tools
             m_MoveAction = EDT.m_Settings.GetAction(EDT.m_Settings.EnterMoveBinding.actionName);
             m_RotateAction = EDT.m_Settings.GetAction(EDT.m_Settings.EnterRotateBinding.actionName);
             m_DuplicateAction = EDT.m_Settings.GetAction(EDT.m_Settings.DuplicateBinding.actionName);
+            m_AddToSelectionAction = EDT.m_Settings.GetAction(EDT.m_Settings.AddToSelectionBinding.actionName);
+            m_SetPrimaryAction = EDT.m_Settings.GetAction(EDT.m_Settings.SetPrimaryBinding.actionName);
         }
 
         protected override void OnDestroy()
         {
+            m_DragGizmoDeps.Complete();
+            m_DragGizmo.Dispose();
             base.OnDestroy();
         }
 
@@ -1069,6 +1208,8 @@ namespace ExtraDetailingTools.Systems.Tools
             m_MoveAction.shouldBeEnabled = true;
             m_RotateAction.shouldBeEnabled = true;
             m_DuplicateAction.shouldBeEnabled = true;
+            m_AddToSelectionAction.shouldBeEnabled = true;
+            m_SetPrimaryAction.shouldBeEnabled = true;
             SetSelectedEntity(m_ToolSystem.selected);
             m_WasAnEntitySelected = m_SelectedEntity != Entity.Null;
             m_ToolSystem.selected = Entity.Null;
@@ -1084,6 +1225,8 @@ namespace ExtraDetailingTools.Systems.Tools
             m_MoveAction.shouldBeEnabled = false;
             m_RotateAction.shouldBeEnabled = false;
             m_DuplicateAction.shouldBeEnabled = false;
+            m_AddToSelectionAction.shouldBeEnabled = false;
+            m_SetPrimaryAction.shouldBeEnabled = false;
             var es = m_HandleQuery.ToEntityArray(Allocator.Temp);
             foreach (Entity e in es)
             {
@@ -1151,6 +1294,26 @@ namespace ExtraDetailingTools.Systems.Tools
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);
 
+                // Objects under the cursor, for Shift+Click / Alt+Click.
+                if (m_State == State.Idle)
+                {
+                    m_ToolRaycastSystem.collisionMask = m_Underground ? CollisionMask.Underground : CollisionMask.OnGround | CollisionMask.Overground;
+
+                    if (!m_RaycastFilter.HasFlag(RaycastFilter.StaticObject))
+                    {
+                        m_ToolRaycastSystem.typeMask |= TypeMask.StaticObjects;
+
+                        if (!m_RaycastFilter.HasFlag(RaycastFilter.Decals))
+                            m_ToolRaycastSystem.raycastFlags |= RaycastFlags.Decals;
+
+                        if (!m_RaycastFilter.HasFlag(RaycastFilter.Buildings))
+                            m_ToolRaycastSystem.raycastFlags |= RaycastFlags.BuildingLots | RaycastFlags.SubBuildings;
+                    }
+
+                    if (!m_RaycastFilter.HasFlag(RaycastFilter.MovingObject))
+                        m_ToolRaycastSystem.typeMask |= TypeMask.MovingObjects;
+                }
+
                 if (m_XZHandleMode == XZHandleMode.FollowSurface)
                 {
                     if (m_Underground)
@@ -1161,6 +1324,8 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground;
                         m_ToolRaycastSystem.typeMask |= TypeMask.Terrain;
+                        // Any object can snap on water. The false water hits on a dry slope (coarse water grid) are fixed
+                        // in TransformToolSnapJob.FixWaterHit. Vanilla alternative, not used: "&& IsPrimaryPlacedOnWater()".
                         if(!m_RaycastFilter.HasFlag(RaycastFilter.Water))
                         {
                             m_ToolRaycastSystem.typeMask |= TypeMask.Water;
@@ -1193,12 +1358,12 @@ namespace ExtraDetailingTools.Systems.Tools
         {
             Entity clipEntity = (
                 (
-                    base.EntityManager.TryGetComponent(selected, out Game.Creatures.Resident component) 
-                    && base.EntityManager.TryGetComponent<Citizen>(component.m_Citizen, out Citizen component2) 
+                    base.EntityManager.TryGetComponent(selected, out Game.Creatures.Resident component)
+                    && base.EntityManager.TryGetComponent<Citizen>(component.m_Citizen, out Citizen component2)
                     && base.EntityManager.TryGetComponent<PrefabRef>(component.m_Citizen, out PrefabRef component3)
-                ) ? CitizenUtils.GetCitizenSelectedSound(base.EntityManager, component.m_Citizen, component2, component3.m_Prefab) 
+                ) ? CitizenUtils.GetCitizenSelectedSound(base.EntityManager, component.m_Citizen, component2, component3.m_Prefab)
                 : ((
-                    !base.EntityManager.TryGetComponent<PrefabRef>(selected, out PrefabRef component4) 
+                    !base.EntityManager.TryGetComponent<PrefabRef>(selected, out PrefabRef component4)
                     || !base.EntityManager.TryGetComponent<SelectedSoundData>(component4.m_Prefab, out SelectedSoundData component5)
                 ) ? m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_SelectEntitySound : component5.m_selectedSound)
             );
@@ -1214,10 +1379,15 @@ namespace ExtraDetailingTools.Systems.Tools
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            
+
             if(m_FocusChanged)
             {
                 return inputDeps;
+            }
+
+            if (m_State == State.Idle)
+            {
+                ValidateSelection();
             }
 
             if (m_MoveAction.WasPressedThisFrame())
@@ -1239,53 +1409,88 @@ namespace ExtraDetailingTools.Systems.Tools
             if (m_RequestSnapOnGround)
             {
                 m_RequestSnapOnGround = false;
-                if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out Transform transform))
+                if (m_State == State.Idle && m_SelectedEntities.Count > 0)
                 {
-                    TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
-                    float terrainHeight = TerrainUtils.SampleHeight(ref heightData, transform.m_Position);
-                    float3 snapPos = transform.m_Position;
-                    snapPos.y = terrainHeight;
-                    inputDeps = UpdateObject(inputDeps, m_SelectedEntity, snapPos);
-                    m_UndoHistory.Push(ActionHistory.NewMove(m_SelectedEntity, transform.m_Position));
+                    List<Entity> entities = new();
+                    List<Transform> transforms = new();
+                    int primaryIndex = CollectRootTransforms(false, entities, transforms);
+
+                    if (entities.Count > 0)
+                    {
+                        m_UndoHistory.Push(ActionHistory.NewTransform(entities.ToArray(), transforms.ToArray()));
+
+                        // Individual: every entity is put on the ground. Otherwise the pivot is, and the others follow
+                        // with the same delta (the group keeps its shape).
+                        TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
+                        ComputeGroupPivots(transforms, primaryIndex, out float3 groupPivot, out _, null);
+                        float groupDelta = TerrainUtils.SampleHeight(ref heightData, groupPivot) - groupPivot.y;
+                        bool individual = m_PivotSettings.Aggregation == PivotAggregation.Individual;
+                        for (int i = 0; i < entities.Count; i++)
+                        {
+                            float3 snapPos = transforms[i].m_Position;
+                            snapPos.y = individual ? TerrainUtils.SampleHeight(ref heightData, snapPos) : snapPos.y + groupDelta;
+                            inputDeps = UpdateObject(inputDeps, entities[i], snapPos);
+                        }
+                    }
                 }
             }
 
             if (m_WaitingForDuplicate)
             {
-                if (m_DuplicateEntitySystem.TryGetDuplicated(this, out List<Entity> duplicated))
+                if (m_DuplicateEntitySystem.TryGetDuplicated(this, out List<Entity> sources, out List<Entity> duplicated))
                 {
                     m_WaitingForDuplicate = false;
-                    Entity duplicateEntity = duplicated.Count > 0 ? duplicated[0] : Entity.Null;
 
-                    if (duplicateEntity != Entity.Null)
+                    List<Entity> created = new();
+                    Entity createdPrimary = Entity.Null;
+                    for (int i = 0; i < duplicated.Count; i++)
                     {
-                        quaternion duplicateRotation = quaternion.identity;
-                        float3 duplicatePosition = default;
-                        if (EntityManager.TryGetComponent(duplicateEntity, out Transform duplicateTransform))
-                        {
-                            duplicateRotation = duplicateTransform.m_Rotation;
-                            duplicatePosition = duplicateTransform.m_Position;
-                        }
+                        if (duplicated[i] == Entity.Null) continue;
+                        created.Add(duplicated[i]);
+                        if (sources[i] == m_PendingDuplicatePrimary) createdPrimary = duplicated[i];
+                    }
 
-                        m_UndoHistory.Push(ActionHistory.NewCreate(duplicateEntity, m_PendingDuplicateSource, duplicatePosition, duplicateRotation));
+                    if (created.Count > 0)
+                    {
+                        if (createdPrimary == Entity.Null) createdPrimary = created[created.Count - 1];
 
-                        SetSelectedEntity(duplicateEntity);
+                        m_UndoHistory.Push(ActionHistory.NewCreate(created.ToArray(), createdPrimary, m_PendingDuplicateSources, m_PendingDuplicatePrimary));
+
+                        SetSelection(created, createdPrimary);
                         m_SelectedIndex = -1;
                         SetMode(Mode.Move);
                     }
 
-                    m_PendingDuplicateSource = Entity.Null;
+                    m_PendingDuplicateSources = null;
+                    m_PendingDuplicatePrimary = Entity.Null;
                 }
             }
 
             if (m_RequestDuplicate || m_DuplicateAction.WasPressedThisFrame())
             {
                 m_RequestDuplicate = false;
-                if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.HasComponent<PrefabRef>(m_SelectedEntity))
+
+                // Roots only: DuplicateEntityJob already copies the sub-objects / upgrades of each root.
+                List<Entity> sources = new();
+                if (m_State == State.Idle && !m_WaitingForDuplicate && CanDuplicateSelection())
                 {
-                    EDT.Logger.Info($"Duplicate requested for entity: {m_SelectedEntity}");
-                    inputDeps = m_DuplicateEntitySystem.Duplicate(inputDeps, this, m_SelectedEntity);
-                    m_PendingDuplicateSource = m_SelectedEntity;
+                    foreach (Entity entity in GetSelectionRoots())
+                    {
+                        if (EntityManager.HasComponent<PrefabRef>(entity) && EntityManager.HasComponent<Transform>(entity)) sources.Add(entity);
+                    }
+                }
+
+                if (sources.Count > 0)
+                {
+                    EDT.Logger.Info($"Duplicate requested for {sources.Count} entities, primary: {m_SelectedEntity}");
+
+                    NativeArray<Entity> sourceArray = new NativeArray<Entity>(sources.ToArray(), Allocator.TempJob);
+                    inputDeps = m_DuplicateEntitySystem.Duplicate(inputDeps, this, sourceArray);
+                    inputDeps = sourceArray.Dispose(inputDeps);
+
+                    // The primary may be a sub-object of a root: its root's duplicate becomes the new primary.
+                    m_PendingDuplicatePrimary = sources.Contains(m_SelectedEntity) ? m_SelectedEntity : sources[sources.Count - 1];
+                    m_PendingDuplicateSources = sources.ToArray();
                     SetSelectedEntity(Entity.Null);
                     m_SelectedTempEntity = Entity.Null;
                     m_SelectedIndex = -1;
@@ -1316,34 +1521,34 @@ namespace ExtraDetailingTools.Systems.Tools
                         if (actionType == ActionType.Select)
                         {
                             m_RedoHistory.Push(actionHistory);
-                            SetSelectedEntity(actionHistory.SelectedEntity);
+                            SetSelection(actionHistory.PreviousSelection, actionHistory.SelectedEntity);
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
-                            SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                            if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
                             m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
-                        else if (actionType == ActionType.Move)
+                        else if (actionType == ActionType.Transform)
                         {
-                            EntityManager.TryGetComponent(entity, out Transform currentTransform);
-                            m_RedoHistory.Push(ActionHistory.NewMove(entity, currentTransform.m_Position));
-                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Position);
-                        }
-                        else if (actionType == ActionType.Rotate)
-                        {
-                            EntityManager.TryGetComponent(entity, out Transform currentTransform);
-                            m_RedoHistory.Push(ActionHistory.NewRotation(entity, currentTransform.m_Rotation));
-                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Rotation);
+                            m_RedoHistory.Push(CaptureTransforms(actionHistory.Entities));
+                            inputDeps = RestoreTransforms(inputDeps, actionHistory);
                         }
                         else if (actionType == ActionType.Create)
                         {
-                            m_RedoHistory.Push(ActionHistory.NewCreate(actionHistory.SelectedEntity, Entity.Null, actionHistory.Position, actionHistory.Rotation));
-                            EntityManager.AddComponent<Deleted>(entity);
-                            if (m_SelectedEntity == entity)
+                            m_RedoHistory.Push(actionHistory);
+
+                            bool selectionHadCreated = false;
+                            foreach (Entity created in actionHistory.Entities)
                             {
-                                SetSelectedEntity(actionHistory.SelectedEntity);
+                                if (m_SelectedEntities.Contains(created)) selectionHadCreated = true;
+                                if (EntityManager.Exists(created) && !EntityManager.HasComponent<Deleted>(created)) EntityManager.AddComponent<Deleted>(created);
+                            }
+
+                            if (selectionHadCreated)
+                            {
+                                SetSelectionFiltered(actionHistory.PreviousSelection, actionHistory.SelectedEntity);
                                 m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
-                                SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                                if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
                                 m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                             }
                         }
@@ -1371,30 +1576,24 @@ namespace ExtraDetailingTools.Systems.Tools
                         ActionType actionType = actionHistory.ActionType;
                         if (actionType == ActionType.Create)
                         {
-                            SetSelectedEntity(entity);
+                            // Duplicates the sources again: the undo deleted the previous duplicates for good.
+                            SetSelectionFiltered(actionHistory.PreviousSelection, actionHistory.SelectedEntity);
                             m_SelectedIndex = -1;
                             m_RequestDuplicate = true;
                         }
                         else if (actionType == ActionType.Select)
                         {
                             m_UndoHistory.Push(actionHistory);
-                            SetSelectedEntity(actionHistory.Entity);
+                            SetSelection(actionHistory.Selection, actionHistory.Entity);
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
-                            SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+                            if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
                             m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
-                        else if (actionType == ActionType.Move)
+                        else if (actionType == ActionType.Transform)
                         {
-                            EntityManager.TryGetComponent(entity, out Transform currentTransform);
-                            m_UndoHistory.Push(ActionHistory.NewMove(entity, currentTransform.m_Position));
-                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Position);
-                        }
-                        else if (actionType == ActionType.Rotate)
-                        {
-                            EntityManager.TryGetComponent(entity, out Transform currentTransform);
-                            m_UndoHistory.Push(ActionHistory.NewRotation(entity, currentTransform.m_Rotation));
-                            inputDeps = UpdateObject(inputDeps, entity, actionHistory.Rotation);
+                            m_UndoHistory.Push(CaptureTransforms(actionHistory.Entities));
+                            inputDeps = RestoreTransforms(inputDeps, actionHistory);
                         }
                         else
                         {
@@ -1410,11 +1609,29 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     case Mode.Default:
                         {
-                            if(applyAction.WasPressedThisFrame())
+                            // Checked first: Shift+Click / Alt+Click also trigger the apply action.
+                            if (m_AddToSelectionAction.WasPressedThisFrame())
                             {
+                                m_AdditivePress = true;
+                                return Apply(inputDeps, additive: true);
+                            }
+                            else if (m_SetPrimaryAction.WasPressedThisFrame())
+                            {
+                                m_AdditivePress = true;
+                                return Apply(inputDeps, setPrimary: true);
+                            }
+                            else if(applyAction.WasPressedThisFrame())
+                            {
+                                m_AdditivePress = false;
                                 return Apply(inputDeps, base.applyAction.WasReleasedThisFrame(), base.cancelAction.WasPressedThisFrame());
                             } else if(applyAction.WasReleasedThisFrame())
                             {
+                                // The release of a Shift+Click / Alt+Click must not replace the selection.
+                                if (m_AdditivePress)
+                                {
+                                    m_AdditivePress = false;
+                                    return Update(inputDeps);
+                                }
                                 return Apply(inputDeps);
                             }
                             else if(cancelAction.WasReleasedThisFrame())
@@ -1429,6 +1646,18 @@ namespace ExtraDetailingTools.Systems.Tools
                             if (cancelAction.WasReleasedThisFrame())
                             {
                                 return Cancel(inputDeps);
+                            }
+                            else if (m_State == State.Idle && (m_AddToSelectionAction.WasPressedThisFrame() || m_SetPrimaryAction.WasPressedThisFrame()))
+                            {
+                                // Shift+Click / Alt+Click on an object, checked before the gizmo (they also trigger the apply action).
+                                if (GetRaycastResult(out Entity hovered, out RaycastHit _))
+                                {
+                                    if (EntityManager.TryGetComponent(hovered, out Temp temp) && temp.m_Original != Entity.Null) hovered = temp.m_Original;
+                                    if (m_SetPrimaryAction.WasPressedThisFrame()) SetPrimaryInSelection(hovered);
+                                    else ToggleInSelection(hovered);
+                                    PlaySelectedSound(hovered, forcePlay: true);
+                                }
+                                return Update(inputDeps);
                             }
                             else if ((m_State == State.Idle && base.applyAction.WasPressedThisFrame()) || (m_State == State.Dragging && base.applyAction.WasReleasedThisFrame()))
                             {
@@ -1446,21 +1675,18 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private JobHandle Update(JobHandle inputDeps)
         {
-            float3 newPos = default;
-            quaternion newRot = default;
-
             if (m_Mode == Mode.Default)
             {
                 if (GetRaycastResult(out var entity2, out var hit2, out var forceUpdate)
                     && entity2 == m_LastRaycastEntity
-                    && !forceUpdate)
+                    && !forceUpdate
+                    && !m_DefinitionsDirty)
                 {
                     applyMode = ApplyMode.None;
                 }
                 else
                 {
                     m_LastRaycastEntity = entity2;
-                    if (entity2 == Entity.Null) entity2 = m_SelectedEntity;
 
                     applyMode = ApplyMode.Clear;
                     inputDeps = UpdateDefinitions(inputDeps, entity2, hit2.m_CellIndex.x);
@@ -1486,121 +1712,137 @@ namespace ExtraDetailingTools.Systems.Tools
                         }
                     }
 
+                    // Object under the cursor (target of Shift+Click / Alt+Click), not while hovering a gizmo
+                    // handle: a drag starts from there and must not carry this extra temp.
+                    Entity hovered = Entity.Null;
+                    if (m_SelectedHandle == Handle.None && GetRaycastResult(out Entity hit, out RaycastHit _))
+                    {
+                        if (EntityManager.TryGetComponent(hit, out Temp temp) && temp.m_Original != Entity.Null) hit = temp.m_Original;
+                        if (EntityManager.HasComponent<Transform>(hit)) hovered = hit;
+                    }
+
                     applyMode = ApplyMode.Clear;
-                    inputDeps = UpdateDefinitions(inputDeps, m_SelectedEntity, m_SelectedIndex);
+                    inputDeps = UpdateDefinitions(inputDeps, hovered, m_SelectedIndex);
                 }
                 else if (m_State == State.Dragging)
                 {
                     applyMode = ApplyMode.None;
 
-                    if (m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ)
+                    if (m_DragEntries.Count == 0)
                     {
-                        if (GetRaycastResult(out Entity entity, out RaycastHit hit))
-                        {
-                            newPos = hit.m_HitPosition;
-
-                            if (!EntityManager.HasComponent<Game.Common.Terrain>(entity))
-                            {
-                                float3 newUp = math.normalizesafe(hit.m_HitDirection, math.up());
-                                float3 dragStartUp = math.rotate(m_DragStartGizmoRot, math.up());
-                                quaternion tilt = ShortestRotation(dragStartUp, newUp);
-                                newRot = math.mul(tilt, m_DragStartGizmoRot);
-                            }
-                            else if (EntityManager.TryGetComponent<Transform>(m_SelectedEntity, out var transformComponent))
-                            {
-                                newRot = transformComponent.m_Rotation;
-                            }
-                            else
-                            {
-                                newRot = quaternion.LookRotationSafe(math.forward(), math.up());
-                            }
-
-                            if (m_SelectedTempEntity != Entity.Null)
-                            {
-                                inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newPos, newRot);
-                            }
-                            else
-                            {
-                                EDT.Logger.Error("m_SelectedTempEntity is null");
-                            }
-                        }
+                        EDT.Logger.Error("Dragging without any drag entry.");
                     }
                     else
                     {
-                        float3 axisDir = GetSelectedAxisDirection(m_SelectedHandle);
-                        Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
-                        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                        if (dragPlane.Raycast(ray, out float enter))
-                        {
-                            float3 hitPos = ray.origin + ray.direction * enter;
-                            if (m_Mode == Mode.Move)
-                            {
-                                float3 mouseDelta = hitPos - m_DragStartMouseHitPos;
-
-                                if (m_SelectedHandle == Handle.XZ)
-                                {
-                                    newPos = m_DragStartGizmoPos + mouseDelta;
-                                }
-                                else
-                                {
-                                    float3 projectedDelta = math.dot(mouseDelta, axisDir) * axisDir;
-                                    newPos = projectedDelta + m_DragStartGizmoPos;
-                                }
-
-                                if (m_GridEnabled)
-                                {
-                                    newPos = SnapPositionToGrid(m_DragStartGizmoPos, newPos);
-                                }
-                            }
-                            else if (m_Mode == Mode.Rotate)
-                            {
-                                float3 currentDir = math.normalize(hitPos - m_DragStartGizmoPos);
-                                float3 startDir = m_DragStartMouseHitPos;
-
-                                float angle = math.atan2(
-                                    math.dot(axisDir, math.cross(startDir, currentDir)),
-                                    math.dot(startDir, currentDir)
-                                );
-
-                                if (m_GridEnabled)
-                                {
-                                    angle = SnapAngleToGrid(angle);
-                                }
-
-                                quaternion deltaRot = quaternion.AxisAngle(axisDir, angle);
-
-                                newRot = math.mul(deltaRot, m_DragStartGizmoRot);
-                            }
-                            else
-                            {
-                                EDT.Logger.Warn($"Try to update in State.Dragging but the tool mode wasn't move or rotate, current tool mode: {m_Mode}");
-                            }
-
-                            if (m_SelectedTempEntity != Entity.Null)
-                            {
-                                inputDeps = UpdateObject(inputDeps, m_SelectedTempEntity, newPos, newRot);
-                            }
-                            else
-                            {
-                                EDT.Logger.Error("m_SelectedTempEntity is null");
-                            }
-                        }
+                        inputDeps = UpdateDrag(inputDeps);
                     }
                 }
             }
 
-            inputDeps = UpdateGizmos(inputDeps, newPos, newRot);
+            inputDeps = UpdateGizmos(inputDeps);
             return inputDeps;
         }
 
-        private JobHandle Apply(JobHandle inputDeps, bool singleFrameOnly = false, bool toggleSelected = false)
+        private bool IsPrimaryPlacedOnWater()
+        {
+            if (m_DragEntries.Count == 0) return false;
+            Entity primary = m_DragEntries[m_DragPrimaryIndex].Original;
+            return EntityManager.TryGetComponent(primary, out PrefabRef prefabRef)
+                && EntityManager.TryGetComponent(prefabRef.m_Prefab, out PlaceableObjectData placeableObjectData)
+                && (placeableObjectData.m_Flags & (Game.Objects.PlacementFlags.Shoreline | Game.Objects.PlacementFlags.Floating | Game.Objects.PlacementFlags.Hovering)) != 0;
+        }
+
+        // The whole drag (snaps included) runs in TransformToolSnapJob. The main thread gives the camera ray and the
+        // raycast result, then applies the result to the temps. Without hit, the objects / gizmo keep the last value.
+        private JobHandle UpdateDrag(JobHandle inputDeps)
+        {
+            bool followSurface = m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ;
+            ControlPoint raw = default;
+            bool hasHit = false;
+            if (followSurface && GetRaycastResult(out Entity entity, out RaycastHit hit))
+            {
+                hasHit = true;
+                raw = new ControlPoint(entity, hit)
+                {
+                    m_Position = hit.m_HitPosition,
+                    m_Rotation = m_DragStartPrimaryRot,
+                };
+            }
+
+            Camera camera = Camera.main;
+            Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+
+            int count = m_DragEntries.Count;
+            NativeArray<Entity> originals = new NativeArray<Entity>(count, Allocator.TempJob);
+            NativeArray<Transform> startTransforms = new NativeArray<Transform>(count, Allocator.TempJob);
+            NativeArray<float3> pivots = new NativeArray<float3>(count, Allocator.TempJob);
+            NativeArray<Transform> results = new NativeArray<Transform>(count, Allocator.TempJob);
+            NativeArray<Entity> temps = new NativeArray<Entity>(count, Allocator.TempJob);
+            for (int i = 0; i < count; i++)
+            {
+                originals[i] = m_DragEntries[i].Original;
+                startTransforms[i] = m_DragEntries[i].StartTransform;
+                pivots[i] = m_DragEntries[i].Pivot;
+                temps[i] = m_DragEntries[i].Temp;
+            }
+
+            SnapContext context = SnapContext.Create(this, m_TerrainSystem, m_WaterSystem, m_ObjectSearchSystem, out JobHandle contextDeps);
+            JobHandle jobHandle = new TransformToolSnapJob
+            {
+                m_Mode = m_Mode,
+                m_Handle = m_SelectedHandle,
+                m_UseLocalAxis = m_UseLocalAxis,
+                m_SelectedEntity = m_DragEntries[m_DragPrimaryIndex].Original,
+                m_RayOrigin = ray.origin,
+                m_RayDirection = ray.direction,
+                m_CameraRight = camera.transform.right,
+                m_CameraForward = camera.transform.forward,
+                m_RaycastLine = ToolRaycastSystem.CalculateRaycastLine(camera),
+                m_AxisDir = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot),
+                m_DragStartGizmoPos = m_DragStartGizmoPos,
+                m_DragStartGizmoRot = m_DragStartGizmoRot,
+                m_DragStartPrimaryRot = m_DragStartPrimaryRot,
+                m_DragStartMouseHitPos = m_DragStartMouseHitPos,
+                m_XZHandleMode = m_XZHandleMode,
+                m_HasHit = hasHit,
+                m_ControlPoint = raw,
+                m_Upright = m_Upright,
+                m_EditorMode = m_ToolSystem.actionMode.IsEditor(),
+                m_GridEnabled = m_GridEnabled,
+                m_SnapEach = m_PivotSettings.Aggregation == PivotAggregation.Individual,
+                m_PosOffset = (float)m_PosOffset,
+                m_RotOffset = (float)m_RotOffset,
+                m_Context = context,
+                m_Originals = originals,
+                m_StartTransforms = startTransforms,
+                m_Pivots = pivots,
+                m_PrimaryIndex = m_DragPrimaryIndex,
+                m_Results = results,
+                m_Gizmo = m_DragGizmo,
+            }.Schedule(JobHandle.CombineDependencies(inputDeps, contextDeps, m_DragGizmoDeps));
+            SnapContext.AddReaders(m_WaterSystem, m_ObjectSearchSystem, jobHandle);
+            originals.Dispose(jobHandle);
+            startTransforms.Dispose(jobHandle);
+            pivots.Dispose(jobHandle);
+
+            // The temps are drag entries (Temp): no main thread part, see UpdateObject.
+            m_UpdateObjectLookups.Update(ref CheckedStateRef);
+            jobHandle = ScheduleUpdateObjects(jobHandle, temps, results, m_ToolOutputBarrier, m_UpdateObjectLookups);
+            temps.Dispose(jobHandle);
+            results.Dispose(jobHandle);
+
+            m_DragGizmoDeps = jobHandle;
+            return jobHandle;
+        }
+
+        private JobHandle Apply(JobHandle inputDeps, bool singleFrameOnly = false, bool toggleSelected = false, bool additive = false, bool setPrimary = false)
         {
 
             if(m_Mode == Mode.Default)
             {
                 applyMode = ApplyMode.None;
                 m_SelectedHandle = Handle.None;
-                JobHandle jobHandle = SelectTempEntity(inputDeps, toggleSelected);
+                JobHandle jobHandle = SelectTempEntity(inputDeps, toggleSelected, additive, setPrimary);
                 return jobHandle;
             }
 
@@ -1622,20 +1864,14 @@ namespace ExtraDetailingTools.Systems.Tools
 
             if (m_State == State.Dragging)
             {
-                if(m_SelectedEntity != Entity.Null)
+                if(m_DragEntries.Count > 0)
                 {
                     if (GetAllowApply())
                     {
                         applyMode = ApplyMode.Apply;
-                        float3 pos = default;
-                        quaternion rot = default;
-                        if (m_SelectedTempEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedTempEntity, out Transform transform))
-                        {
-                            pos = transform.m_Position;
-                            rot = transform.m_Rotation;
-                        }
 
-                        if (EntityManager.HasComponent<Building>(m_SelectedEntity) || EntityManager.HasComponent<AssetStamp>(m_SelectedEntity))
+                        Entity primary = m_DragEntries[m_DragPrimaryIndex].Original;
+                        if (EntityManager.HasComponent<Building>(primary) || EntityManager.HasComponent<AssetStamp>(primary))
                         {
                             m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_RelocateBuildingSound);
                         }
@@ -1644,18 +1880,23 @@ namespace ExtraDetailingTools.Systems.Tools
                             m_AudioManager.PlayUISound(m_SoundQuery.GetSingleton<ToolUXSoundSettingsData>().m_PlacePropSound);
                         }
 
-                        if (m_Mode == Mode.Move)
+                        Entity[] entities = new Entity[m_DragEntries.Count];
+                        Transform[] startTransforms = new Transform[m_DragEntries.Count];
+                        for (int i = 0; i < m_DragEntries.Count; i++)
                         {
-                            m_UndoHistory.Push(ActionHistory.NewMove(m_SelectedEntity, m_DragStartGizmoPos));
-                            m_RedoHistory.Clear();
+                            entities[i] = m_DragEntries[i].Original;
+                            startTransforms[i] = m_DragEntries[i].StartTransform;
                         }
-                        else if (m_Mode == Mode.Rotate)
-                        {
-                            m_UndoHistory.Push(ActionHistory.NewRotation(m_SelectedEntity, m_DragStartGizmoRot));
-                            m_RedoHistory.Clear();
-                        }
+                        m_UndoHistory.Push(ActionHistory.NewTransform(entities, startTransforms));
+                        m_RedoHistory.Clear();
 
-                        inputDeps = UpdateObject(inputDeps, m_SelectedEntity, pos, rot);
+                        foreach (DragEntry entry in m_DragEntries)
+                        {
+                            if (EntityManager.TryGetComponent(entry.Temp, out Transform transform))
+                            {
+                                inputDeps = UpdateObject(inputDeps, entry.Original, transform.m_Position, transform.m_Rotation);
+                            }
+                        }
                     }
                     else
                     {
@@ -1664,7 +1905,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 }
                 else
                 {
-                    EDT.Logger.Warn("Try to Apply but m_SelectedEntity was null");
+                    EDT.Logger.Warn("Try to Apply but there was nothing dragged.");
                 }
 
                 StopDragging();
@@ -1700,11 +1941,11 @@ namespace ExtraDetailingTools.Systems.Tools
             return inputDeps;
         }
 
-        private JobHandle SelectTempEntity(JobHandle inputDeps, bool toggleSelected)
+        private JobHandle SelectTempEntity(JobHandle inputDeps, bool toggleSelected, bool additive = false, bool setPrimary = false)
         {
             if (m_TempQuery.IsEmptyIgnoreFilter)
             {
-                SetSelectedEntity(Entity.Null);
+                if (!additive && !setPrimary) SetSelectedEntity(Entity.Null);
                 return inputDeps;
             }
             NativeList<ArchetypeChunk> chunks = m_TempQuery.ToArchetypeChunkListAsync(Allocator.TempJob, out JobHandle outJobHandle);
@@ -1731,14 +1972,34 @@ namespace ExtraDetailingTools.Systems.Tools
             chunks.Dispose(jobHandle);
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
             jobHandle.Complete();
-            if (!base.EntityManager.HasBuffer<AggregateElement>(selected.Value))
+
+            // With the whole selection highlighted, the vanilla job returns the last Select temp it finds, not
+            // necessarily the hovered one. Nothing hovered keeps the old behaviour (the selection is clicked).
+            Entity hovered = m_LastRaycastEntity;
+            Entity selectedEntity;
+            if (hovered == Entity.Null) selectedEntity = m_SelectedEntity;
+            else if (HasSelectTemp(hovered)) selectedEntity = hovered;
+            else selectedEntity = selected.Value;
+            selected.Dispose();
+
+            if (!base.EntityManager.HasBuffer<AggregateElement>(selectedEntity))
             {
                 m_LastSelectedIndex = -1;
             }
-            if (m_SelectedEntity != selected.Value || m_SelectedIndex != m_LastSelectedIndex)
+
+            if (additive || setPrimary)
             {
-                SelectEntity(selected.Value, m_LastSelectedIndex);
-                PlaySelectedSound(selected.Value, forcePlay: true);
+                if (hovered != Entity.Null && selectedEntity != Entity.Null)
+                {
+                    if (setPrimary) SetPrimaryInSelection(selectedEntity);
+                    else ToggleInSelection(selectedEntity);
+                    PlaySelectedSound(selectedEntity, forcePlay: true);
+                }
+            }
+            else if (m_SelectedEntity != selectedEntity || m_SelectedIndex != m_LastSelectedIndex || (hovered != Entity.Null && m_SelectedEntities.Count > 1))
+            {
+                SelectEntity(selectedEntity, m_LastSelectedIndex);
+                PlaySelectedSound(selectedEntity, forcePlay: true);
             }
             else if (toggleSelected)
             {
@@ -1746,22 +2007,60 @@ namespace ExtraDetailingTools.Systems.Tools
             }
             else
             {
-                PlaySelectedSound(selected.Value);
+                PlaySelectedSound(selectedEntity);
             }
-            selected.Dispose();
             return jobHandle;
         }
 
-        private JobHandle UpdateDefinitions(JobHandle inputDeps, Entity entity, int index, float3 position = default, bool setPosition = false)
+        private bool HasSelectTemp(Entity original)
         {
-            JobHandle jobHandle = DestroyDefinitions(m_DefinitionQuery, m_ToolOutputBarrier, inputDeps);
-            if (entity != Entity.Null)
+            bool found = false;
+            NativeArray<Temp> temps = m_TempQuery.ToComponentDataArray<Temp>(Allocator.Temp);
+            for (int i = 0; i < temps.Length; i++)
             {
+                // The primary of a multi-selection has a Parent temp instead (green highlight).
+                TempFlags selectFlags = original == m_SelectedEntity ? TempFlags.Select | TempFlags.Parent : TempFlags.Select;
+                if (temps[i].m_Original == original && (temps[i].m_Flags & selectFlags) != 0)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            temps.Dispose();
+            return found;
+        }
+
+        // extraEntity: the hovered entity in Default mode, gets a definition on top of the selection.
+        private JobHandle UpdateDefinitions(JobHandle inputDeps, Entity extraEntity, int index)
+        {
+            m_DefinitionsDirty = false;
+            JobHandle jobHandle = DestroyDefinitions(m_DefinitionQuery, m_ToolOutputBarrier, inputDeps);
+
+            List<Entity> entities = GetSelectionRoots();
+            if (extraEntity != Entity.Null && !m_SelectedEntities.Contains(extraEntity) && !IsOwnedBy(extraEntity, m_SelectedEntities))
+            {
+                entities.Add(extraEntity);
+            }
+
+            if (entities.Count > 0)
+            {
+                NativeArray<Entity> definitionEntities = new(entities.Count, Allocator.TempJob);
+                NativeArray<bool> allowHighlights = new(entities.Count, Allocator.TempJob);
+                for (int i = 0; i < entities.Count; i++)
+                {
+                    definitionEntities[i] = entities[i];
+                    allowHighlights[i] = AllowHightlight(entities[i]);
+                }
+                NativeParallelHashSet<Entity> added = new(64, Allocator.TempJob);
+
                 JobHandle jobHandle2 = IJobExtensions.Schedule(new CreateDefinitionsJob
                 {
-                    m_Entity = entity,
-                    m_Position = position,
-                    m_SetPosition = setPosition,
+                    m_Entities = definitionEntities,
+                    m_AllowHighlights = allowHighlights,
+                    m_Primary = m_SelectedEntities.Count > 1 ? m_SelectedEntity : Entity.Null,
+                    m_Added = added,
+                    m_Position = default,
+                    m_SetPosition = false,
                     m_Edges = SystemAPI.GetBufferLookup<ConnectedEdge>(true),
                     m_InstalledUpgrades = SystemAPI.GetBufferLookup<InstalledUpgrade>(true),
                     m_BuildingData = SystemAPI.GetComponentLookup<Building>(true),
@@ -1787,8 +2086,10 @@ namespace ExtraDetailingTools.Systems.Tools
                     m_AggregateElements = SystemAPI.GetBufferLookup<AggregateElement>(true),
                     m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
                     m_MoveSubBuildings = m_MoveSubBuildings,
-                    AllowHighlight = AllowHightlight(entity)
                 }, inputDeps);
+                definitionEntities.Dispose(jobHandle2);
+                allowHighlights.Dispose(jobHandle2);
+                added.Dispose(jobHandle2);
                 m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle2);
                 jobHandle = JobHandle.CombineDependencies(jobHandle, jobHandle2);
                 m_LastSelectedIndex = index;
@@ -1796,22 +2097,27 @@ namespace ExtraDetailingTools.Systems.Tools
             return jobHandle;
         }
 
+        // Idle: gizmo on the selection pivot. Dragging: the gizmo computed by UpdateDrag.
         private JobHandle UpdateGizmos(JobHandle inputDeps)
         {
-            return UpdateGizmos(inputDeps, default, default);
+            if (m_State == State.Dragging)
+            {
+                return UpdateGizmos(inputDeps, true, default, quaternion.identity, true);
+            }
+
+            List<Entity> entities = new();
+            List<Transform> transforms = new();
+            int primaryIndex = CollectRootTransforms(true, entities, transforms);
+            if (entities.Count == 0)
+            {
+                return UpdateGizmos(inputDeps, false, default, quaternion.identity);
+            }
+
+            ComputeGroupPivots(transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, null);
+            return UpdateGizmos(inputDeps, true, gizmoPos, gizmoRot);
         }
 
-        private JobHandle UpdateGizmos(JobHandle inputDeps, float3 position)
-        {
-            return UpdateGizmos(inputDeps, position, default);
-        }
-
-        private JobHandle UpdateGizmos(JobHandle inputDeps, quaternion rotation)
-        {
-            return UpdateGizmos(inputDeps, default, rotation);
-        }
-
-        private JobHandle UpdateGizmos(JobHandle inputDeps, float3 position, quaternion rotation)
+        private JobHandle UpdateGizmos(JobHandle inputDeps, bool hasGizmo, float3 position, quaternion rotation, bool useDragGizmo = false)
         {
             var c = m_HandleQuery.ToEntityListAsync(Allocator.TempJob, out JobHandle dep);
 
@@ -1822,24 +2128,25 @@ namespace ExtraDetailingTools.Systems.Tools
             {
                 m_Mode = m_Mode,
                 m_State = m_State,
-                m_SelectedEntity = m_SelectedEntity,
+                m_HasGizmo = hasGizmo,
                 m_SelectedHandle = m_SelectedHandle,
                 m_Handles = c,
-                m_TransformLookup = SystemAPI.GetComponentLookup<Transform>(true),
-                m_InterpolatedTransformLookup = SystemAPI.GetComponentLookup<InterpolatedTransform>(true),
                 m_GizmosDataLookup = SystemAPI.GetComponentLookup<GizmosData>(true),
                 m_HighlightedLookup = SystemAPI.GetComponentLookup<Highlighted>(true),
                 m_UseLocalAxis = m_UseLocalAxis,
                 m_XZHandleMode = m_XZHandleMode,
                 m_Position = position,
                 m_Rotation = rotation,
+                m_UseDragGizmo = useDragGizmo,
+                m_DragGizmo = m_DragGizmo,
                 m_CommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer(),
                 m_TerrainHeightData = m_TerrainSystem.GetHeightData(),
                 m_CameraPosition = cam.transform.position,
                 m_TanFOV = tanFOV,
                 m_HandleScreenSize = EDT.m_Settings.HandleScreenSize,
-            }, JobHandle.CombineDependencies(inputDeps, dep));
+            }, JobHandle.CombineDependencies(inputDeps, dep, m_DragGizmoDeps));
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
+            m_DragGizmoDeps = jobHandle;
             jobHandle = c.Dispose(jobHandle);
             return jobHandle;
         }
@@ -1856,10 +2163,12 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation)
         {
-            return UpdateObject(inputDeps, entity, position, rotation, m_ToolOutputBarrier);
+            m_UpdateObjectLookups.Update(ref CheckedStateRef);
+            return UpdateObject(inputDeps, entity, position, rotation, m_ToolOutputBarrier, m_UpdateObjectLookups);
         }
 
-        public JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation, SafeCommandBufferSystem ecb)
+        // lookups: those of the calling system (see UpdateObjectLookups), already updated.
+        internal JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position, quaternion rotation, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
         {
             if (entity == Entity.Null) return inputDeps;
 
@@ -1867,13 +2176,13 @@ namespace ExtraDetailingTools.Systems.Tools
             {
                 if (EntityManager.HasComponent<Building>(entity))
                 {
-                    m_TerrainSystem.OnBuildingMoved(m_SelectedEntity);
+                    m_TerrainSystem.OnBuildingMoved(entity);
 
-                    if(EntityManager.TryGetBuffer<InstalledUpgrade>(SelectedEntity, true, out DynamicBuffer<InstalledUpgrade> buffer))
+                    if(EntityManager.TryGetBuffer<InstalledUpgrade>(entity, true, out DynamicBuffer<InstalledUpgrade> buffer))
                     {
                         foreach (var upgrade in buffer)
                         {
-                            if(EntityManager.HasComponent<Building>(upgrade.m_Upgrade)) m_TerrainSystem.OnBuildingMoved(m_SelectedEntity);
+                            if(EntityManager.HasComponent<Building>(upgrade.m_Upgrade)) m_TerrainSystem.OnBuildingMoved(upgrade.m_Upgrade);
                         }
                     }
                 }
@@ -1890,34 +2199,47 @@ namespace ExtraDetailingTools.Systems.Tools
 
                     bool isStaticAndNotBuilding = EntityManager.HasComponent<Static>(entity) && !EntityManager.HasComponent<Building>(entity);
 
-                    if (m_AddPreventOverride && isStaticAndNotBuilding && preventOverride != default && !EntityManager.HasComponent(m_SelectedEntity, preventOverride))
+                    if (m_AddPreventOverride && isStaticAndNotBuilding && preventOverride != default && !EntityManager.HasComponent(entity, preventOverride))
                     {
                         AnarchyBridge.TryAddAnarchyComponent(entity);
                     }
 
                     if (transformLock != default && EntityManager.HasComponent(entity, transformLock))
-                        AnarchyBridge.TryUpdateTransformLockComponent(m_SelectedEntity, newTransform);
+                        AnarchyBridge.TryUpdateTransformLockComponent(entity, newTransform);
                     else if ((m_AddTransformLock && isStaticAndNotBuilding))
-                        AnarchyBridge.TryAddTransformLockComponent(m_SelectedEntity, newTransform);
+                        AnarchyBridge.TryAddTransformLockComponent(entity, newTransform);
                 }
             }
 
+            NativeArray<Entity> entities = new NativeArray<Entity>(1, Allocator.TempJob);
+            NativeArray<Transform> transforms = new NativeArray<Transform>(1, Allocator.TempJob);
+            entities[0] = entity;
+            transforms[0] = new Transform(position, rotation);
+            JobHandle jobHandle = ScheduleUpdateObjects(inputDeps, entities, transforms, ecb, lookups);
+            entities.Dispose(jobHandle);
+            transforms.Dispose(jobHandle);
+            return jobHandle;
+        }
+
+        // entities / transforms: one per entity, a default position / rotation keeps the current one. The main thread
+        // part of UpdateObject (non Temp entities) is not done here.
+        private JobHandle ScheduleUpdateObjects(JobHandle inputDeps, NativeArray<Entity> entities, NativeArray<Transform> transforms, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
+        {
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateObjectJob
             {
-                m_SelectedEntity = entity,
-                m_BuildingLookup = GetComponentLookup<Building>(true),
-                m_TransformLookup = GetComponentLookup<Transform>(true),
-                m_TempLookup = GetComponentLookup<Temp>(true),
-                m_CurveLookup = GetComponentLookup<Curve>(true),
-                m_ServiceUpgradeLookup = GetComponentLookup<ServiceUpgrade>(true),
-                m_InstalledUpgradeLookup = GetBufferLookup<InstalledUpgrade>(true),
-                m_NodeLookup = GetBufferLookup<Node>(true),
-                m_SubAreaLookup = GetBufferLookup<SubArea>(true),
-                m_SubNetLookup = GetBufferLookup<SubNet>(true),
-                m_SubObjectLookup = GetBufferLookup<SubObject>(true),
+                m_Entities = entities,
+                m_Transforms = transforms,
+                m_BuildingLookup = lookups.m_Building,
+                m_TransformLookup = lookups.m_Transform,
+                m_TempLookup = lookups.m_Temp,
+                m_CurveLookup = lookups.m_Curve,
+                m_ServiceUpgradeLookup = lookups.m_ServiceUpgrade,
+                m_InstalledUpgradeLookup = lookups.m_InstalledUpgrade,
+                m_NodeLookup = lookups.m_Node,
+                m_SubAreaLookup = lookups.m_SubArea,
+                m_SubNetLookup = lookups.m_SubNet,
+                m_SubObjectLookup = lookups.m_SubObject,
                 m_MoveSubBuildings = m_MoveSubBuildings,
-                m_Position = position,
-                m_Rotation = rotation,
                 m_CommandBuffer = ecb.CreateCommandBuffer(),
             }, inputDeps);
             ecb.AddJobHandleForProducer(jobHandle);
@@ -1943,26 +2265,226 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             m_Mode = mode;
+            m_DefinitionsDirty = true;
             ModeChanged?.Invoke(m_Mode);
         }
 
         private void SetSelectedEntity(Entity entity)
         {
-            if (m_SelectedEntity == entity)
+            SetSelection(null, entity);
+        }
+
+        // Replaces the whole selection. Null entities and duplicates are dropped, primary is added if missing.
+        private void SetSelection(IEnumerable<Entity> entities, Entity primary)
+        {
+            List<Entity> selection = new();
+            if (entities != null)
             {
-                return;
+                foreach (Entity entity in entities)
+                {
+                    if (entity != Entity.Null && !selection.Contains(entity)) selection.Add(entity);
+                }
             }
 
-            m_SelectedEntity = entity;
-            SelectedEntityChanged?.Invoke(m_SelectedEntity);
+            if (primary != Entity.Null && !selection.Contains(primary)) selection.Add(primary);
+            if (primary == Entity.Null && selection.Count > 0) primary = selection[selection.Count - 1];
+
+            bool selectionChanged = selection.Count != m_SelectedEntities.Count;
+            for (int i = 0; !selectionChanged && i < selection.Count; i++)
+            {
+                selectionChanged = selection[i] != m_SelectedEntities[i];
+            }
+
+            if (selectionChanged)
+            {
+                m_SelectedEntities.Clear();
+                m_SelectedEntities.AddRange(selection);
+                m_DefinitionsDirty = true;
+            }
+
+            if (m_SelectedEntity != primary)
+            {
+                m_SelectedEntity = primary;
+                m_DefinitionsDirty = true;
+                SelectedEntityChanged?.Invoke(m_SelectedEntity);
+            }
+
+            if (selectionChanged)
+            {
+                SelectionChanged?.Invoke(m_SelectedEntities);
+            }
         }
 
         private void SelectEntity(Entity entity, int index = -1)
         {
-            m_UndoHistory.Push(ActionHistory.NewSelect(entity, m_SelectedEntity));
+            Entity previousPrimary = m_SelectedEntity;
+            Entity[] previousSelection = m_SelectedEntities.ToArray();
             SetSelectedEntity(entity);
+            m_UndoHistory.Push(ActionHistory.NewSelect(m_SelectedEntity, m_SelectedEntities.ToArray(), previousPrimary, previousSelection));
             m_SelectedIndex = index;
             SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+        }
+
+        private void SelectEntities(IEnumerable<Entity> entities, Entity primary, bool switchMode)
+        {
+            Entity previousPrimary = m_SelectedEntity;
+            Entity[] previousSelection = m_SelectedEntities.ToArray();
+            SetSelection(new List<Entity>(entities), primary);
+            m_UndoHistory.Push(ActionHistory.NewSelect(m_SelectedEntity, m_SelectedEntities.ToArray(), previousPrimary, previousSelection));
+            m_SelectedIndex = -1;
+            if (switchMode) SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
+        }
+
+        // Shift+Click: adds the entity (it becomes the primary one) or removes it.
+        private void ToggleInSelection(Entity entity)
+        {
+            List<Entity> selection = new(m_SelectedEntities);
+            Entity primary;
+            if (selection.Remove(entity))
+            {
+                primary = m_SelectedEntity != entity ? m_SelectedEntity : (selection.Count > 0 ? selection[selection.Count - 1] : Entity.Null);
+            }
+            else
+            {
+                selection.Add(entity);
+                primary = entity;
+            }
+            SelectEntities(selection, primary, switchMode: false);
+            if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default);
+        }
+
+        // Alt+Click: the entity becomes the primary one, added to the selection if needed.
+        private void SetPrimaryInSelection(Entity entity)
+        {
+            if (entity == m_SelectedEntity) return;
+            List<Entity> selection = new(m_SelectedEntities);
+            if (!selection.Contains(entity)) selection.Add(entity);
+            SelectEntities(selection, entity, switchMode: false);
+        }
+
+        // Drops deleted entities (undo of a duplicate, removed by another tool, ...).
+        private void ValidateSelection()
+        {
+            bool invalid = false;
+            foreach (Entity entity in m_SelectedEntities)
+            {
+                if (!EntityManager.Exists(entity) || EntityManager.HasComponent<Deleted>(entity))
+                {
+                    invalid = true;
+                    break;
+                }
+            }
+
+            if (!invalid) return;
+
+            List<Entity> valid = new();
+            foreach (Entity entity in m_SelectedEntities)
+            {
+                if (EntityManager.Exists(entity) && !EntityManager.HasComponent<Deleted>(entity)) valid.Add(entity);
+            }
+
+            SetSelection(valid, valid.Contains(m_SelectedEntity) ? m_SelectedEntity : Entity.Null);
+            if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default);
+        }
+
+        // Selected entities that aren't owned (directly or not) by another selected entity, the owner moves them already.
+        private List<Entity> GetSelectionRoots()
+        {
+            List<Entity> roots = new();
+            foreach (Entity entity in m_SelectedEntities)
+            {
+                if (!EntityManager.Exists(entity)) continue;
+                if (IsOwnedBy(entity, m_SelectedEntities)) continue;
+                roots.Add(entity);
+            }
+            return roots;
+        }
+
+        private bool IsOwnedBy(Entity entity, List<Entity> owners)
+        {
+            Entity current = entity;
+            for (int guard = 0; guard < 32 && EntityManager.TryGetComponent(current, out Owner owner) && owner.m_Owner != Entity.Null; guard++)
+            {
+                if (owner.m_Owner != entity && owners.Contains(owner.m_Owner)) return true;
+                current = owner.m_Owner;
+            }
+            return false;
+        }
+
+        // Selection roots with a Transform. Returns the index of the primary entity (or of the root that owns it).
+        private int CollectRootTransforms(bool interpolated, List<Entity> entities, List<Transform> transforms)
+        {
+            entities.Clear();
+            transforms.Clear();
+            foreach (Entity entity in GetSelectionRoots())
+            {
+                Transform transform;
+                if (interpolated && EntityManager.TryGetComponent(entity, out InterpolatedTransform interpolatedTransform))
+                {
+                    transform = interpolatedTransform.ToTransform();
+                }
+                else if (!EntityManager.TryGetComponent(entity, out transform))
+                {
+                    continue;
+                }
+                entities.Add(entity);
+                transforms.Add(transform);
+            }
+
+            Entity current = m_SelectedEntity;
+            for (int guard = 0; guard < 32 && current != Entity.Null; guard++)
+            {
+                int index = entities.IndexOf(current);
+                if (index >= 0) return index;
+                current = EntityManager.TryGetComponent(current, out Owner owner) ? owner.m_Owner : Entity.Null;
+            }
+            return entities.Count - 1;
+        }
+
+        private void ComputeGroupPivots(List<Transform> transforms, int primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, float3[] pivots)
+        {
+            NativeArray<Transform> transformArray = new(transforms.Count, Allocator.Temp);
+            NativeArray<float3> pivotArray = new(transforms.Count, Allocator.Temp);
+            for (int i = 0; i < transforms.Count; i++)
+            {
+                transformArray[i] = transforms[i];
+            }
+
+            ComputePivots(transformArray, primaryIndex, m_PivotSettings, out gizmoPos, out gizmoRot, pivotArray);
+
+            if (pivots != null)
+            {
+                for (int i = 0; i < pivots.Length && i < pivotArray.Length; i++)
+                {
+                    pivots[i] = pivotArray[i];
+                }
+            }
+
+            transformArray.Dispose();
+            pivotArray.Dispose();
+        }
+
+        private ActionHistory CaptureTransforms(Entity[] entities)
+        {
+            Transform[] transforms = new Transform[entities.Length];
+            for (int i = 0; i < entities.Length; i++)
+            {
+                EntityManager.TryGetComponent(entities[i], out transforms[i]);
+            }
+            return ActionHistory.NewTransform(entities, transforms);
+        }
+
+        private JobHandle RestoreTransforms(JobHandle inputDeps, ActionHistory actionHistory)
+        {
+            for (int i = 0; i < actionHistory.Entities.Length; i++)
+            {
+                Entity entity = actionHistory.Entities[i];
+                if (!EntityManager.Exists(entity) || !EntityManager.HasComponent<Transform>(entity)) continue;
+
+                Transform transform = actionHistory.Transforms[i];
+                inputDeps = UpdateObject(inputDeps, entity, transform.m_Position, transform.m_Rotation);
+            }
+            return inputDeps;
         }
 
         public void SnapOnGround()
@@ -1987,9 +2509,10 @@ namespace ExtraDetailingTools.Systems.Tools
             cancelAction.shouldBeEnabled = enable;
         }
 
-        private void StartDragging(RaycastHit raycastHit)   
+        private void StartDragging(RaycastHit raycastHit)
         {
             m_SelectedTempEntity = Entity.Null;
+            m_DragEntries.Clear();
             if (m_TempQuery.IsEmptyIgnoreFilter)
             {
                 EDT.Logger.Warn("Try to drag but no temp found.");
@@ -1997,8 +2520,19 @@ namespace ExtraDetailingTools.Systems.Tools
                 return;
             }
 
-            Temp temp = default;
+            if (!EntityManager.TryGetComponent<TransformGizmosHandle>(raycastHit.m_HitEntity, out var component))
+            {
+                SetState(State.Idle);
+                return;
+            }
 
+            List<Entity> entities = new();
+            List<Transform> transforms = new();
+            int primaryIndex = CollectRootTransforms(false, entities, transforms);
+
+            // Temp of each selection root.
+            Dictionary<Entity, Entity> tempEntities = new();
+            Dictionary<Entity, Temp> temps = new();
             NativeArray<ArchetypeChunk> chunks = m_TempQuery.ToArchetypeChunkArray(Allocator.TempJob);
 
             try
@@ -2010,22 +2544,18 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     ArchetypeChunk chunk = chunks[i];
 
-                    NativeArray<Entity> entities = chunk.GetNativeArray(entityHandle);
-                    NativeArray<Temp> temps = chunk.GetNativeArray(ref tempHandle);
+                    NativeArray<Entity> chunkEntities = chunk.GetNativeArray(entityHandle);
+                    NativeArray<Temp> chunkTemps = chunk.GetNativeArray(ref tempHandle);
 
-                    for (int j = 0; j < entities.Length; j++)
+                    for (int j = 0; j < chunkEntities.Length; j++)
                     {
-                        temp = temps[j];
-
-                        if(temp.m_Original == m_SelectedEntity)
+                        Temp temp = chunkTemps[j];
+                        if (!tempEntities.ContainsKey(temp.m_Original) && entities.Contains(temp.m_Original))
                         {
-                            m_SelectedTempEntity = entities[j];
-                            break;
+                            tempEntities.Add(temp.m_Original, chunkEntities[j]);
+                            temps.Add(temp.m_Original, temp);
                         }
                     }
-
-                    if (m_SelectedTempEntity != Entity.Null)
-                        break;
                 }
             }
             finally
@@ -2033,153 +2563,130 @@ namespace ExtraDetailingTools.Systems.Tools
                 chunks.Dispose();
             }
 
-            if (m_SelectedTempEntity != Entity.Null && EntityManager.TryGetComponent(m_SelectedEntity, out Transform transform) && EntityManager.TryGetComponent<TransformGizmosHandle>(raycastHit.m_HitEntity, out var component))
+            Entity primaryEntity = primaryIndex >= 0 ? entities[primaryIndex] : Entity.Null;
+            for (int i = entities.Count - 1; i >= 0; i--)
             {
-                m_SelectedHandle = component.Handle;
-
-                m_DragStartGizmoPos = transform.m_Position;
-                m_DragStartGizmoRot = transform.m_Rotation;
-
-                if(m_XZHandleMode != XZHandleMode.FollowSurface || m_SelectedHandle != Handle.XZ)
-                {
-                    float3 axisDir = GetSelectedAxisDirection(m_SelectedHandle);
-                    Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                    Plane dragPlane = CreateDragPlane(axisDir, m_DragStartGizmoPos);
-
-                    if (dragPlane.Raycast(ray, out float enter))
-                    {
-                        m_DragStartMouseHitPos = ray.origin + ray.direction * enter;
-                        if (m_Mode == Mode.Rotate)
-                        {
-                            m_DragStartMouseHitPos = math.normalize(m_DragStartMouseHitPos - m_DragStartGizmoPos);
-                        }
-                    }
-                    else
-                    {
-                        m_DragStartMouseHitPos = m_DragStartGizmoPos;
-                    }
-                }
-
-                EntityCommandBuffer entityCommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer();
-                temp.m_Flags |= TempFlags.Dragging;
-                entityCommandBuffer.SetComponent(m_SelectedTempEntity, temp);
-                entityCommandBuffer.AddComponent(m_SelectedTempEntity, default(Updated));
-
-                if(AnarchyBridge.IsAvailable)
-                {
-                    ComponentType preventOverride = AnarchyBridge.GetAnarchyComponentType();
-                    if (preventOverride != default && EntityManager.HasComponent(m_SelectedEntity, preventOverride))
-                    {
-                        entityCommandBuffer.RemoveComponent(m_SelectedEntity, preventOverride);
-                    }
-                }
-
-                entityCommandBuffer.AddComponent<Overridden>(m_SelectedEntity);
-                SetState(State.Dragging);
+                if (tempEntities.ContainsKey(entities[i])) continue;
+                entities.RemoveAt(i);
+                transforms.RemoveAt(i);
             }
-            else
+
+            if (entities.Count == 0)
             {
                 EDT.Logger.Warn("Try to drag but m_SelectedTempEntity was null.");
                 SetState(State.Idle);
+                return;
             }
+
+            primaryIndex = math.max(entities.IndexOf(primaryEntity), 0);
+
+            // Pivots are frozen until StopDragging, recomputing them would make them follow the objects.
+            float3[] pivots = new float3[entities.Count];
+            ComputeGroupPivots(transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, pivots);
+
+            for (int i = 0; i < entities.Count; i++)
+            {
+                m_DragEntries.Add(new DragEntry
+                {
+                    Original = entities[i],
+                    Temp = tempEntities[entities[i]],
+                    StartTransform = transforms[i],
+                    Pivot = pivots[i],
+                });
+            }
+
+            m_DragPrimaryIndex = primaryIndex;
+            m_SelectedTempEntity = m_DragEntries[primaryIndex].Temp;
+            m_SelectedHandle = component.Handle;
+
+            m_DragStartGizmoPos = gizmoPos;
+            m_DragStartGizmoRot = gizmoRot;
+            m_DragStartPrimaryRot = transforms[primaryIndex].m_Rotation;
+            // The gizmo jobs of the previous frames may still use it.
+            m_DragGizmoDeps.Complete();
+            m_DragGizmo.Value = new DragGizmoResult { m_Position = gizmoPos, m_Rotation = gizmoRot };
+
+            if(m_XZHandleMode != XZHandleMode.FollowSurface || m_SelectedHandle != Handle.XZ)
+            {
+                float3 axisDir = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot);
+                Camera camera = Camera.main;
+                Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+                bool axisIsNormal = m_Mode == Mode.Rotate || m_SelectedHandle == Handle.XZ;
+
+                if (RaycastDragPlane(ray.origin, ray.direction, axisDir, m_DragStartGizmoPos, axisIsNormal, camera.transform.right, camera.transform.forward, out float3 hitPos))
+                {
+                    m_DragStartMouseHitPos = hitPos;
+                    if (m_Mode == Mode.Rotate)
+                    {
+                        m_DragStartMouseHitPos = math.normalize(m_DragStartMouseHitPos - m_DragStartGizmoPos);
+                    }
+                }
+                else
+                {
+                    m_DragStartMouseHitPos = m_DragStartGizmoPos;
+                }
+            }
+
+            EntityCommandBuffer entityCommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer();
+            ComponentType preventOverride = AnarchyBridge.IsAvailable ? AnarchyBridge.GetAnarchyComponentType() : default;
+
+            foreach (DragEntry entry in m_DragEntries)
+            {
+                Temp temp = temps[entry.Original];
+                temp.m_Flags |= TempFlags.Dragging;
+                // Restored by the definitions recreated once back to Idle.
+                if (!AllowDragHightlight(entry.Original)) temp.m_Flags &= ~(TempFlags.Select | TempFlags.Parent);
+                entityCommandBuffer.SetComponent(entry.Temp, temp);
+                entityCommandBuffer.AddComponent(entry.Temp, default(Updated));
+
+                if (preventOverride != default && EntityManager.HasComponent(entry.Original, preventOverride))
+                {
+                    entityCommandBuffer.RemoveComponent(entry.Original, preventOverride);
+                }
+
+                entityCommandBuffer.AddComponent<Overridden>(entry.Original);
+            }
+
+            SetState(State.Dragging);
         }
 
         private void StopDragging()
         {
-            if (m_SelectedTempEntity != Entity.Null)
+            if (m_DragEntries.Count > 0)
             {
                 EntityCommandBuffer entityCommandBuffer = m_ToolOutputBarrier.CreateCommandBuffer();
-                Temp temp = GetComponentLookup<Temp>(true)[m_SelectedTempEntity];
-                temp.m_Flags &= ~TempFlags.Dragging;
-                entityCommandBuffer.SetComponent(m_SelectedTempEntity, temp);
-                entityCommandBuffer.AddComponent(m_SelectedTempEntity, default(Updated));
-                entityCommandBuffer.RemoveComponent<Overridden>(m_SelectedEntity);
+                foreach (DragEntry entry in m_DragEntries)
+                {
+                    if (EntityManager.TryGetComponent(entry.Temp, out Temp temp))
+                    {
+                        temp.m_Flags &= ~TempFlags.Dragging;
+                        entityCommandBuffer.SetComponent(entry.Temp, temp);
+                        entityCommandBuffer.AddComponent(entry.Temp, default(Updated));
+                    }
+                    entityCommandBuffer.RemoveComponent<Overridden>(entry.Original);
+                }
             }
             else
             {
                 EDT.Logger.Warn("Try to stop dragging but m_SelectedTempEntity was null.");
             }
+            m_DragEntries.Clear();
             m_SelectedTempEntity = Entity.Null;
             m_SelectedHandle = Handle.None;
             SetState(State.Idle);
         }
 
-        private float3 SnapPositionToGrid(float3 origin, float3 pos)
+        // rot: the gizmo rotation (identity in Global orientation).
+        private float3 GetSelectedAxisDirection(Handle handle, quaternion rot)
         {
-            float step = (float)m_PosOffset;
-            if (step <= 0f)
-                return pos;
-
-            quaternion rot = quaternion.identity;
-            if (m_UseLocalAxis && EntityManager.TryGetComponent(m_SelectedEntity, out Transform transform))
-            {
-                rot = transform.m_Rotation;
-            }
-
-            float3 right = math.rotate(rot, new float3(1, 0, 0));
-            float3 up = math.rotate(rot, new float3(0, 1, 0));
-            float3 forward = math.rotate(rot, new float3(0, 0, 1));
-
-            float3 delta = pos - origin;
-            float3 localDelta = new float3(
-                math.dot(delta, right),
-                math.dot(delta, up),
-                math.dot(delta, forward)
-            );
-
-            localDelta = math.round(localDelta / step) * step;
-
-            return origin + right * localDelta.x + up * localDelta.y + forward * localDelta.z;
-        }
-
-        private float SnapAngleToGrid(float angle)
-        {
-            float stepRad = math.radians((float)m_RotOffset);
-            if (stepRad <= 0f)
-                return angle;
-
-            return math.round(angle / stepRad) * stepRad;
-        }
-
-        private Plane CreateDragPlane(float3 axisDir, float3 gizmoCenter)
-        {
-            if(m_Mode == Mode.Rotate || m_SelectedHandle == Handle.XZ)
-                return new Plane(axisDir, gizmoCenter);
-
-            // Camera vectors
-            float3 camForward = Camera.main.transform.forward;
-            float3 camRight = Camera.main.transform.right;
-
-            // Try to build a plane perpendicular to the axis using camRight
-            float3 planeNormal = math.normalize(math.cross(axisDir, camRight));
-
-            // If axis is parallel to camRight, fallback to camForward
-            if (math.lengthsq(planeNormal) < 1e-6f)
-                planeNormal = math.normalize(math.cross(axisDir, camForward));
-
-            return new Plane(planeNormal, gizmoCenter);
-        }
-
-        private float3 GetSelectedAxisDirection(Handle handle)
-        {
-            quaternion rot;
-            if (m_UseLocalAxis && EntityManager.TryGetComponent(m_SelectedEntity, out Transform transform))
-            {
-                rot = transform.m_Rotation;
-            }
-            else
-            {
-                rot = quaternion.identity;
-            }
-
             if (handle == Handle.X)
-                return m_UseLocalAxis ? math.rotate(rot, new float3(1, 0, 0)) : new float3(1, 0, 0);
+                return math.rotate(rot, new float3(1, 0, 0));
 
             if (handle == Handle.Y)
-                return m_UseLocalAxis ? math.rotate(rot, new float3(0, 1, 0)) : new float3(0, 1, 0);
+                return math.rotate(rot, new float3(0, 1, 0));
 
             if (handle == Handle.Z)
-                return m_UseLocalAxis ? math.rotate(rot, new float3(0, 0, 1)) : new float3(0, 0, 1);
+                return math.rotate(rot, new float3(0, 0, 1));
 
             if (handle == Handle.XZ)
             {
@@ -2190,60 +2697,31 @@ namespace ExtraDetailingTools.Systems.Tools
                         return new float3(0, 1, 0);
 
                     case XZHandleMode.FixedX:
-                        return m_UseLocalAxis ? math.rotate(rot, new float3(1, 0, 0)) : new float3(1, 0, 0);
+                        return math.rotate(rot, new float3(1, 0, 0));
 
                     case XZHandleMode.FixedZ:
-                        return m_UseLocalAxis ? math.rotate(rot, new float3(0, 0, 1)) : new float3(0, 0, 1);
+                        return math.rotate(rot, new float3(0, 0, 1));
                 }
             }
-                
+
             return float3.zero;
         }
 
-        // Unity.Mathematics has no FromToRotation - shortest rotation that takes "from" onto "to", built
-        // from the standard axis/angle-between-two-vectors construction (atan2(|cross|, dot) is the robust
-        // way to get the angle, avoiding the precision loss acos(dot) has near 0/180 degrees).
-        private static quaternion ShortestRotation(float3 from, float3 to)
-        {
-            // NaN comparisons are always false, so a degenerate input wouldn't be caught by the
-            // axisLength < 1e-6f check below - it'd fall through to atan2/AxisAngle and silently produce a
-            // NaN quaternion instead. Matches LookRotationSafe's own isfinite guard.
-            if (!math.all(math.isfinite(from)) || !math.all(math.isfinite(to)))
-            {
-                return quaternion.identity;
-            }
-
-            float3 axis = math.cross(from, to);
-            float axisLength = math.length(axis);
-            float dot = math.dot(from, to);
-
-            if (axisLength < 1e-6f)
-            {
-                if (dot > 0f)
-                {
-                    return quaternion.identity;
-                }
-
-                // from/to are anti-parallel - cross product can't give an axis, pick any perpendicular one.
-                float3 reference = math.abs(from.x) < 0.99f ? new float3(1f, 0f, 0f) : new float3(0f, 1f, 0f);
-                float3 perpendicular = math.normalize(math.cross(from, reference));
-                return quaternion.AxisAngle(perpendicular, math.PI);
-            }
-
-            float angle = math.atan2(axisLength, dot);
-            return quaternion.AxisAngle(axis / axisLength, angle);
-        }
-
+        // Idle: the selection stays highlighted in Move / Rotate too, to see what Shift+Click / Alt+Click change.
         private bool AllowHightlight(Entity entity)
         {
-            if (m_Mode == Mode.Default) return true;
+            return m_Mode == Mode.Default || m_AllowHightlight != AllowHightlightState.Disabled;
+        }
 
+        // While dragging, the highlight hides where the objects go: removed from the dragged temps (see StartDragging).
+        private bool AllowDragHightlight(Entity entity)
+        {
             if (m_AllowHightlight == AllowHightlightState.Enabled) return true;
             if (m_AllowHightlight == AllowHightlightState.Disabled) return false;
 
             if (EntityManager.HasComponent<Building>(entity)
                 || EntityManager.HasBuffer<SubObject>(entity)
-            ) 
+            )
                 return true;
 
             return false;
@@ -2259,10 +2737,88 @@ namespace ExtraDetailingTools.Systems.Tools
                         return target == Entity.Null || EntityManager.Exists(target);
                     }
                 case ActionType.Create:
-                    return actionHistory.Entity != Entity.Null && EntityManager.Exists(actionHistory.Entity);
-                default: // Move, Rotate
-                    return actionHistory.Entity != Entity.Null && EntityManager.Exists(actionHistory.Entity) && EntityManager.HasComponent<Transform>(actionHistory.Entity);
+                    return FilterExisting(forRedo ? actionHistory.PreviousSelection : actionHistory.Entities).Count > 0;
+                case ActionType.Transform:
+                    {
+                        if (actionHistory.Entities == null) return false;
+                        foreach (Entity entity in actionHistory.Entities)
+                        {
+                            if (entity != Entity.Null && EntityManager.Exists(entity) && EntityManager.HasComponent<Transform>(entity)) return true;
+                        }
+                        return false;
+                    }
+                default:
+                    return false;
             }
+        }
+
+        // Transform panel with more than one entity selected: the primary entity goes to primaryTarget, and the same
+        // world offset / rotation delta is applied to each selection root, rotating around the current pivots like a
+        // gizmo drag would. lookups: those of the calling system, already updated.
+        internal JobHandle TransformSelection(JobHandle inputDeps, Transform primaryTarget, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
+        {
+            List<Entity> entities = new();
+            List<Transform> transforms = new();
+            int primaryIndex = CollectRootTransforms(false, entities, transforms);
+            if (entities.Count == 0) return inputDeps;
+
+            float3 positionOffset = primaryTarget.m_Position - transforms[primaryIndex].m_Position;
+            quaternion rotationDelta = math.mul(primaryTarget.m_Rotation, math.inverse(transforms[primaryIndex].m_Rotation));
+
+            float3[] pivots = new float3[entities.Count];
+            ComputeGroupPivots(transforms, primaryIndex, out _, out _, pivots);
+
+            for (int i = 0; i < entities.Count; i++)
+            {
+                Transform start = transforms[i];
+                float3 position = pivots[i] + positionOffset + math.mul(rotationDelta, start.m_Position - pivots[i]);
+                quaternion rotation = math.normalize(math.mul(rotationDelta, start.m_Rotation));
+                inputDeps = UpdateObject(inputDeps, entities[i], position, rotation, ecb, lookups);
+            }
+            return inputDeps;
+        }
+
+        // The whole selection is duplicated, so every entity in it must be copyable. Shared by the
+        // Duplicate shortcut and the UI button.
+        public bool CanDuplicateSelection()
+        {
+            if (m_SelectedEntities.Count == 0) return false;
+            foreach (Entity entity in m_SelectedEntities)
+            {
+                if (!IsCopyable(entity)) return false;
+            }
+            return true;
+        }
+
+        public bool IsCopyable(Entity entity)
+        {
+            // Maybe also exclude Owner ?
+            return EntityManager.HasComponent<Game.Objects.Object>(entity) &&
+                EntityManager.HasComponent<Transform>(entity) &&
+                EntityManager.HasComponent<PrefabRef>(entity) &&
+                !EntityManager.HasComponent<Building>(entity) &&
+                !EntityManager.HasComponent<Game.Buildings.Extension>(entity) &&
+                !EntityManager.HasComponent<Game.Objects.Moving>(entity) &&
+                !EntityManager.HasComponent<Temp>(entity) &&
+                !EntityManager.HasComponent<Deleted>(entity);
+        }
+
+        // SetSelection without the entities deleted since the history entry was made.
+        private void SetSelectionFiltered(Entity[] entities, Entity primary)
+        {
+            List<Entity> existing = FilterExisting(entities);
+            SetSelection(existing, existing.Contains(primary) ? primary : Entity.Null);
+        }
+
+        private List<Entity> FilterExisting(Entity[] entities)
+        {
+            List<Entity> result = new();
+            if (entities == null) return result;
+            foreach (Entity entity in entities)
+            {
+                if (entity != Entity.Null && EntityManager.Exists(entity) && !EntityManager.HasComponent<Deleted>(entity)) result.Add(entity);
+            }
+            return result;
         }
     }
 }

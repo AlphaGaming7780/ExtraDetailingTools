@@ -1,18 +1,43 @@
+// Matches a classic tool options Section (item + label + content): same row height, label
+// and button placement, the foldout arrow and the expanded content added on the right / below.
 .foldout {
     flex-direction: column !important;
     align-items: stretch !important;
 }
 
+.header {
+    flex: 1 1 0%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+// The buttons get half a gap above and below instead of the classic gap3 margin-bottom only,
+// so they don't touch the row edges and stay centered on the label.
+.headerContent {
+    padding-top: calc(var(--gap3) / 2);
+    padding-bottom: calc(var(--gap3) / 2);
+    row-gap: var(--gap3);
+}
+
+.foldout .headerContent > * {
+    margin-bottom: 0;
+}
+
 .content {
     display: flex;
     flex-direction: column;
-    row-gap: var(--gap5);
+    // The children are classic Sections, their own 4rem vertical padding already spaces them
+    // like the rows outside the foldout.
+    row-gap: 0;
     column-gap: var(--gap5);
     background-color: var(--sectionBackgroundColor);
     border-top-left-radius: var(--panelRadiusInner);
     border-top-right-radius: var(--panelRadiusInner);
     border-bottom-right-radius: var(--panelRadiusInner);
     border-bottom-left-radius: var(--panelRadiusInner);
+    margin-top: calc(var(--gap3) / 2);
+    margin-bottom: calc(var(--gap3) / 2);
     padding-top: var(--gap6);
     padding-right: var(--gap6);
     padding-bottom: var(--gap6);

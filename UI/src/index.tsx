@@ -25,7 +25,7 @@ const register: ModRegistrar = (moduleRegistry) => {
     // Show Transform tool panel in Visual tab
     // moduleRegistry.extend("game-ui/game/components/selected-info-panel/selected-info-sections/selected-info-sections.tsx", 'CUSTOMIZE_TAB_SECTIONS', CustomizeTabSections as any);
 
-    moduleRegistry.append('UniversalModMenu', TransformGizmosToolButton);
+    // moduleRegistry.append('UniversalModMenu', TransformGizmosToolButton);
     // moduleRegistry.append('Menu', HelloWorldComponent);
     moduleRegistry.append('Game', RegisterTransformPanel);
     moduleRegistry.append('Editor', RegisterTransformPanel);

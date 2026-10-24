@@ -13,12 +13,13 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
 
         public override string Icon => "coui://extradetailingtools/Icons/TransformGizmosTool/Icon.svg";
 
-        protected override bool m_ShowInSelector => false;
+        protected override bool m_ShowInSelector => true;
         protected override bool m_CanFullScreen => false;
 
-        public override float2 PanelMinSize => new float2(400, 165+48);
+        public override float2 PanelMinSize => new float2(400, 165);
 
         private ToolSystem m_ToolSystem;
+        private DefaultToolSystem m_DefaultToolSystem;
         private TransformGizmoTool m_TransformGizmoTool;
         private TransformUISystem m_TransformUISystem;
 
@@ -27,6 +28,7 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             base.OnCreate();
             EDT.Logger.Info("TransformPanel OnCreate");
             m_ToolSystem = World.GetExistingSystemManaged<ToolSystem>();
+            m_DefaultToolSystem = World.GetOrCreateSystemManaged<DefaultToolSystem>();
             m_TransformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
             m_TransformUISystem = World.GetOrCreateSystemManaged<TransformUISystem>();
             m_TransformGizmoTool.SelectedEntityChanged += OnSelectedEntityChanged;
@@ -49,6 +51,19 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
         {
             base.OnUpdate();
             SetVisible(m_TransformGizmoTool == m_ToolSystem.activeTool);
+        }
+
+        public override void OnOpen()
+        {
+            m_ToolSystem.activeTool = m_TransformGizmoTool;
+            base.OnOpen();
+        }
+
+        public override void OnClose()
+        {
+            if (m_TransformGizmoTool == m_ToolSystem.activeTool)
+                m_ToolSystem.activeTool = m_DefaultToolSystem;
+            base.OnClose();
         }
 
         protected override void OnPreProcess()

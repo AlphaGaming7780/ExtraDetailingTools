@@ -1,4 +1,5 @@
-﻿using Colossal.UI.Binding;
+﻿using Colossal.Entities;
+using Colossal.UI.Binding;
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI.TransformPanel;
 using ExtraLib.Systems.UI.ExtraPanels;
@@ -31,10 +32,15 @@ namespace ExtraDetailingTools.Systems.UI
         private ValueBinding<bool> m_HasSubBuildingsValueBinding;
         private GetterValueBinding<bool> m_MoveSubBuildingsValueGetter;
         private GetterValueBinding<int> m_XZHandleModeValueGetter;
+        private GetterValueBinding<bool> m_UprightValueGetter;
         private GetterValueBinding<int> m_RaycastFilterValueGetter;
         private GetterValueBinding<bool> m_AnarchyAvailableValueGetter;
         private GetterValueBinding<bool> m_AddPreventOverrideValueGetter;
         private GetterValueBinding<bool> m_AddTransformLockValueGetter;
+
+        // Multi selection bindings
+        private GetterValueBinding<int> m_PivotAggregationValueGetter;
+        private ValueBinding<int> m_SelectionCountValueBinding;
 
         // Grid bindings
         private GetterValueBinding<bool> m_GridEnabledValueGetter;
@@ -47,6 +53,7 @@ namespace ExtraDetailingTools.Systems.UI
             m_TransformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
             m_TransformGizmoTool.ModeChanged += OnToolModeChanged;
             m_TransformGizmoTool.SelectedEntityChanged += OnSelectedEntityChanged;
+            m_TransformGizmoTool.SelectionChanged += OnSelectionChanged;
             m_ToolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
             m_ExtraPanelsUISystem = World.GetOrCreateSystemManaged<ExtraPanelsUISystem>();
             m_TransformExtraPanel = m_ExtraPanelsUISystem.AddExtraPanel<TransformExtraPanel>();
@@ -57,8 +64,8 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(m_LocalAxisValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", () => m_TransformGizmoTool.m_UseLocalAxis));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", SetUseLocalAxis));
 
-            AddBinding(m_IsCopyableValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.IsCopyable", IsCopyable(m_TransformGizmoTool.SelectedEntity)));
-            AddBinding(m_HasSubBuildingsValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.HasSubBuildings", true));
+            AddBinding(m_IsCopyableValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.IsCopyable", m_TransformGizmoTool.CanDuplicateSelection()));
+            AddBinding(m_HasSubBuildingsValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.HasSubBuildings", HasSubBuildings(m_TransformGizmoTool.SelectedEntities)));
             AddBinding(m_MoveSubBuildingsValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", () => m_TransformGizmoTool.m_MoveSubBuildings));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", SetMoveSubBuildings));
 
@@ -67,6 +74,8 @@ namespace ExtraDetailingTools.Systems.UI
 
             AddBinding(m_XZHandleModeValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.XZHandleMode", () => (int)m_TransformGizmoTool.xzHandleMode));
             AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.XZHandleMode", SetXZHandleMode));
+            AddBinding(m_UprightValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.Upright", () => m_TransformGizmoTool.m_Upright));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.Upright", SetUpright));
 
             AddBinding(m_RaycastFilterValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.RaycastFilter", () => (int)m_TransformGizmoTool.raycastFilter));
             AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.RaycastFilter", SetRaycastFilter));
@@ -88,6 +97,10 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.GridEnabled", SetGridEnabled));
             AddBinding(new TriggerBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffset", SetPosOffset));
             AddBinding(new TriggerBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffset", SetRotOffset));
+
+            AddBinding(m_PivotAggregationValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotAggregation", () => (int)m_TransformGizmoTool.pivotAggregation));
+            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotAggregation", SetPivotAggregation));
+            AddBinding(m_SelectionCountValueBinding = new ValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.SelectionCount", m_TransformGizmoTool.SelectionCount));
         }
 
         protected override void OnUpdate()
@@ -102,6 +115,7 @@ namespace ExtraDetailingTools.Systems.UI
         protected override void OnDestroy()
         {
             m_TransformGizmoTool.ModeChanged -= OnToolModeChanged;
+            m_TransformGizmoTool.SelectionChanged -= OnSelectionChanged;
             base.OnDestroy();
         }
 
@@ -112,20 +126,29 @@ namespace ExtraDetailingTools.Systems.UI
 
         private void OnSelectedEntityChanged(Entity entity)
         {
-            m_IsCopyableValueBinding.Update(IsCopyable(entity));
+            m_IsCopyableValueBinding.Update(m_TransformGizmoTool.CanDuplicateSelection());
         }
 
-        private bool IsCopyable(Entity entity)
+        private void OnSelectionChanged(IReadOnlyList<Entity> selection)
         {
-            // Maybe also exclude Owner ?
-            return EntityManager.HasComponent<Game.Objects.Object>(entity) &&
-                EntityManager.HasComponent<Game.Objects.Transform>(entity) &&
-                EntityManager.HasComponent<PrefabRef>(entity) &&
-                !EntityManager.HasComponent<Game.Buildings.Building>(entity) &&
-                !EntityManager.HasComponent<Game.Buildings.Extension>(entity) &&
-                !EntityManager.HasComponent<Game.Objects.Moving>(entity) &&
-                !EntityManager.HasComponent<Temp>(entity) &&
-                !EntityManager.HasComponent<Deleted>(entity);
+            m_SelectionCountValueBinding.Update(selection.Count);
+            m_IsCopyableValueBinding.Update(m_TransformGizmoTool.CanDuplicateSelection());
+            m_HasSubBuildingsValueBinding.Update(HasSubBuildings(selection));
+        }
+
+        // MoveSubBuildings only matters when an installed upgrade is a building.
+        private bool HasSubBuildings(IReadOnlyList<Entity> selection)
+        {
+            if (selection == null) return false;
+            foreach (Entity entity in selection)
+            {
+                if (!EntityManager.TryGetBuffer(entity, true, out DynamicBuffer<Game.Buildings.InstalledUpgrade> upgrades)) continue;
+                foreach (Game.Buildings.InstalledUpgrade upgrade in upgrades)
+                {
+                    if (EntityManager.HasComponent<Game.Buildings.Building>(upgrade.m_Upgrade)) return true;
+                }
+            }
+            return false;
         }
 
         public void EnableTransformGizmoTool()
@@ -167,6 +190,12 @@ namespace ExtraDetailingTools.Systems.UI
         {
             m_TransformGizmoTool.xzHandleMode = value;
             m_XZHandleModeValueGetter.Update();
+        }
+
+        public void SetUpright(bool enabled)
+        {
+            m_TransformGizmoTool.m_Upright = enabled;
+            m_UprightValueGetter.Update();
         }
 
         public void SetRaycastFilter(int value)
@@ -218,6 +247,12 @@ namespace ExtraDetailingTools.Systems.UI
         {
             m_TransformGizmoTool.m_RotOffset = value;
             m_RotOffsetValueGetter.Update();
+        }
+
+        public void SetPivotAggregation(int value)
+        {
+            m_TransformGizmoTool.pivotAggregation = (TransformGizmoTool.PivotAggregation)value;
+            m_PivotAggregationValueGetter.Update();
         }
     }
 }

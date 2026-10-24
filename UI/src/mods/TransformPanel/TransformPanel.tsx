@@ -63,18 +63,6 @@ interface InputsProps {
 	onPast: (id: string, axis: string) => void;
 }
 
-// A real component (called as <Inputs .../>, not Inputs(...) as a plain function) - it was
-// previously the latter, with useState/useEffect calls inside it that, since a plain function call
-// doesn't give React its own Fiber/hook list, got silently folded into TransformPanel's own hook
-// sequence instead. That's only safe if the exact same set of hooks fires in the exact same order
-// on every render of TransformPanel - which held by luck while the SCALE section was permanently
-// hidden (allowScaling always false, see TransformPanel.SCALE's own conditional render), but was
-// one allowScaling flip away from a Rules-of-Hooks violation (a hook count that changes between
-// renders), which React does not fail loudly for - it can silently hand back a stale/wrong value at
-// a shifted hook slot, matching an "undefined has no property x" crash with no obvious cause in this
-// component's own code. Giving Inputs its own component identity (a stable module-level reference,
-// so React doesn't remount it on every parent render either - see why this isn't just inlined back
-// into TransformPanel) fixes this structurally, not just for the current always-false case.
 function Inputs({
 	id, inputValue, useIncrement, increment = 0, canPast = true,
 	onCommitValue, onScroll, onTriggerPos, onTriggerRot, onTriggerScale, onIncrementCommit, onPast

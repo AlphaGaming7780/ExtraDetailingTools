@@ -27,10 +27,10 @@ export interface SectionOrFoldoutProps extends Omit<SectionFoldoutProps, "title"
 // real SectionFoldout once there's actual content - so an empty foldout never shows a pointless expand
 // arrow for a section that has nothing behind it.
 export function SectionOrFoldout(props: SectionOrFoldoutProps): JSX.Element {
-    const { title, children } = props;
+    const { title, children, headerRight } = props;
 
     if (isEmptyChildren(children)) {
-        return <Section title={title}>{children as string | JSX.Element | JSX.Element[]}</Section>;
+        return <Section title={title}>{headerRight as string | JSX.Element | JSX.Element[]}</Section>;
     }
 
     return <SectionFoldout {...props} />;

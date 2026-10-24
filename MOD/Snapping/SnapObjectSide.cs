@@ -11,8 +11,7 @@ using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Snapping
 {
-    // Mirrors ObjectToolSystemExtraSnap.ObjectSideSnapMode (MOD/ExtraSnap/ObjectTool.cs) - moved here so any
-    // tool's SnapJob can select a mode without depending on ObjectTool's own types.
+    // Values are sent as is by the UI (UI/src/mods/ExtraSnap/ObjectToolExtraSnap.tsx), keep the order.
     public enum ObjectSideSnapMode
     {
         FreeMove,
@@ -20,11 +19,7 @@ namespace ExtraDetailingTools.Snapping
         SnapToCorner,
     }
 
-    // Standalone port of the Object Side snap logic that lives in ObjectToolSystemExtraSnap
-    // (MOD/ExtraSnap/ObjectTool.cs) - extracted and parameterized on ComponentLookups/entities instead of
-    // instance fields, so any tool's SnapJob (ObjectTool's own, TransformToolSnapJob, future ones, ...) can
-    // call it. ObjectTool.cs is NOT wired to this file yet - it still runs its own copy of these functions;
-    // this is only scaffolding for reuse.
+    // Object Side snap shared by the tools' SnapJobs (ExtraSnap ObjectTool, TransformToolSnapJob, ...).
     public static class SnapObjectSide
     {
         // Finds the nearest object by bounds proximity and snaps controlPoint's position/rotation against
@@ -37,28 +32,16 @@ namespace ExtraDetailingTools.Snapping
         // placedRotation is the caller's current desired rotation for the placed/dragged object (ObjectTool
         // reads this from its own RotationRef; TransformGizmoTool would use its raw candidate rotation).
         public static void Apply(
+            ref SnapContext context,
             ObjectSideSnapMode mode,
             ControlPoint controlPoint,
             ref ControlPoint bestSnapPosition,
             quaternion placedRotation,
-            ObjectGeometryData placedGeometryData,
-            NativeQuadTree<Entity, QuadTreeBoundsXZ> objectSearchTree,
-            ComponentLookup<Owner> ownerData,
-            ComponentLookup<Transform> transformData,
-            ComponentLookup<PrefabRef> prefabRefData,
-            ComponentLookup<ObjectGeometryData> objectGeometryData)
+            ObjectGeometryData placedGeometryData)
         {
-            Entity targetEntity = FindNearbySideTarget(
-                controlPoint,
-                placedGeometryData,
-                objectSearchTree,
-                ownerData,
-                transformData,
-                prefabRefData,
-                objectGeometryData
-            );
+            Entity targetEntity = FindNearbySideTarget(ref context, controlPoint, placedGeometryData);
 
-            if (!transformData.HasComponent(targetEntity))
+            if (!context.m_TransformData.HasComponent(targetEntity))
             {
                 return;
             }
@@ -66,11 +49,11 @@ namespace ExtraDetailingTools.Snapping
             // ===== Prefab & target bounds =====
             Bounds3 placedBounds = ObjectUtils.GetBounds(placedGeometryData);
 
-            PrefabRef targetPrefabRef = prefabRefData[targetEntity];
+            PrefabRef targetPrefabRef = context.m_PrefabRefData[targetEntity];
             Entity targetPrefab = targetPrefabRef.m_Prefab;
 
-            Transform targetTransform = transformData[targetEntity];
-            Bounds3 targetBounds = ObjectUtils.GetBounds(objectGeometryData[targetPrefab]);
+            Transform targetTransform = context.m_TransformData[targetEntity];
+            Bounds3 targetBounds = ObjectUtils.GetBounds(context.m_ObjectGeometryData[targetPrefab]);
 
             float3 placedSize = placedBounds.max - placedBounds.min;
 
@@ -79,7 +62,7 @@ namespace ExtraDetailingTools.Snapping
 
             // ===== Rotation handling (relative to target object) =====
             quaternion relativeRotation = math.mul(math.inverse(targetTransform.m_Rotation), placedRotation);
-            quaternion snappedRelativeRotation = ClampTo90(relativeRotation);
+            quaternion snappedRelativeRotation = SnapMath.ClampTo90(relativeRotation);
             quaternion snappedWorldRotation = math.mul(targetTransform.m_Rotation, snappedRelativeRotation);
             float snappedYaw = math.Euler(snappedWorldRotation).y;
 
@@ -141,14 +124,7 @@ namespace ExtraDetailingTools.Snapping
             }
         }
 
-        public static Entity FindNearbySideTarget(
-            ControlPoint controlPoint,
-            ObjectGeometryData placedGeometryData,
-            NativeQuadTree<Entity, QuadTreeBoundsXZ> objectSearchTree,
-            ComponentLookup<Owner> ownerData,
-            ComponentLookup<Transform> transformData,
-            ComponentLookup<PrefabRef> prefabRefData,
-            ComponentLookup<ObjectGeometryData> objectGeometryData)
+        public static Entity FindNearbySideTarget(ref SnapContext context, ControlPoint controlPoint, ObjectGeometryData placedGeometryData)
         {
             BoundsObjectIterator iterator = new BoundsObjectIterator
             {
@@ -157,12 +133,12 @@ namespace ExtraDetailingTools.Snapping
                 m_PlacedObjectGeometryData = placedGeometryData,
                 m_BestEntity = Entity.Null,
                 m_BestOverlap = float.MaxValue,
-                m_OwnerData = ownerData,
-                m_TransformData = transformData,
-                m_PrefabRefData = prefabRefData,
-                m_ObjectGeometryData = objectGeometryData,
+                m_OwnerData = context.m_OwnerData,
+                m_TransformData = context.m_TransformData,
+                m_PrefabRefData = context.m_PrefabRefData,
+                m_ObjectGeometryData = context.m_ObjectGeometryData,
             };
-            objectSearchTree.Iterate(ref iterator);
+            context.m_ObjectSearchTree.Iterate(ref iterator);
             return iterator.m_BestEntity;
         }
 
@@ -497,14 +473,6 @@ namespace ExtraDetailingTools.Snapping
             );
 
             ToolUtils.AddSnapPosition(ref bestPosition, snapPosition);
-        }
-
-        public static quaternion ClampTo90(quaternion q)
-        {
-            float3 forward = math.mul(q, new float3(0, 0, 1));
-            float yaw = math.atan2(forward.x, forward.z);
-            float snappedYaw = math.round(yaw / (math.PI / 2f)) * (math.PI / 2f);
-            return quaternion.RotateY(snappedYaw);
         }
     }
 }

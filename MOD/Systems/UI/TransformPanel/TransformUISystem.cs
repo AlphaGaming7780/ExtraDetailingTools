@@ -6,6 +6,7 @@ using Game;
 using Game.Buildings;
 using Game.Common;
 using Game.Rendering;
+using Game.Tools;
 using Game.UI;
 using Game.UI.Widgets;
 using System;
@@ -30,7 +31,8 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
         private bool canPastScale = false;
 
         private TransformGizmoTool m_TransformGizmoTool;
-        private EndFrameBarrier m_EndFrameBarrier;
+        private ToolSystem m_ToolSystem;
+        private TransformRequestSystem m_TransformRequestSystem;
 
         private GetterValueBinding<float3> transformGetPos;
         private GetterValueBinding<float3> transformGetRot;
@@ -48,8 +50,10 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
         private GetterValueBinding<bool> m_AllowScalingBinding;
 
         private double3 increment = new(1, 45, 1);
+        // What the panel shows: read from the ECS (Process), and set right away by the panel changes, which are only
+        // applied by TransformRequestSystem in the next ToolUpdate.
         private Transform transform;
-        private TransformObject transformObject;
+        private float3 m_Scale = 1f;
         private bool UseLocalAxis => m_TransformGizmoTool.m_UseLocalAxis;
 
         private float3 m_EulerAngles;
@@ -72,7 +76,8 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             Enabled = false;
 
             m_TransformGizmoTool = World.GetOrCreateSystemManaged<TransformGizmoTool>();
-            m_EndFrameBarrier = World.GetOrCreateSystemManaged<EndFrameBarrier>();
+            m_ToolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
+            m_TransformRequestSystem = World.GetOrCreateSystemManaged<TransformRequestSystem>();
 
             AddBinding(transformGetPos = new GetterValueBinding<float3>("EDT", "TransformPanel.pos", GetPosition));
 
@@ -115,7 +120,9 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
                 var t = EntityManager.GetComponentData<Transform>(m_SelectedEntity);
                 m_EulerAngles = ((UnityEngine.Quaternion)t.m_Rotation).eulerAngles;
                 m_LastSetRotation = t.m_Rotation;
+                transform = t;
             }
+            m_Scale = ReadScale();
 
             m_AsSubBuilding = false;
 
@@ -144,10 +151,7 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             transform = EntityManager.HasComponent<InterpolatedTransform>(m_SelectedEntity) ?
                         EntityManager.GetComponentData<InterpolatedTransform>(m_SelectedEntity).ToTransform() :
                         EntityManager.GetComponentData<Transform>(m_SelectedEntity);
-
-            transformObject = EntityManager.HasComponent<TransformObject>(m_SelectedEntity) ?
-                              EntityManager.GetComponentData<TransformObject>(m_SelectedEntity) :
-                              default;
+            m_Scale = ReadScale();
 
             if (math.abs(math.dot(transform.m_Rotation.value, m_LastSetRotation.value)) < 0.9999f)
             {
@@ -160,12 +164,13 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             transformGetScale.Update();
         }
 
+        // Moves the selected entity to (position, rotation), in the next ToolUpdate (TransformRequestSystem). In the gizmo
+        // tool with several entities selected, the rest of the group follows: same offset, and the same rotation delta
+        // around the current pivots.
         private void UpdateObject(float3 position, quaternion rotation)
         {
-            bool addTL = m_TransformGizmoTool.m_AddTransformLock;
-            m_TransformGizmoTool.m_AddTransformLock = false;
-            m_TransformGizmoTool.UpdateObject(Dependency, m_SelectedEntity, position, rotation, m_EndFrameBarrier);
-            m_TransformGizmoTool.m_AddTransformLock = addTL;
+            bool group = m_ToolSystem.activeTool == m_TransformGizmoTool && m_TransformGizmoTool.SelectionCount > 1;
+            m_TransformRequestSystem.RequestTransform(m_SelectedEntity, group, new Transform(position, rotation));
         }
 
         private float3 GetPosition()
@@ -220,32 +225,20 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             transformGetRot.Update();
         }
 
+        private float3 ReadScale()
+        {
+            return EntityManager.TryGetComponent(m_SelectedEntity, out TransformObject transformObject) ? transformObject.m_Scale : new float3(1, 1, 1);
+        }
+
         private float3 GetScale()
         {
-            if (!EntityManager.HasComponent<TransformObject>(m_SelectedEntity)) return new float3(1, 1, 1);
-            return transformObject.m_Scale;
+            return m_Scale;
         }
 
         private void SetScale(float3 scale)
         {
-            if (EntityManager.HasComponent<TransformObject>(m_SelectedEntity))
-            {
-                if (scale.x == 1 && scale.y == 1 && scale.z == 1)
-                {
-                    EntityManager.RemoveComponent<TransformObject>(m_SelectedEntity);
-                    EntityManager.AddComponentData<Updated>(m_SelectedEntity, default);
-                    transformGetScale.Update();
-                    return;
-                }
-            }
-            else
-            {
-                EntityManager.AddComponent<TransformObject>(m_SelectedEntity);
-            }
-            transformObject = EntityManager.GetComponentData<TransformObject>(m_SelectedEntity);
-            transformObject.m_Scale = scale;
-            EntityManager.SetComponentData(m_SelectedEntity, transformObject);
-            EntityManager.AddComponentData<Updated>(m_SelectedEntity, default);
+            m_Scale = scale;
+            m_TransformRequestSystem.RequestScale(m_SelectedEntity, scale);
             transformGetScale.Update();
         }
 
