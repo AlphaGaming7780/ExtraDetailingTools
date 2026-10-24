@@ -82,6 +82,7 @@
 
 	"Tool.TransformGizmoTool.Pivot": "Pivot",
 	"Tool.TransformGizmoTool.Pivot.Median.Tooltip": "Transform the selection around its median point.",
+	"Tool.TransformGizmoTool.Pivot.BoundsCenter.Tooltip": "Transform the selection around the center of its bounding box.",
 	"Tool.TransformGizmoTool.Pivot.Primary.Tooltip": "Transform the selection around the primary (last selected) object.",
 	"Tool.TransformGizmoTool.Pivot.Individual.Tooltip": "Transform each object around its own origin.",
 

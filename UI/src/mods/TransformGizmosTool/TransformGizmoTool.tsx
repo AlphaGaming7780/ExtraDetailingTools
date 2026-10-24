@@ -60,7 +60,7 @@ const gridEnabled$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.Gr
 const posOffset$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.PosOffset`, 0);
 const rotOffset$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.RotOffset`, 0);
 
-// Mirrors TransformGizmoTool.PivotAggregation (C#). BoundsCenter and Custom aren't exposed in the UI yet.
+// Mirrors TransformGizmoTool.PivotAggregation (C#). Custom isn't exposed in the UI yet.
 enum PivotAggregation {
 	Median = 0,
 	BoundsCenter = 1,
@@ -259,6 +259,16 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 							selected={pivotAggregation === PivotAggregation.Median}
 							onSelect={(v) => SetPivotAggregation(v)}
 							src="coui://extradetailingtools/Icons/TransformGizmosTool/Pivot_Median.svg"
+						/>
+					</Tooltip>
+
+					<Tooltip tooltip={translate("Tool.TransformGizmoTool.Pivot.BoundsCenter.Tooltip", "Tool.TransformGizmoTool.Pivot.BoundsCenter.Tooltip")}>
+						<ValueToolButton<number>
+							focusKey={FOCUS_DISABLED$}
+							value={PivotAggregation.BoundsCenter}
+							selected={pivotAggregation === PivotAggregation.BoundsCenter}
+							onSelect={(v) => SetPivotAggregation(v)}
+							src="coui://extradetailingtools/Icons/TransformGizmosTool/Pivot_BoundsCenter.svg"
 						/>
 					</Tooltip>
 
