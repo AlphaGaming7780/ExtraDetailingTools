@@ -882,9 +882,15 @@ namespace ExtraDetailingTools.Systems.Tools
                 };
             }
 
-            public static ActionHistory NewCreate(Entity entity, Entity selectedEntity, float3 position, quaternion rotation)
+            // Create: Entities / Entity are the duplicates and their primary, PreviousSelection / SelectedEntity
+            // the sources they were duplicated from. The same entry goes to the redo stack.
+            public static ActionHistory NewCreate(Entity[] created, Entity createdPrimary, Entity[] sources, Entity sourcePrimary)
             {
-                return new ActionHistory(ActionType.Create, entity, selectedEntity, position, rotation);
+                return new ActionHistory(ActionType.Create, createdPrimary, sourcePrimary, default, default)
+                {
+                    Entities = created,
+                    PreviousSelection = sources,
+                };
             }
         }
 
@@ -1032,7 +1038,8 @@ namespace ExtraDetailingTools.Systems.Tools
         private bool m_RequestRedo = false;
         private bool m_RequestDuplicate = false;
         private bool m_WaitingForDuplicate = false;
-        private Entity m_PendingDuplicateSource = Entity.Null;
+        private Entity[] m_PendingDuplicateSources = null;
+        private Entity m_PendingDuplicatePrimary = Entity.Null;
 
         // SIP Support
         private bool m_WasAnEntitySelected = false;
@@ -1348,41 +1355,60 @@ namespace ExtraDetailingTools.Systems.Tools
 
             if (m_WaitingForDuplicate)
             {
-                if (m_DuplicateEntitySystem.TryGetDuplicated(this, out List<Entity> duplicated))
+                if (m_DuplicateEntitySystem.TryGetDuplicated(this, out List<Entity> sources, out List<Entity> duplicated))
                 {
                     m_WaitingForDuplicate = false;
-                    Entity duplicateEntity = duplicated.Count > 0 ? duplicated[0] : Entity.Null;
 
-                    if (duplicateEntity != Entity.Null)
+                    List<Entity> created = new();
+                    Entity createdPrimary = Entity.Null;
+                    for (int i = 0; i < duplicated.Count; i++)
                     {
-                        quaternion duplicateRotation = quaternion.identity;
-                        float3 duplicatePosition = default;
-                        if (EntityManager.TryGetComponent(duplicateEntity, out Transform duplicateTransform))
-                        {
-                            duplicateRotation = duplicateTransform.m_Rotation;
-                            duplicatePosition = duplicateTransform.m_Position;
-                        }
+                        if (duplicated[i] == Entity.Null) continue;
+                        created.Add(duplicated[i]);
+                        if (sources[i] == m_PendingDuplicatePrimary) createdPrimary = duplicated[i];
+                    }
 
-                        m_UndoHistory.Push(ActionHistory.NewCreate(duplicateEntity, m_PendingDuplicateSource, duplicatePosition, duplicateRotation));
+                    if (created.Count > 0)
+                    {
+                        if (createdPrimary == Entity.Null) createdPrimary = created[created.Count - 1];
 
-                        SetSelectedEntity(duplicateEntity);
+                        m_UndoHistory.Push(ActionHistory.NewCreate(created.ToArray(), createdPrimary, m_PendingDuplicateSources, m_PendingDuplicatePrimary));
+
+                        SetSelection(created, createdPrimary);
                         m_SelectedIndex = -1;
                         SetMode(Mode.Move);
                     }
 
-                    m_PendingDuplicateSource = Entity.Null;
+                    m_PendingDuplicateSources = null;
+                    m_PendingDuplicatePrimary = Entity.Null;
                 }
             }
 
-            // Duplicate stays on the primary entity only for now.
             if (m_RequestDuplicate || m_DuplicateAction.WasPressedThisFrame())
             {
                 m_RequestDuplicate = false;
-                if (m_State == State.Idle && m_SelectedEntity != Entity.Null && EntityManager.HasComponent<PrefabRef>(m_SelectedEntity))
+
+                // Roots only: DuplicateEntityJob already copies the sub-objects / upgrades of each root.
+                List<Entity> sources = new();
+                if (m_State == State.Idle && !m_WaitingForDuplicate && CanDuplicateSelection())
                 {
-                    EDT.Logger.Info($"Duplicate requested for entity: {m_SelectedEntity}");
-                    inputDeps = m_DuplicateEntitySystem.Duplicate(inputDeps, this, m_SelectedEntity);
-                    m_PendingDuplicateSource = m_SelectedEntity;
+                    foreach (Entity entity in GetSelectionRoots())
+                    {
+                        if (EntityManager.HasComponent<PrefabRef>(entity) && EntityManager.HasComponent<Transform>(entity)) sources.Add(entity);
+                    }
+                }
+
+                if (sources.Count > 0)
+                {
+                    EDT.Logger.Info($"Duplicate requested for {sources.Count} entities, primary: {m_SelectedEntity}");
+
+                    NativeArray<Entity> sourceArray = new NativeArray<Entity>(sources.ToArray(), Allocator.TempJob);
+                    inputDeps = m_DuplicateEntitySystem.Duplicate(inputDeps, this, sourceArray);
+                    inputDeps = sourceArray.Dispose(inputDeps);
+
+                    // The primary may be a sub-object of a root: its root's duplicate becomes the new primary.
+                    m_PendingDuplicatePrimary = sources.Contains(m_SelectedEntity) ? m_SelectedEntity : sources[sources.Count - 1];
+                    m_PendingDuplicateSources = sources.ToArray();
                     SetSelectedEntity(Entity.Null);
                     m_SelectedTempEntity = Entity.Null;
                     m_SelectedIndex = -1;
@@ -1426,11 +1452,18 @@ namespace ExtraDetailingTools.Systems.Tools
                         }
                         else if (actionType == ActionType.Create)
                         {
-                            m_RedoHistory.Push(ActionHistory.NewCreate(actionHistory.SelectedEntity, Entity.Null, actionHistory.Position, actionHistory.Rotation));
-                            EntityManager.AddComponent<Deleted>(entity);
-                            if (m_SelectedEntity == entity)
+                            m_RedoHistory.Push(actionHistory);
+
+                            bool selectionHadCreated = false;
+                            foreach (Entity created in actionHistory.Entities)
                             {
-                                SetSelectedEntity(actionHistory.SelectedEntity);
+                                if (m_SelectedEntities.Contains(created)) selectionHadCreated = true;
+                                if (EntityManager.Exists(created) && !EntityManager.HasComponent<Deleted>(created)) EntityManager.AddComponent<Deleted>(created);
+                            }
+
+                            if (selectionHadCreated)
+                            {
+                                SetSelectionFiltered(actionHistory.PreviousSelection, actionHistory.SelectedEntity);
                                 m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
                                 SetMode(m_SelectedEntity != Entity.Null ? Mode.Move : Mode.Default);
@@ -1461,7 +1494,8 @@ namespace ExtraDetailingTools.Systems.Tools
                         ActionType actionType = actionHistory.ActionType;
                         if (actionType == ActionType.Create)
                         {
-                            SetSelectedEntity(entity);
+                            // Duplicates the sources again: the undo deleted the previous duplicates for good.
+                            SetSelectionFiltered(actionHistory.PreviousSelection, actionHistory.SelectedEntity);
                             m_SelectedIndex = -1;
                             m_RequestDuplicate = true;
                         }
@@ -2724,7 +2758,7 @@ namespace ExtraDetailingTools.Systems.Tools
                         return target == Entity.Null || EntityManager.Exists(target);
                     }
                 case ActionType.Create:
-                    return actionHistory.Entity != Entity.Null && EntityManager.Exists(actionHistory.Entity);
+                    return FilterExisting(forRedo ? actionHistory.PreviousSelection : actionHistory.Entities).Count > 0;
                 case ActionType.Transform:
                     {
                         if (actionHistory.Entities == null) return false;
@@ -2737,6 +2771,73 @@ namespace ExtraDetailingTools.Systems.Tools
                 default:
                     return false;
             }
+        }
+
+        // Transform panel with more than one entity selected: the same world offset / rotation delta is applied
+        // to each selection root, rotating around the current pivots like a gizmo drag would.
+        public JobHandle TransformSelection(JobHandle inputDeps, float3 positionOffset, quaternion rotationDelta, SafeCommandBufferSystem ecb, out Transform primaryResult)
+        {
+            List<Entity> entities = new();
+            List<Transform> transforms = new();
+            int primaryIndex = CollectRootTransforms(false, entities, transforms);
+            primaryResult = default;
+            if (entities.Count == 0) return inputDeps;
+
+            float3[] pivots = new float3[entities.Count];
+            ComputeGroupPivots(transforms, primaryIndex, out _, out _, pivots);
+
+            for (int i = 0; i < entities.Count; i++)
+            {
+                Transform start = transforms[i];
+                float3 position = pivots[i] + positionOffset + math.mul(rotationDelta, start.m_Position - pivots[i]);
+                quaternion rotation = math.normalize(math.mul(rotationDelta, start.m_Rotation));
+                inputDeps = UpdateObject(inputDeps, entities[i], position, rotation, ecb);
+                if (i == primaryIndex) primaryResult = new Transform(position, rotation);
+            }
+            return inputDeps;
+        }
+
+        // The whole selection is duplicated, so every entity in it must be copyable. Shared by the
+        // Duplicate shortcut and the UI button.
+        public bool CanDuplicateSelection()
+        {
+            if (m_SelectedEntities.Count == 0) return false;
+            foreach (Entity entity in m_SelectedEntities)
+            {
+                if (!IsCopyable(entity)) return false;
+            }
+            return true;
+        }
+
+        public bool IsCopyable(Entity entity)
+        {
+            // Maybe also exclude Owner ?
+            return EntityManager.HasComponent<Game.Objects.Object>(entity) &&
+                EntityManager.HasComponent<Transform>(entity) &&
+                EntityManager.HasComponent<PrefabRef>(entity) &&
+                !EntityManager.HasComponent<Building>(entity) &&
+                !EntityManager.HasComponent<Game.Buildings.Extension>(entity) &&
+                !EntityManager.HasComponent<Game.Objects.Moving>(entity) &&
+                !EntityManager.HasComponent<Temp>(entity) &&
+                !EntityManager.HasComponent<Deleted>(entity);
+        }
+
+        // SetSelection without the entities deleted since the history entry was made.
+        private void SetSelectionFiltered(Entity[] entities, Entity primary)
+        {
+            List<Entity> existing = FilterExisting(entities);
+            SetSelection(existing, existing.Contains(primary) ? primary : Entity.Null);
+        }
+
+        private List<Entity> FilterExisting(Entity[] entities)
+        {
+            List<Entity> result = new();
+            if (entities == null) return result;
+            foreach (Entity entity in entities)
+            {
+                if (entity != Entity.Null && EntityManager.Exists(entity) && !EntityManager.HasComponent<Deleted>(entity)) result.Add(entity);
+            }
+            return result;
         }
     }
 }

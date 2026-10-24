@@ -54,6 +54,7 @@ namespace ExtraDetailingTools.Systems.Duplicate
 
         private readonly List<object> m_ResultContext = new List<object>();
         private readonly List<Entity> m_ResultEntity = new List<Entity>();
+        private readonly List<Entity> m_ResultSource = new List<Entity>();
 
         private bool m_HasPendingMatches;
         private NativeList<ResultEntry> m_PendingMatches;
@@ -206,6 +207,7 @@ namespace ExtraDetailingTools.Systems.Duplicate
                 m_DamagedData = SystemAPI.GetComponentLookup<Game.Objects.Damaged>(),
                 m_TreeData = SystemAPI.GetComponentLookup<Tree>(),
                 m_MeshColorLookup = SystemAPI.GetBufferLookup<MeshColor>(),
+                m_CustomMeshColorLookup = SystemAPI.GetBufferLookup<CustomMeshColor>(true),
                 m_ECB = m_ModificationBarrier2.CreateCommandBuffer(),
                 m_AnarchyComponentType = AnarchyBridge.GetAnarchyComponentType(),
             }.Schedule(compactHandle);
@@ -230,6 +232,7 @@ namespace ExtraDetailingTools.Systems.Duplicate
                 ResultEntry entry = m_PendingMatches[i];
                 m_ResultContext.Add(m_ContextById[entry.ContextId]);
                 m_ResultEntity.Add(entry.Result);
+                m_ResultSource.Add(entry.Source);
             }
 
             m_PendingMatches.Dispose();
@@ -240,8 +243,15 @@ namespace ExtraDetailingTools.Systems.Duplicate
         // second call for the same context (with nothing new pending) returns false.
         public bool TryGetDuplicated(object context, out List<Entity> result)
         {
+            return TryGetDuplicated(context, out _, out result);
+        }
+
+        // Same as above, sources[i] is the entity result[i] was duplicated from.
+        public bool TryGetDuplicated(object context, out List<Entity> sources, out List<Entity> result)
+        {
             ConsumePendingMatches();
 
+            sources = null;
             result = null;
             if (!m_ExpectedCount.TryGetValue(context, out int expected))
                 return false;
@@ -257,21 +267,26 @@ namespace ExtraDetailingTools.Systems.Duplicate
                 return false;
 
             List<Entity> list = new List<Entity>(count);
+            List<Entity> sourceList = new List<Entity>(count);
             for (int i = m_ResultContext.Count - 1; i >= 0; i--)
             {
                 if (m_ResultContext[i] != context)
                     continue;
 
                 list.Add(m_ResultEntity[i]);
+                sourceList.Add(m_ResultSource[i]);
 
                 int last = m_ResultContext.Count - 1;
                 m_ResultContext[i] = m_ResultContext[last];
                 m_ResultEntity[i] = m_ResultEntity[last];
+                m_ResultSource[i] = m_ResultSource[last];
                 m_ResultContext.RemoveAt(last);
                 m_ResultEntity.RemoveAt(last);
+                m_ResultSource.RemoveAt(last);
             }
 
             m_ExpectedCount.Remove(context);
+            sources = sourceList;
             result = list;
             return true;
         }
@@ -354,6 +369,7 @@ namespace ExtraDetailingTools.Systems.Duplicate
             [ReadOnly] public ComponentLookup<Game.Objects.Damaged> m_DamagedData;
             [ReadOnly] public ComponentLookup<Tree> m_TreeData;
             [ReadOnly] public BufferLookup<MeshColor> m_MeshColorLookup;
+            [ReadOnly] public BufferLookup<CustomMeshColor> m_CustomMeshColorLookup;
 
             [ReadOnly] public ComponentType m_AnarchyComponentType;
 
@@ -368,6 +384,15 @@ namespace ExtraDetailingTools.Systems.Duplicate
                     CopyComponent(m_TreeData, match.Source, match.Result);
 
                     CopyBuffer(m_MeshColorLookup, match.Source, match.Result);
+
+                    // Colors picked in the vanilla "Customize" section. MeshColor alone isn't enough:
+                    // MeshColorSystem rebuilds it from CustomMeshColor (if enabled) or from the prefab,
+                    // and GenerateObjectsSystem creates new objects with CustomMeshColor disabled.
+                    if (m_CustomMeshColorLookup.HasBuffer(match.Source) && m_CustomMeshColorLookup.IsBufferEnabled(match.Source))
+                    {
+                        CopyBuffer(m_CustomMeshColorLookup, match.Source, match.Result);
+                        m_ECB.SetComponentEnabled<CustomMeshColor>(match.Result, true);
+                    }
 
                     if(m_AnarchyComponentType != default)
                     {

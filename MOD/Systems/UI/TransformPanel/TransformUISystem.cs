@@ -55,6 +55,10 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
         private float3 m_EulerAngles;
         private quaternion m_LastSetRotation;
 
+        // Primary transform the group was last moved to, base of the next offset in multi-selection.
+        private float3 m_LastAppliedPosition;
+        private quaternion m_LastAppliedRotation = quaternion.identity;
+
         private Entity m_SelectedEntity;
         private bool m_AsSubBuilding = false;
 
@@ -115,6 +119,9 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
                 var t = EntityManager.GetComponentData<Transform>(m_SelectedEntity);
                 m_EulerAngles = ((UnityEngine.Quaternion)t.m_Rotation).eulerAngles;
                 m_LastSetRotation = t.m_Rotation;
+                transform = t;
+                m_LastAppliedPosition = t.m_Position;
+                m_LastAppliedRotation = t.m_Rotation;
             }
 
             m_AsSubBuilding = false;
@@ -144,6 +151,8 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             transform = EntityManager.HasComponent<InterpolatedTransform>(m_SelectedEntity) ?
                         EntityManager.GetComponentData<InterpolatedTransform>(m_SelectedEntity).ToTransform() :
                         EntityManager.GetComponentData<Transform>(m_SelectedEntity);
+            m_LastAppliedPosition = transform.m_Position;
+            m_LastAppliedRotation = transform.m_Rotation;
 
             transformObject = EntityManager.HasComponent<TransformObject>(m_SelectedEntity) ?
                               EntityManager.GetComponentData<TransformObject>(m_SelectedEntity) :
@@ -160,11 +169,27 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             transformGetScale.Update();
         }
 
+        // Moves the primary entity to (position, rotation). With several entities selected, the rest of the
+        // group follows: same offset, and the same rotation delta around the current pivots.
         private void UpdateObject(float3 position, quaternion rotation)
         {
             bool addTL = m_TransformGizmoTool.m_AddTransformLock;
             m_TransformGizmoTool.m_AddTransformLock = false;
-            m_TransformGizmoTool.UpdateObject(Dependency, m_SelectedEntity, position, rotation, m_EndFrameBarrier);
+            if (m_TransformGizmoTool.SelectionCount > 1)
+            {
+                // `transform` may already hold the new position (SetPosition), so the offset is taken from the
+                // last applied transform, not from it.
+                float3 positionOffset = position - m_LastAppliedPosition;
+                quaternion rotationDelta = math.mul(rotation, math.inverse(m_LastAppliedRotation));
+                Dependency = m_TransformGizmoTool.TransformSelection(Dependency, positionOffset, rotationDelta, m_EndFrameBarrier, out Transform primaryResult);
+                m_LastAppliedPosition = primaryResult.m_Position;
+                m_LastAppliedRotation = primaryResult.m_Rotation;
+                transform.m_Position = primaryResult.m_Position;
+            }
+            else
+            {
+                m_TransformGizmoTool.UpdateObject(Dependency, m_SelectedEntity, position, rotation, m_EndFrameBarrier);
+            }
             m_TransformGizmoTool.m_AddTransformLock = addTL;
         }
 

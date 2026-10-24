@@ -1,4 +1,5 @@
-﻿using Colossal.UI.Binding;
+﻿using Colossal.Entities;
+using Colossal.UI.Binding;
 using ExtraDetailingTools.Systems.Tools;
 using ExtraDetailingTools.Systems.UI.TransformPanel;
 using ExtraLib.Systems.UI.ExtraPanels;
@@ -62,8 +63,8 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(m_LocalAxisValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", () => m_TransformGizmoTool.m_UseLocalAxis));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.LocalAxis", SetUseLocalAxis));
 
-            AddBinding(m_IsCopyableValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.IsCopyable", IsCopyable(m_TransformGizmoTool.SelectedEntity)));
-            AddBinding(m_HasSubBuildingsValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.HasSubBuildings", true));
+            AddBinding(m_IsCopyableValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.IsCopyable", m_TransformGizmoTool.CanDuplicateSelection()));
+            AddBinding(m_HasSubBuildingsValueBinding = new ValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.HasSubBuildings", HasSubBuildings(m_TransformGizmoTool.SelectedEntities)));
             AddBinding(m_MoveSubBuildingsValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", () => m_TransformGizmoTool.m_MoveSubBuildings));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.MoveSubBuildings", SetMoveSubBuildings));
 
@@ -122,25 +123,29 @@ namespace ExtraDetailingTools.Systems.UI
 
         private void OnSelectedEntityChanged(Entity entity)
         {
-            m_IsCopyableValueBinding.Update(IsCopyable(entity));
+            m_IsCopyableValueBinding.Update(m_TransformGizmoTool.CanDuplicateSelection());
         }
 
         private void OnSelectionChanged(IReadOnlyList<Entity> selection)
         {
             m_SelectionCountValueBinding.Update(selection.Count);
+            m_IsCopyableValueBinding.Update(m_TransformGizmoTool.CanDuplicateSelection());
+            m_HasSubBuildingsValueBinding.Update(HasSubBuildings(selection));
         }
 
-        private bool IsCopyable(Entity entity)
+        // MoveSubBuildings only matters when an installed upgrade is a building.
+        private bool HasSubBuildings(IReadOnlyList<Entity> selection)
         {
-            // Maybe also exclude Owner ?
-            return EntityManager.HasComponent<Game.Objects.Object>(entity) &&
-                EntityManager.HasComponent<Game.Objects.Transform>(entity) &&
-                EntityManager.HasComponent<PrefabRef>(entity) &&
-                !EntityManager.HasComponent<Game.Buildings.Building>(entity) &&
-                !EntityManager.HasComponent<Game.Buildings.Extension>(entity) &&
-                !EntityManager.HasComponent<Game.Objects.Moving>(entity) &&
-                !EntityManager.HasComponent<Temp>(entity) &&
-                !EntityManager.HasComponent<Deleted>(entity);
+            if (selection == null) return false;
+            foreach (Entity entity in selection)
+            {
+                if (!EntityManager.TryGetBuffer(entity, true, out DynamicBuffer<Game.Buildings.InstalledUpgrade> upgrades)) continue;
+                foreach (Game.Buildings.InstalledUpgrade upgrade in upgrades)
+                {
+                    if (EntityManager.HasComponent<Game.Buildings.Building>(upgrade.m_Upgrade)) return true;
+                }
+            }
+            return false;
         }
 
         public void EnableTransformGizmoTool()
