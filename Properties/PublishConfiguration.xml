@@ -109,7 +109,7 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Version of the mod-->
 	<ModVersion Value="1.3.0.10" />
 	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.5.*" />
+	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
 	<Dependency Id="75724" />
 	<Dependency Id="75250" />
@@ -121,6 +121,7 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<ChangeLog>
 ### Features
 * Transform Gizmo Tool: multi-selection. Shift + Click adds an object to the selection (or removes it), Alt + Click makes it the primary object. Both are rebindable in Settings.
+  * The selection can be changed in Move and Rotate mode too, without going back to the Default mode.
   * New Pivot setting: Median, Bounds center, Primary object or Individual (each object moves and rotates around its own origin).
   * Move, rotate, Duplicate, Snap on ground, Undo/Redo and the Transform panel work on the whole selection.
   * Snap on ground keeps the shape of the group (the pivot is put on the ground and the other objects follow). In Individual, every object is put on the ground.
