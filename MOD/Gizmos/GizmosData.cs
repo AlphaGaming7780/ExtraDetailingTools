@@ -26,6 +26,14 @@ namespace ExtraDetailingTools.Gizmos
         CapsuleConic,
     }
 
+    [Flags]
+    public enum GizmoFlags
+    {
+        None = 0,
+        // WireArc: the half behind its center, seen from the camera, is drawn faded and ignored by the raycast.
+        CullBackHalf = 1 << 0,
+    }
+
     public struct GizmosData : IComponentData
     {
         public GizmoType Type;

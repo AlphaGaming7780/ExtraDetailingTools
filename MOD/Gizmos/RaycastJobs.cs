@@ -400,6 +400,9 @@ namespace ExtraDetailingTools.Gizmos
                 float bestDist = float.MaxValue;
                 bool found = false;
 
+                // ray.a is the camera position.
+                bool cullBackHalf = (g.Flags & (int)GizmoFlags.CullBackHalf) != 0;
+
                 for (int i = 1; i <= segments; i++)
                 {
                     float a = step * i;
@@ -409,7 +412,14 @@ namespace ExtraDetailingTools.Gizmos
 
                     float3 curr = center + dir * radius;
 
-                    float capsuleRadius = tolerance;
+                    // The tube's thickness (Params0.z) scales with the gizmo, the tolerance doesn't.
+                    float capsuleRadius = math.max(g.Params0.z, tolerance);
+
+                    if (cullBackHalf && GizmosUtils.IsOnBackHalf(center, n, (prev + curr) * 0.5f, ray.a))
+                    {
+                        prev = curr;
+                        continue;
+                    }
 
                     if (IntersectCapsule(prev, curr, capsuleRadius, ray, out RaycastHit h))
                     {

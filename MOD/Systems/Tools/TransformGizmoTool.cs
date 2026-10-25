@@ -456,6 +456,8 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public float m_HandleScreenSize;
 
             private const float kReferenceScreenHeight = 1080f;
+            // Tube radius of the rotate circles, relative to their radius: scales with the camera like the other handles.
+            private const float kRotateArcThickness = 0.03f;
 
             private int m_ReuseIndex;
 
@@ -582,7 +584,7 @@ namespace ExtraDetailingTools.Systems.Tools
             private void UpdateRotateArc(Handle handle, float3 center, float3 normal, float3 from, float radius, Color color)
             {
                 Entity gizmos = GetOrCreateEntity();
-                GizmosData data = GizmosUtils.DrawWireArc(center, normal, from, 360, radius, color);
+                GizmosData data = GizmosUtils.DrawWireArc(center, normal, from, 360, radius, color, thickness: radius * kRotateArcThickness, flags: GizmoFlags.CullBackHalf);
                 m_CommandBuffer.AddComponent(gizmos, data);
 
                 AddHandleComponent(handle, gizmos);
@@ -1289,7 +1291,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     m_Type = GizmosRaycastType.ALL,
                     m_Line = ToolRaycastSystem.CalculateRaycastLine(Camera.main),
-                    m_Tolerance = m_Mode == Mode.Rotate ? 0.15f : 0,
+                    m_Tolerance = 0, // The handles have their own volume, scaled with the camera.
                     m_Debug = false
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);

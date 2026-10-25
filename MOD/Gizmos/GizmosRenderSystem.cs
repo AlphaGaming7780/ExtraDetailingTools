@@ -32,12 +32,15 @@ namespace ExtraDetailingTools.Gizmos
 
         protected override void OnUpdate()
         {
+            Camera camera = Camera.main;
             JobHandle jobHandle = new RenderGizmos()
             {
                 Batcher = m_GizmosSystem.GetGizmosBatcher(out JobHandle dep),
                 EntityHandle = GetEntityTypeHandle(),
                 GizmoHandle = GetComponentTypeHandle<GizmosData>(true),
                 HighlightedLookup = GetComponentLookup<Highlighted>(true),
+                HasCamera = camera != null,
+                CameraPosition = camera != null ? (float3)camera.transform.position : float3.zero,
             }.Schedule(m_GizmosDataQuery, JobHandle.CombineDependencies(Dependency, dep));
             m_GizmosSystem.AddGizmosBatcherWriter(jobHandle);
             Dependency = jobHandle;
@@ -52,6 +55,8 @@ namespace ExtraDetailingTools.Gizmos
             [ReadOnly] public EntityTypeHandle EntityHandle;
             [ReadOnly] public ComponentTypeHandle<GizmosData> GizmoHandle;
             [ReadOnly] public ComponentLookup<Highlighted> HighlightedLookup;
+            [ReadOnly] public bool HasCamera;
+            [ReadOnly] public float3 CameraPosition;
 
             public void Execute(
                 in ArchetypeChunk chunk,
@@ -119,6 +124,11 @@ namespace ExtraDetailingTools.Gizmos
                             );
                         break;
                     case GizmoType.WireArc:
+                        if (g.Params0.z > 0f || (g.Flags & (int)GizmoFlags.CullBackHalf) != 0)
+                        {
+                            RenderTubeArc(g, color);
+                            break;
+                        }
                         Batcher.DrawWireArc(
                             g.A,
                             g.B,
@@ -191,6 +201,71 @@ namespace ExtraDetailingTools.Gizmos
                         break;
                 }
             }
+            private const int kTubeRingCount = 12;
+            private const int kTubeRingSegments = 8;
+
+            // Arc with a thickness (Params0.z): 4 lines along the arc around its axis (outside, inside, above, below)
+            // and a few rings, instead of a wire capsule per segment. Without thickness, a single line.
+            // With GizmoFlags.CullBackHalf, the half behind the center is faded. Drawn segment by segment, rotated
+            // like in IntersectWireArc, so the faded half is exactly the one the raycast ignores.
+            private void RenderTubeArc(GizmosData g, Color color)
+            {
+                float3 center = g.A;
+                float angle = g.Params0.x;
+                float radius = g.Params0.y;
+                float thickness = g.Params0.z;
+                int segments = math.max(g.Segments, 1);
+                bool cullBackHalf = HasCamera && (g.Flags & (int)GizmoFlags.CullBackHalf) != 0;
+                Color backColor = GetBackHalfColor(color);
+
+                float3 n = math.normalize(g.B);
+                float3 f = math.normalize(g.C - n * math.dot(g.C, n));
+                float angleRad = math.radians(angle);
+                float step = angleRad / segments;
+
+                float3 prevDir = f;
+                for (int i = 1; i <= segments; i++)
+                {
+                    float3 dir = math.rotate(quaternion.AxisAngle(n, step * i), f);
+                    Color segmentColor = cullBackHalf && GizmosUtils.IsOnBackHalf(center, n, center + math.normalize(prevDir + dir) * radius, CameraPosition) ? backColor : color;
+
+                    if (thickness > 0f)
+                    {
+                        Batcher.DrawLine(center + prevDir * (radius + thickness), center + dir * (radius + thickness), segmentColor);
+                        Batcher.DrawLine(center + prevDir * math.max(radius - thickness, 0f), center + dir * math.max(radius - thickness, 0f), segmentColor);
+                        Batcher.DrawLine(center + n * thickness + prevDir * radius, center + n * thickness + dir * radius, segmentColor);
+                        Batcher.DrawLine(center - n * thickness + prevDir * radius, center - n * thickness + dir * radius, segmentColor);
+                    }
+                    else
+                    {
+                        Batcher.DrawLine(center + prevDir * radius, center + dir * radius, segmentColor);
+                    }
+
+                    prevDir = dir;
+                }
+
+                if (thickness <= 0f) return;
+
+                // Same spacing as on a full circle (kTubeRingCount rings), plus one at the end of a partial arc.
+                bool fullCircle = angle >= 360f;
+                int rings = math.max(1, (int)math.ceil(kTubeRingCount * angle / 360f));
+                float ringStep = angleRad / rings;
+                if (!fullCircle) rings++;
+                for (int i = 0; i < rings; i++)
+                {
+                    float3 dir = math.rotate(quaternion.AxisAngle(n, ringStep * i), f);
+                    float3 tangent = math.cross(n, dir);
+                    Color ringColor = cullBackHalf && GizmosUtils.IsOnBackHalf(center, n, center + dir * radius, CameraPosition) ? backColor : color;
+                    Batcher.DrawWireArc(center + dir * radius, tangent, dir, 360f, thickness, ringColor, kTubeRingSegments);
+                }
+            }
+
+            private readonly Color GetBackHalfColor(Color color)
+            {
+                color.a *= 0.25f;
+                return color;
+            }
+
             private readonly Color GetHighlightedColor(Color color)
             {
                 return Color.Lerp(color, Color.white, 0.4f);

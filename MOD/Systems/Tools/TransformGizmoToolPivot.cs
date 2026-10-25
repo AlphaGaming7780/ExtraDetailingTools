@@ -6,7 +6,7 @@ namespace ExtraDetailingTools.Systems.Tools
 {
     public partial class TransformGizmoTool
     {
-        // See docs/TransformGizmo-MultiSelection.md, section 2. Three independent settings instead of one
+        // See docs/TransformGizmo-TODO.md, section 5. Three independent settings instead of one
         // combinatorial enum. Values marked "later" are accepted but fall back to a V1 behaviour.
         public enum PivotSource
         {
