@@ -2,14 +2,14 @@ import classNames from "classnames";
 import { bindValue, trigger, useValue } from "cs2/api";
 import { useLocalization } from "cs2/l10n";
 import { Tooltip } from "cs2/ui";
-import { ChangeEvent, ChangeEventHandler, MouseEvent as ReactMouseEvent, WheelEvent, WheelEventHandler, useEffect, useState } from "react";
-import { EditorItemSCSS } from "../../../game-ui/editor/widgets/item/editor-item.module.scss";
+import { MouseEvent as ReactMouseEvent, WheelEvent } from "react";
 import { ActionButtonSCSS } from "../../../game-ui/game/components/selected-info-panel/selected-info-sections/shared-sections/actions-section/action-button.module.scss";
 import { InfoRowSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.module.scss";
 import { ToolButton } from "../../../game-ui/game/components/tool-options/tool-button/tool-button";
 import TransformPanelSCSS from "./TransformPanel.module.scss";
 import { remToPx } from "../RemHelper";
 import { StepInput } from "../Shared/StepInput";
+import { NumberInput, startHorizontalDrag } from "../Shared/NumberInput";
 
 export interface Float3 {
 	x: number,
@@ -69,58 +69,12 @@ function Inputs({
 }: InputsProps): JSX.Element {
 	const { translate } = useLocalization();
 
-	const [X, setX] = useState(inputValue.x.toString())
-	const [Y, setY] = useState(inputValue.y.toString())
-	const [Z, setZ] = useState(inputValue.z.toString())
-	const [editing, setEditing] = useState<string | null>(null)
-
-	useEffect(() => {
-		if (editing !== "X") setX(inputValue.x.toString())
-		if (editing !== "Y") setY(inputValue.y.toString())
-		if (editing !== "Z") setZ(inputValue.z.toString())
-	}, [inputValue])
-
-	function onInputChange(event: ChangeEvent<HTMLInputElement>, setter: any) {
-		setter(event.target.value)
-	}
-
-	function onInputBlur(e: React.FocusEvent<HTMLInputElement>) {
-		setEditing(null);
-		onCommitValue(e.target.id, e.target.value);
-	}
-
-	function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-		// cohtml doesn't remap e.key per the OS keyboard layout, so "a" only matches on QWERTY. AZERTY
-		// swaps A/Q, so also accept "q" for the same physical select-all key.
-		if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "a" || e.key.toLowerCase() === "q")) {
-			e.stopPropagation();
-			e.currentTarget.select();
-			return;
-		}
-		if (e.key === "Enter") {
-			onCommitValue((e.target as HTMLInputElement).id, (e.target as HTMLInputElement).value);
-			(e.target as HTMLInputElement).blur();
-		}
-	}
-
-	function onInputWheel(e: WheelEvent) {
-		setEditing(null);
-		onScroll(e);
-	}
-
 	function onLabelMouseDown(axis: string, e: ReactMouseEvent) {
-		e.preventDefault();
-		let lastX = e.clientX;
 		const startValue = axis === "X" ? inputValue.x : axis === "Y" ? inputValue.y : inputValue.z;
 		let accumulatedDelta = 0;
 		const pixelsPerStep = remToPx(100);
-		let lastSoundTime = 0;
-		const soundThrottleMs = 80;
 
-		const onMouseMove = (moveEvent: globalThis.MouseEvent) => {
-			const deltaX = moveEvent.clientX - lastX;
-			if (deltaX === 0) return;
-			lastX = moveEvent.clientX;
+		startHorizontalDrag(e, (deltaX) => {
 			const valueDelta = (deltaX / pixelsPerStep) * increment;
 			accumulatedDelta += valueDelta;
 
@@ -137,23 +91,23 @@ function Inputs({
 				if (id === "POS") onTriggerPos(x, y, z);
 				else if (id === "ROT") onTriggerRot(x, y, z);
 			}
+			return deltaX;
+		});
+	}
 
-			const now = Date.now();
-			if (now - lastSoundTime > soundThrottleMs) {
-				trigger("audio", "playSound", deltaX > 0 ? "increase-elevation" : "decrease-elevation", 1);
-				lastSoundTime = now;
-			}
-		};
-
-		const onMouseUp = () => {
-			document.removeEventListener('mousemove', onMouseMove);
-			document.removeEventListener('mouseup', onMouseUp);
-			document.body.style.cursor = '';
-		};
-
-		document.body.style.cursor = 'url(cursor://horizontal-can-resize)';
-		document.addEventListener('mousemove', onMouseMove);
-		document.addEventListener('mouseup', onMouseUp);
+	// Called as a function: the inputs keep their place in the tree.
+	function AxisInput(axis: "X" | "Y" | "Z", value: number): JSX.Element {
+		return <>
+			{canPast ? PastButton(translate, id, axis, canPast, onPast) : <></>}
+			<Tooltip tooltip={translate(`TransformPanel.${id}_${axis}`)}>
+				<div>
+					<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown(axis, e)}>{axis}</span>
+					<span>
+						<NumberInput id={`${id}${axis}`} value={value} onCommit={(v) => onCommitValue(`${id}${axis}`, v.toString())} onWheel={onScroll} />
+					</span>
+				</div>
+			</Tooltip>
+		</>;
 	}
 
 	return <>
@@ -169,33 +123,9 @@ function Inputs({
 				/>
 				: <></>
 			}
-			{canPast ? PastButton(translate, id, "X", canPast, onPast) : <></>}
-			<Tooltip tooltip={translate(`TransformPanel.${id}_X`)}>
-				<div>
-					<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown("X", e)}>X</span>
-					<span>
-						<input id={`${id}X`} value={X} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => onInputChange(event, setX)} onFocus={() => setEditing("X")} onBlur={onInputBlur} onKeyDown={onInputKeyDown} onWheel={onInputWheel} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
-					</span>
-				</div>
-			</Tooltip>
-			{canPast ? PastButton(translate, id, "Y", canPast, onPast) : <></>}
-			<Tooltip tooltip={translate(`TransformPanel.${id}_Y`)}>
-				<div>
-					<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown("Y", e)}>Y</span>
-					<span>
-						<input id={`${id}Y`} value={Y} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => onInputChange(event, setY)} onFocus={() => setEditing("Y")} onBlur={onInputBlur} onKeyDown={onInputKeyDown} onWheel={onInputWheel} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
-					</span>
-				</div>
-			</Tooltip>
-			{canPast ? PastButton(translate, id, "Z", canPast, onPast) : <></>}
-			<Tooltip tooltip={translate(`TransformPanel.${id}_Z`)}>
-				<div>
-					<span className={TransformPanelSCSS.draggableLabel} onMouseDown={(e) => onLabelMouseDown("Z", e)}>Z</span>
-					<span>
-						<input id={`${id}Z`} value={Z} multiple={false} className={classNames(EditorItemSCSS.input)} onChange={(event) => onInputChange(event, setZ)} onFocus={() => setEditing("Z")} onBlur={onInputBlur} onKeyDown={onInputKeyDown} onWheel={onInputWheel} onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)} />
-					</span>
-				</div>
-			</Tooltip>
+			{AxisInput("X", inputValue.x)}
+			{AxisInput("Y", inputValue.y)}
+			{AxisInput("Z", inputValue.z)}
 		</div>
 	</>;
 }

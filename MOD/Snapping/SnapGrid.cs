@@ -2,31 +2,26 @@ using Unity.Mathematics;
 
 namespace ExtraDetailingTools.Snapping
 {
-    // Grid snap, Burst compatible. A step <= 0 disables it.
+    // Grid snap, Burst compatible. A step <= 0 disables it on that axis.
     public static class SnapGrid
     {
         // Local: incremental along localRot. Global: X/Z on the world grid (movedAxes only), Y incremental.
-        public static float3 SnapPosition(float3 origin, float3 pos, float step, bool local, quaternion localRot, bool3 movedAxes)
+        // step: one per axis (X, Y, Z of the grid).
+        public static float3 SnapPosition(float3 origin, float3 pos, float3 step, bool local, quaternion localRot, bool3 movedAxes)
         {
-            if (step <= 0f)
-                return pos;
-
             if (local)
                 return SnapPositionLocal(origin, pos, localRot, step);
 
             float3 result = pos;
-            if (movedAxes.x) result.x = math.round(pos.x / step) * step;
-            if (movedAxes.y) result.y = origin.y + math.round((pos.y - origin.y) / step) * step;
-            if (movedAxes.z) result.z = math.round(pos.z / step) * step;
+            if (movedAxes.x && step.x > 0f) result.x = math.round(pos.x / step.x) * step.x;
+            if (movedAxes.y && step.y > 0f) result.y = origin.y + math.round((pos.y - origin.y) / step.y) * step.y;
+            if (movedAxes.z && step.z > 0f) result.z = math.round(pos.z / step.z) * step.z;
             return result;
         }
 
         // Incremental: the offset from origin, expressed along the axes of rot, is rounded to step.
-        public static float3 SnapPositionLocal(float3 origin, float3 pos, quaternion rot, float step)
+        public static float3 SnapPositionLocal(float3 origin, float3 pos, quaternion rot, float3 step)
         {
-            if (step <= 0f)
-                return pos;
-
             float3 right = math.rotate(rot, new float3(1, 0, 0));
             float3 up = math.rotate(rot, new float3(0, 1, 0));
             float3 forward = math.rotate(rot, new float3(0, 0, 1));
@@ -38,7 +33,7 @@ namespace ExtraDetailingTools.Snapping
                 math.dot(delta, forward)
             );
 
-            localDelta = math.round(localDelta / step) * step;
+            localDelta = math.select(localDelta, math.round(localDelta / step) * step, step > 0f);
 
             return origin + right * localDelta.x + up * localDelta.y + forward * localDelta.z;
         }

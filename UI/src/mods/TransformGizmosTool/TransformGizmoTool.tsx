@@ -58,8 +58,10 @@ const haSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}
 const isCopyable$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.IsCopyable`, false);
 
 const gridEnabled$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.GridEnabled`, false);
-const posOffset$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.PosOffset`, 0);
-const rotOffset$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.RotOffset`, 0);
+const posOffset$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.PosOffset`, {x: 1, y: 1, z: 1});
+const rotOffset$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.RotOffset`, {x: 45, y: 45, z: 45});
+const posOffsetLinked$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.PosOffsetLinked`, true);
+const rotOffsetLinked$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.RotOffsetLinked`, true);
 
 // Mirrors TransformGizmoTool.PivotAggregation (C#). Custom isn't exposed in the UI yet.
 enum PivotAggregation {
@@ -98,8 +100,10 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const upright : boolean = useValue(upright$);
 		const raycastFilter : number = useValue(raycastFilter$);
 		const gridEnabled : boolean = useValue(gridEnabled$);
-		const posOffset : number = useValue(posOffset$);
-		const rotOffset : number = useValue(rotOffset$);
+		const posOffset : Float3 = useValue(posOffset$);
+		const rotOffset : Float3 = useValue(rotOffset$);
+		const posOffsetLinked : boolean = useValue(posOffsetLinked$);
+		const rotOffsetLinked : boolean = useValue(rotOffsetLinked$);
 		const pivotAggregation : number = useValue(pivotAggregation$);
 		const pivotSource : number = useValue(pivotSource$);
 		const selectionCount : number = useValue(selectionCount$);
@@ -156,14 +160,29 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			trigger(kGroupName, `${kTransformGizmoToolId}.GridEnabled`, enabled);
 		}
 
-		const SetPosOffset = (value : number) =>
+		const SetPosOffset = (value : Float3) =>
 		{
 			trigger(kGroupName, `${kTransformGizmoToolId}.PosOffset`, value);
 		}
 
-		const SetRotOffset = (value : number) =>
+		const SetRotOffset = (value : Float3) =>
 		{
 			trigger(kGroupName, `${kTransformGizmoToolId}.RotOffset`, value);
+		}
+
+		const SetPosOffsetLinked = (linked : boolean) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.PosOffsetLinked`, linked);
+		}
+
+		const SetRotOffsetLinked = (linked : boolean) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.RotOffsetLinked`, linked);
+		}
+
+		const SetPosOffsetFromObject = () =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.PosOffsetFromObject`);
 		}
 
 		const SetPivotAggregation = (value : number) =>
@@ -176,19 +195,38 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			trigger(kGroupName, `${kTransformGizmoToolId}.PivotSource`, value);
 		}
 
-		// Grid step row, StepInput as JSX (own fiber) since it sits after an early return.
-		function GridOffsetRow(id: string, labelKey: string, tooltipKey: string, value: number, min: number, onCommit: (value: number) => void): JSX.Element {
-			return <div className={classNames(InfoRowSCSS.infoRow, styles.gridRow)}>
-				<StepInput
-					id={id}
-					value={value}
-					min={min}
-					onCommit={onCommit}
-					label={translate(labelKey)}
-					tooltip={translate(tooltipKey)}
-					layout="inline"
-				/>
-			</div>;
+		// Grid step rows, one StepInput per axis. As JSX (own fiber) since it sits after an early return. 0 disables the axis.
+		// linked: editing one axis sets the three. actions: extra buttons next to the link one.
+		function GridOffsetRow(id: string, labelKey: string, tooltipKey: string, value: Float3, onCommit: (value: Float3) => void, linked: boolean, onLinkedChange: (linked: boolean) => void, actions?: JSX.Element): JSX.Element {
+			const axes: (keyof Float3)[] = ["x", "y", "z"];
+			return <>
+				<div className={classNames(InfoRowSCSS.infoRow, styles.gridRow)}>
+					<div className={InfoRowSCSS.left}>{translate(labelKey)}</div>
+					<div className={InfoRowSCSS.right}>
+						{actions}
+						<ToolButton
+							focusKey={FOCUS_DISABLED$}
+							selected={linked}
+							tooltip={translate("Tool.TransformGizmoTool.Grid.Link.Tooltip")}
+							src="coui://extradetailingtools/Icons/TransformGizmosTool/GridLink.svg"
+							onSelect={() => onLinkedChange(!linked)}
+						/>
+					</div>
+				</div>
+				<div className={classNames(InfoRowSCSS.infoRow, styles.gridRow)}>
+					{axes.map(axis =>
+						<StepInput
+							key={axis}
+							id={`${id}${axis.toUpperCase()}`}
+							value={value[axis]}
+							min={0}
+							onCommit={(v) => onCommit(linked ? { x: v, y: v, z: v } : { ...value, [axis]: v })}
+							label={axis.toUpperCase()}
+							tooltip={translate(tooltipKey)}
+						/>
+					)}
+				</div>
+			</>;
 		}
 
 		// This defines aspects of the components.
@@ -559,8 +597,8 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 						</Tooltip>
 					}
 				>
-					{GridOffsetRow("GridPosStep", "Tool.TransformGizmoTool.Grid.PosStep", "Tool.TransformGizmoTool.Grid.PosStep.Tooltip", posOffset, 0.001, SetPosOffset)}
-					{GridOffsetRow("GridRotStep", "Tool.TransformGizmoTool.Grid.RotStep", "Tool.TransformGizmoTool.Grid.RotStep.Tooltip", rotOffset, 0.001, SetRotOffset)}
+					{GridOffsetRow("GridPosStep", "Tool.TransformGizmoTool.Grid.PosStep", "Tool.TransformGizmoTool.Grid.PosStep.Tooltip", posOffset, SetPosOffset, posOffsetLinked, SetPosOffsetLinked, <ToolButton focusKey={FOCUS_DISABLED$} tooltip={translate("Tool.TransformGizmoTool.Grid.ObjectSize.Tooltip")} src="coui://extradetailingtools/Icons/TransformGizmosTool/GridObjectSize.svg" onSelect={SetPosOffsetFromObject} disabled={selectionCount === 0} />)}
+					{GridOffsetRow("GridRotStep", "Tool.TransformGizmoTool.Grid.RotStep", "Tool.TransformGizmoTool.Grid.RotStep.Tooltip", rotOffset, SetRotOffset, rotOffsetLinked, SetRotOffsetLinked)}
 				</SectionFoldout>
 			</SectionFoldout> */}
 			
@@ -577,8 +615,8 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 					</Tooltip>
 				}
 			>
-				{GridOffsetRow("GridPosStep", "Tool.TransformGizmoTool.Grid.PosStep", "Tool.TransformGizmoTool.Grid.PosStep.Tooltip", posOffset, 0.001, SetPosOffset)}
-				{GridOffsetRow("GridRotStep", "Tool.TransformGizmoTool.Grid.RotStep", "Tool.TransformGizmoTool.Grid.RotStep.Tooltip", rotOffset, 0.001, SetRotOffset)}
+				{GridOffsetRow("GridPosStep", "Tool.TransformGizmoTool.Grid.PosStep", "Tool.TransformGizmoTool.Grid.PosStep.Tooltip", posOffset, SetPosOffset, posOffsetLinked, SetPosOffsetLinked, <ToolButton focusKey={FOCUS_DISABLED$} tooltip={translate("Tool.TransformGizmoTool.Grid.ObjectSize.Tooltip")} src="coui://extradetailingtools/Icons/TransformGizmosTool/GridObjectSize.svg" onSelect={SetPosOffsetFromObject} disabled={selectionCount === 0} />)}
+				{GridOffsetRow("GridRotStep", "Tool.TransformGizmoTool.Grid.RotStep", "Tool.TransformGizmoTool.Grid.RotStep.Tooltip", rotOffset, SetRotOffset, rotOffsetLinked, SetRotOffsetLinked)}
 				<div className={classNames(InfoRowSCSS.infoRow, styles.gridRow)}>
 					<div className={InfoRowSCSS.left}>
 						{useLocalAxis

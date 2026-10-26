@@ -453,7 +453,21 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public float m_TanFOV;
             [ReadOnly] public float m_HandleScreenSize;
 
+            // Grid preview. m_GridOrigin: where the incremental steps start (drag start, or the gizmo when idle).
+            [ReadOnly] public bool m_GridEnabled;
+            [ReadOnly] public float3 m_GridOrigin;
+            [ReadOnly] public float3 m_PosStep;
+            [ReadOnly] public float3 m_RotStep;
+            [ReadOnly] public float3 m_DragAxis;
+            [ReadOnly] public quaternion m_DragStartGizmoRot;
+            [ReadOnly] public quaternion m_DragStartPrimaryRot;
+            [ReadOnly] public float3 m_DragStartDir;
+
             private const float kReferenceScreenHeight = 1080f;
+            // Grid lines / rotation ticks drawn on each side of the current step.
+            private const int kGridHalfCount = 2;
+            private static readonly Color kGridColor = new(1f, 1f, 1f, 0.3f);
+            private static readonly Color kGridCenterColor = new(1f, 1f, 1f, 0.6f);
             // Tube radius of the rotate circles, relative to their radius: scales with the camera like the other handles.
             private const float kRotateArcThickness = 0.03f;
 
@@ -488,6 +502,12 @@ namespace ExtraDetailingTools.Systems.Tools
                         break;
                     default:
                         break;
+                }
+
+                if (m_GridEnabled)
+                {
+                    if (m_Mode == Mode.Move) UpdateMoveGrid(pos, rot);
+                    else if (m_Mode == Mode.Rotate && m_UseDragGizmo) UpdateRotateTicks(pos, rot, handleSize);
                 }
 
                 DestroyAllEntities();
@@ -600,6 +620,90 @@ namespace ExtraDetailingTools.Systems.Tools
                 return perp;
             }
 
+
+            // Lines of the plane the drag moves in, around the current step. Same rules as SnapGrid.SnapPosition.
+            private void UpdateMoveGrid(float3 pos, quaternion rot)
+            {
+                if (m_UseDragGizmo && m_SelectedHandle == Handle.XZ && m_XZHandleMode == XZHandleMode.FollowSurface) return;
+
+                float3x3 axes = m_UseLocalAxis ? new float3x3(rot) : float3x3.identity;
+                int normal = 1;
+                if (m_SelectedHandle == Handle.Y)
+                {
+                    // Vertical plane, the one facing the camera the most.
+                    float3 view = math.normalizesafe(pos - m_CameraPosition);
+                    normal = math.abs(math.dot(axes.c0, view)) > math.abs(math.dot(axes.c2, view)) ? 0 : 2;
+                }
+                else if (m_SelectedHandle == Handle.XZ)
+                {
+                    normal = m_XZHandleMode == XZHandleMode.FixedX ? 0 : m_XZHandleMode == XZHandleMode.FixedZ ? 2 : 1;
+                }
+
+                int u = (normal + 1) % 3;
+                int v = (normal + 2) % 3;
+                float su = m_PosStep[u];
+                float sv = m_PosStep[v];
+                if (su <= 0f || sv <= 0f) return;
+
+                float3 axisU = axes[u];
+                float3 axisV = axes[v];
+                float3 axisN = axes[normal];
+
+                // Global: X / Z on the world grid, Y relative to the drag start.
+                float3 latticeOrigin = m_UseLocalAxis ? m_GridOrigin : new float3(0f, m_GridOrigin.y, 0f);
+                float3 rel = pos - latticeOrigin;
+                float3 center = latticeOrigin
+                    + axisU * math.round(math.dot(rel, axisU) / su) * su
+                    + axisV * math.round(math.dot(rel, axisV) / sv) * sv
+                    + axisN * math.dot(rel, axisN);
+
+                float3 halfU = axisU * su * kGridHalfCount;
+                float3 halfV = axisV * sv * kGridHalfCount;
+                for (int i = -kGridHalfCount; i <= kGridHalfCount; i++)
+                {
+                    Color color = i == 0 ? kGridCenterColor : kGridColor;
+                    float3 lineU = center + axisU * su * i;
+                    float3 lineV = center + axisV * sv * i;
+                    UpdateGridLine(lineU - halfV, lineU + halfV, color);
+                    UpdateGridLine(lineV - halfU, lineV + halfU, color);
+                }
+            }
+
+            // Ticks on the dragged ring at the allowed angles around the current one. Same rules as SnapGrid.SnapAngle.
+            private void UpdateRotateTicks(float3 pos, quaternion rot, float radius)
+            {
+                if (m_SelectedHandle != Handle.X && m_SelectedHandle != Handle.Y && m_SelectedHandle != Handle.Z) return;
+                float step = math.radians(GetRotStep(m_RotStep, m_SelectedHandle));
+                if (step <= 0f) return;
+
+                float3 axis = m_DragAxis;
+                float3 startDir = math.normalizesafe(m_DragStartDir - axis * math.dot(m_DragStartDir, axis));
+                if (math.lengthsq(startDir) < 1e-6f) return;
+
+                // Angle so far, from the gizmo rotation written by TransformToolSnapJob.
+                float3 currentDir = math.rotate(math.mul(rot, math.inverse(m_DragStartGizmoRot)), startDir);
+                float angle = math.atan2(math.dot(axis, math.cross(startDir, currentDir)), math.dot(startDir, currentDir));
+
+                // Global Y snaps the final yaw: ticks shifted by the start yaw.
+                float yaw = !m_UseLocalAxis && m_SelectedHandle == Handle.Y ? SnapMath.GetYaw(m_DragStartPrimaryRot) : 0f;
+                float current = math.round((angle + yaw) / step);
+
+                for (int i = -kGridHalfCount; i <= kGridHalfCount; i++)
+                {
+                    float3 dir = math.rotate(quaternion.AxisAngle(axis, (current + i) * step - yaw), startDir);
+                    float length = i == 0 ? 0.2f : 0.12f;
+                    UpdateGridLine(pos + dir * radius * (1f - length), pos + dir * radius * (1f + length), i == 0 ? kGridCenterColor : kGridColor);
+                }
+            }
+
+            // Not a handle (Handle.None, never highlighted), but tagged to be reused / destroyed with the handles.
+            private void UpdateGridLine(float3 a, float3 b, Color color)
+            {
+                Entity gizmos = GetOrCreateEntity();
+                m_CommandBuffer.AddComponent(gizmos, GizmosUtils.DrawLine(a, b, color));
+                AddHandleComponent(Handle.None, gizmos);
+                if (m_HighlightedLookup.HasComponent(gizmos)) m_CommandBuffer.RemoveComponent<Highlighted>(gizmos);
+            }
 
             private void UpdateScaleGizmos(float3 pos, quaternion rot, float3 size)
             {
@@ -1060,8 +1164,11 @@ namespace ExtraDetailingTools.Systems.Tools
 
         // Grid
         internal bool m_GridEnabled = false;
-        internal double m_PosOffset = 1;
-        internal double m_RotOffset = 45;
+        internal float3 m_PosOffset = new(1f, 1f, 1f);
+        internal float3 m_RotOffset = new(45f, 45f, 45f);
+        // UI only: editing one axis step sets the three.
+        internal bool m_PosOffsetLinked = true;
+        internal bool m_RotOffsetLinked = true;
 
         // Bindings
         private ProxyAction m_UndoAction;
@@ -1807,8 +1914,8 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_EditorMode = m_ToolSystem.actionMode.IsEditor(),
                 m_GridEnabled = m_GridEnabled,
                 m_SnapEach = m_PivotSettings.Aggregation == PivotAggregation.Individual,
-                m_PosOffset = (float)m_PosOffset,
-                m_RotOffset = (float)m_RotOffset,
+                m_PosOffset = m_PosOffset,
+                m_RotOffset = m_RotOffset,
                 m_Context = context,
                 m_Originals = originals,
                 m_StartTransforms = startTransforms,
@@ -2140,6 +2247,14 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_CameraPosition = cam.transform.position,
                 m_TanFOV = tanFOV,
                 m_HandleScreenSize = EDT.m_Settings.HandleScreenSize,
+                m_GridEnabled = m_GridEnabled,
+                m_GridOrigin = useDragGizmo ? m_DragStartGizmoPos : position,
+                m_PosStep = m_PosOffset,
+                m_RotStep = m_RotOffset,
+                m_DragAxis = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot),
+                m_DragStartGizmoRot = m_DragStartGizmoRot,
+                m_DragStartPrimaryRot = m_DragStartPrimaryRot,
+                m_DragStartDir = m_DragStartMouseHitPos,
             }, JobHandle.CombineDependencies(inputDeps, dep, m_DragGizmoDeps));
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
             m_DragGizmoDeps = jobHandle;
@@ -2492,6 +2607,19 @@ namespace ExtraDetailingTools.Systems.Tools
             return inputDeps;
         }
 
+        // Local geometry size of the primary selected object, false without geometry.
+        public bool TryGetPrimaryObjectSize(out float3 size)
+        {
+            size = default;
+            List<Entity> entities = new();
+            List<Transform> transforms = new();
+            int primaryIndex = CollectRootTransforms(false, entities, transforms);
+            if (primaryIndex < 0) return false;
+            if (!EntityManager.TryGetComponent(entities[primaryIndex], out PrefabRef prefabRef) || !EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData)) return false;
+            size = MathUtils.Size(geometryData.m_Bounds);
+            return true;
+        }
+
         public void SnapOnGround()
         {
             m_RequestSnapOnGround = true;
@@ -2525,7 +2653,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 return;
             }
 
-            if (!EntityManager.TryGetComponent<TransformGizmosHandle>(raycastHit.m_HitEntity, out var component))
+            if (!EntityManager.TryGetComponent<TransformGizmosHandle>(raycastHit.m_HitEntity, out var component) || component.Handle == Handle.None)
             {
                 SetState(State.Idle);
                 return;
@@ -2683,6 +2811,12 @@ namespace ExtraDetailingTools.Systems.Tools
         }
 
         // rot: the gizmo rotation (identity in Global orientation).
+        // Rotation step (degrees) of the ring of handle.
+        private static float GetRotStep(float3 rotStep, Handle handle)
+        {
+            return handle == Handle.X ? rotStep.x : handle == Handle.Z ? rotStep.z : rotStep.y;
+        }
+
         private float3 GetSelectedAxisDirection(Handle handle, quaternion rot)
         {
             if (handle == Handle.X)

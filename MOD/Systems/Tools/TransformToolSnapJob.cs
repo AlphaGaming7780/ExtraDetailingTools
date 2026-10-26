@@ -57,8 +57,8 @@ namespace ExtraDetailingTools.Systems.Tools
             // Grid Snap. Individual: every entity snaps on its own.
             [ReadOnly] public bool m_GridEnabled;
             [ReadOnly] public bool m_SnapEach;
-            [ReadOnly] public float m_PosOffset;
-            [ReadOnly] public float m_RotOffset;
+            [ReadOnly] public float3 m_PosOffset;
+            [ReadOnly] public float3 m_RotOffset;
 
             // Object Side Snap, Move only. Not enabled by the tool yet.
             [ReadOnly] public bool m_ObjectSideSnapEnabled;
@@ -321,7 +321,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private float SnapAngle(float angle, quaternion refRot)
             {
-                return SnapGrid.SnapAngle(angle, m_RotOffset, !m_UseLocalAxis && m_Handle == Handle.Y, refRot);
+                return SnapGrid.SnapAngle(angle, GetRotStep(m_RotOffset, m_Handle), !m_UseLocalAxis && m_Handle == Handle.Y, refRot);
             }
         }
 

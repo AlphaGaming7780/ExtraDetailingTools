@@ -79,9 +79,11 @@
 	"Tool.TransformGizmoTool.Grid": "Grid",
 	"Tool.TransformGizmoTool.GridEnable.Tooltip": "Snap the object's position and rotation to a fixed grid.",
 	"Tool.TransformGizmoTool.Grid.PosStep": "Position Step",
-	"Tool.TransformGizmoTool.Grid.PosStep.Tooltip": "Grid spacing used to snap the object's position, in meters.",
+	"Tool.TransformGizmoTool.Grid.PosStep.Tooltip": "Grid spacing used to snap the object's position along this axis, in meters. 0 disables the snap on this axis.",
 	"Tool.TransformGizmoTool.Grid.RotStep": "Rotation Step",
-	"Tool.TransformGizmoTool.Grid.RotStep.Tooltip": "Grid spacing used to snap the object's rotation, in degrees.",
+	"Tool.TransformGizmoTool.Grid.Link.Tooltip": "Link the three axes: editing one step sets the same value on X, Y and Z.",
+	"Tool.TransformGizmoTool.Grid.ObjectSize.Tooltip": "Use the size of the selected object as the position step, to move it on a grid of its own size.",
+	"Tool.TransformGizmoTool.Grid.RotStep.Tooltip": "Grid spacing used to snap the object's rotation around this axis, in degrees. 0 disables the snap on this axis.",
 	"Tool.TransformGizmoTool.Grid.LocalInfo": "Local axis: steps are relative to the current position.",
 	"Tool.TransformGizmoTool.Grid.WorldInfo": "Global axis: X/Z snap to the world grid, Y is relative.",
 
