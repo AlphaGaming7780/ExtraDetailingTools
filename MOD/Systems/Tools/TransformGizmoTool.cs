@@ -1525,7 +1525,7 @@ namespace ExtraDetailingTools.Systems.Tools
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
                             if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
-                            m_SelectedInfoUISystem.Focus(m_SelectedEntity);
+                            else m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
                         else if (actionType == ActionType.Transform)
                         {
@@ -1549,7 +1549,7 @@ namespace ExtraDetailingTools.Systems.Tools
                                 m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
                                 if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
-                                m_SelectedInfoUISystem.Focus(m_SelectedEntity);
+                                else m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                             }
                         }
                         else
@@ -1588,7 +1588,7 @@ namespace ExtraDetailingTools.Systems.Tools
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
                             if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
-                            m_SelectedInfoUISystem.Focus(m_SelectedEntity);
+                            else m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
                         else if (actionType == ActionType.Transform)
                         {
