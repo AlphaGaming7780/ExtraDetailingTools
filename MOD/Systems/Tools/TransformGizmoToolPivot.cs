@@ -6,13 +6,12 @@ namespace ExtraDetailingTools.Systems.Tools
 {
     public partial class TransformGizmoTool
     {
-        // See docs/TransformGizmo-TODO.md, section 5. Three independent settings instead of one
-        // combinatorial enum. Values marked "later" are accepted but fall back to a V1 behaviour.
+        // Three independent settings. Unimplemented values fall back to the noted one.
         public enum PivotSource
         {
             Origin = 0,
-            GeometryCenter,     // later, falls back to Origin
-            GeometryBottom,     // later, falls back to Origin
+            GeometryCenter,     // Falls back to Origin
+            GeometryBottom,     // Falls back to Origin
         }
 
         public enum PivotAggregation
@@ -21,14 +20,14 @@ namespace ExtraDetailingTools.Systems.Tools
             BoundsCenter,
             Primary,
             Individual,
-            Custom,             // later, falls back to Median
+            Custom,             // Falls back to Median
         }
 
         public enum PivotOrientation
         {
             Global = 0,
             LocalPrimary,
-            LocalIndividual,    // later, falls back to LocalPrimary
+            LocalIndividual,    // Falls back to LocalPrimary
         }
 
         public struct PivotSettings
@@ -38,10 +37,7 @@ namespace ExtraDetailingTools.Systems.Tools
             public PivotOrientation Orientation;
         }
 
-        // Pure math on purpose (no EntityManager, no managed types) so it can move into the Burst snap job
-        // later (step 5 bis). Called in Idle to place the gizmo, and once at StartDragging where the result
-        // is frozen until StopDragging - recomputing it while dragging would make the pivot follow the
-        // objects it's moving.
+        // Burst compatible. Frozen during a drag, otherwise the pivot would follow the moved objects.
         internal static void ComputePivots(NativeArray<Transform> transforms, int primaryIndex, PivotSettings settings, out float3 gizmoPos, out quaternion gizmoRot, NativeArray<float3> pivotPerEntity)
         {
             gizmoPos = default;
@@ -53,7 +49,7 @@ namespace ExtraDetailingTools.Systems.Tools
             primaryIndex = math.clamp(primaryIndex, 0, count - 1);
             Transform primary = transforms[primaryIndex];
 
-            // Source: V1 only has Origin (Transform.m_Position, the base of the object).
+            // Source: only Origin (Transform.m_Position) for now.
             float3 groupPivot;
             switch (settings.Aggregation)
             {

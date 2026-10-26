@@ -161,11 +161,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			trigger(kGroupName, `${kTransformGizmoToolId}.PivotAggregation`, value);
 		}
 
-		// Single-value scroll/drag/edit row used for the grid's position and rotation step. Thin wrapper
-		// around the shared StepInput. StepInput is rendered as a real JSX element (not called as a plain
-		// function) so its hooks live on their own fiber: this row sits after the early "tool not active"
-		// return below, and calling a hook-bearing function directly from there would make this render's
-		// hook count vary with that condition (React error #300, "rendered fewer hooks than expected").
+		// Grid step row, StepInput as JSX (own fiber) since it sits after an early return.
 		function GridOffsetRow(id: string, labelKey: string, tooltipKey: string, value: number, min: number, onCommit: (value: number) => void): JSX.Element {
 			return <div className={classNames(InfoRowSCSS.infoRow, styles.gridRow)}>
 				<StepInput

@@ -204,10 +204,7 @@ namespace ExtraDetailingTools.Gizmos
             private const int kTubeRingCount = 12;
             private const int kTubeRingSegments = 8;
 
-            // Arc with a thickness (Params0.z): 4 lines along the arc around its axis (outside, inside, above, below)
-            // and a few rings, instead of a wire capsule per segment. Without thickness, a single line.
-            // With GizmoFlags.CullBackHalf, the half behind the center is faded. Drawn segment by segment, rotated
-            // like in IntersectWireArc, so the faded half is exactly the one the raycast ignores.
+            // Tube (4 lines + rings) when thick, faded back half with CullBackHalf, same segments as IntersectWireArc.
             private void RenderTubeArc(GizmosData g, Color color)
             {
                 float3 center = g.A;

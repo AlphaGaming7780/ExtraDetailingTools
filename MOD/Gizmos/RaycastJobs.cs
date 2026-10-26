@@ -142,9 +142,7 @@ namespace ExtraDetailingTools.Gizmos
                 }
             }
 
-            // ── Debug drawing ──
-            // Every Intersect* method below draws the exact tolerance-inflated collision volume it tests
-            // against, when m_Debug is set (input.m_Debug), so the raycast bounds can be visualized in-game.
+            // With m_Debug, every Intersect* method draws the tolerance-inflated volume it tests.
 
             private void DebugDrawSphere(float3 center, float radius)
             {
@@ -253,8 +251,7 @@ namespace ExtraDetailingTools.Gizmos
                 return true;
             }
 
-            // Transforms the ray into the shape's local space (via g.TRS) before testing against the
-            // axis-aligned box, so rotated/scaled Cube gizmos are picked correctly.
+            // Ray in the shape local space (g.TRS), so rotated / scaled cubes work.
             private bool IntersectAABB(GizmosData g, Line3.Segment ray, float tolerance, out RaycastHit hit)
             {
                 float4x4 invTrs = math.inverse(g.TRS);
@@ -325,15 +322,7 @@ namespace ExtraDetailingTools.Gizmos
 
                 float3 abDir = ab / abLen;
 
-                // Inner capsule segment:
-                //
-                // Without tolerance:
-                //   - The capsule (cylinder + hemispheres) must start exactly at A and end exactly at B.
-                //   - That means the internal segment of the capsule is [A + coneRadius * dir, B - coneRadius * dir].
-                //
-                // With tolerance:
-                //   - We only grow the radius (coneRadius + tolerance),
-                //   - So the shape can extend beyond A and B, but the "logical" arrow is still [A, B].
+                // Inner segment so the capsule ends on A / B, the tolerance only grows the radius.
                 float3 innerA = a + abDir * coneRadius;
                 float3 innerB = b - abDir * coneRadius;
 
@@ -552,11 +541,7 @@ namespace ExtraDetailingTools.Gizmos
                 return true;
             }
 
-            // Unified lateral-surface + caps intersection, shared by Cylinder, Cone, Capsule and CapsuleConic
-            // (all are a straight or tapered tube between `a` and `b`, only the caps differ):
-            //   - roundedCaps = true  -> hemispherical caps of radiusA/radiusB (Capsule, CapsuleConic).
-            //   - roundedCaps = false -> flat disk caps of radiusA/radiusB (Cylinder, Cone, ArrowHead).
-            // When radiusA == radiusB this reduces to a plain cylinder/capsule test.
+            // Tube between a and b shared by Cylinder, Cone, Capsule and CapsuleConic, with rounded or flat caps.
             private bool IntersectTaperedCylinder(float3 a, float radiusA, float3 b, float radiusB, Line3.Segment ray, float tolerance, bool roundedCaps, out RaycastHit hit)
             {
                 hit = default;
@@ -771,8 +756,7 @@ namespace ExtraDetailingTools.Gizmos
 
                 float3 abDir = ab / abLen;
 
-                // Ray-infinite-cylinder intersection
-                // Project ray onto the plane perpendicular to the capsule axis
+                // Ray / infinite cylinder, in the plane perpendicular to the axis.
                 float3 dp = ray.a - a;
                 float3 rayDirPerp = rayDir - abDir * math.dot(rayDir, abDir);
                 float3 dpPerp = dp - abDir * math.dot(dp, abDir);

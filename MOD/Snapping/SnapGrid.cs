@@ -2,12 +2,10 @@ using Unity.Mathematics;
 
 namespace ExtraDetailingTools.Snapping
 {
-    // Grid snap shared by the Transform Gizmo tool and its snap job. Pure math, Burst compatible.
-    // A step <= 0 disables the snap (the input is returned as is).
+    // Grid snap, Burst compatible. A step <= 0 disables it.
     public static class SnapGrid
     {
-        // Local orientation: incremental along the axes of localRot. Global: X/Z absolute on the world grid,
-        // Y incremental. movedAxes (world) is only used in global, so a single axis drag doesn't snap the other ones.
+        // Local: incremental along localRot. Global: X/Z on the world grid (movedAxes only), Y incremental.
         public static float3 SnapPosition(float3 origin, float3 pos, float step, bool local, quaternion localRot, bool3 movedAxes)
         {
             if (step <= 0f)

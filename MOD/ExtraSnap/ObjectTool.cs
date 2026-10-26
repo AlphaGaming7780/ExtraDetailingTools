@@ -53,10 +53,7 @@ namespace ExtraDetailingTools.ExtraSnap
         // Trigger Bindings
         readonly TriggerBinding<ObjectSideSnapMode> m_ObjectSideSnap;
 
-        // Address of ObjectToolSystem's own persistent-allocated NativeReference<Rotation> data, so the
-        // job can read/write the tool's real rotation state directly instead of a throwaway copy. Cached
-        // once: Allocator.Persistent allocations don't move for the tool's lifetime. Kept as a plain
-        // IntPtr (not Rotation*) so nothing outside SnapJob's own RotationRef property needs unsafe code.
+        // Address of the tool persistent NativeReference<Rotation> data, so the job writes the real rotation.
         readonly IntPtr m_RotationPtr;
 
         public ObjectToolSystemExtraSnap() : base()
@@ -231,8 +228,6 @@ namespace ExtraDetailingTools.ExtraSnap
 
             public IntPtr m_Rotation;
 
-            // The only unsafe code needed for the rotation write-back - everywhere else uses this via
-            // plain dot syntax, no unsafe context required at those call sites.
             private unsafe ref Rotation RotationRef => ref UnsafeUtility.AsRef<Rotation>((void*)m_Rotation);
 
             public void Execute()
@@ -260,13 +255,7 @@ namespace ExtraDetailingTools.ExtraSnap
 
                 SnapObjectSurface.CalculateHeight(ref m_Context, m_Prefab, ref bestSnapPosition);
 
-                // ObjectSurface's tilt-to-surface-normal (below, via AlignToSurface) is a continuous,
-                // automatic cosmetic adjustment recomputed fresh from the raycast every frame - not a
-                // hard constraint the player is fighting. It's never bit-identical frame to frame on a
-                // non-flat surface (wall, sloped roof, ...), so any change-detection here would read as
-                // "still snapping" forever and permanently lock manual rotation input the moment the
-                // surface isn't flat (GetAllowRotation() reads m_IsSnapped). Our extra snaps should never
-                // block manual rotation, so this is intentionally always false.
+                // The surface tilt changes every frame, flagging it as snapped would lock manual rotation.
                 RotationRef.m_IsSnapped = false;
                 RotationRef.m_IsAligned &= RotationRef.m_Rotation.Equals(bestSnapPosition.m_Rotation);
 
@@ -293,8 +282,7 @@ namespace ExtraDetailingTools.ExtraSnap
             return entity;
         }
 
-        // Must match the private ObjectToolSystem.Rotation struct's field layout exactly (order + types) -
-        // GetRotationPtr() reinterprets the tool's real NativeReference<PrivateRotation> memory as this type.
+        // Same layout as the private ObjectToolSystem.Rotation struct.
         [StructLayout(LayoutKind.Sequential)]
         private struct Rotation
         {
@@ -302,33 +290,9 @@ namespace ExtraDetailingTools.ExtraSnap
             public quaternion m_ParentRotation;
             public bool m_IsAligned;
             public bool m_IsSnapped;
-
-            // Old per-call approach: read a snapshot copy via reflection every frame. Kept for reference -
-            // this only ever read the tool's rotation state, it never wrote back to it (see GetRotationPtr).
-            //public Rotation(Traverse privateRotation)
-            //{
-            //    m_Rotation = privateRotation.Field("m_Rotation").GetValue<quaternion>();
-            //    m_ParentRotation = privateRotation.Field("m_ParentRotation").GetValue<quaternion>();
-            //    m_IsAligned = privateRotation.Field("m_IsAligned").GetValue<bool>();
-            //    m_IsSnapped = privateRotation.Field("m_IsSnapped").GetValue<bool>();
-            //}
         }
 
-        // Old approach: snapshot-copy the tool's Rotation into our own struct via reflection, once per
-        // frame. Read-only - any changes the job made to the copy were discarded, never written back to
-        // the tool's real NativeReference<Rotation>. Superseded by GetRotationPtr(), which instead gives
-        // the job direct read/write access to the tool's actual persistent-allocated memory.
-        //private Rotation GetRotation()
-        //{
-        //    // m_Rotation is a NativeReference<T> where T is a private nested struct on ObjectToolSystem.
-        //    return new Rotation(traverse.Field("m_Rotation").Property("Value"));
-        //}
-
-        // NativeReference<T>'s own layout never depends on T (just a raw pointer + allocator label), so
-        // pinning the boxed NativeReference<PrivateRotation> and reading its m_Data pointer field via
-        // Marshal (not FieldInfo - pointer-typed fields can't be reflected directly, GetValue throws)
-        // gives us the address of the tool's actual persistent Rotation allocation. Cached once in the
-        // ctor - Allocator.Persistent memory doesn't move.
+        // NativeReference layout doesn't depend on T: read its m_Data pointer via Marshal (persistent, never moves).
         private IntPtr GetRotationPtr()
         {
             object boxedNativeRef = traverse.Field("m_Rotation").GetValue();

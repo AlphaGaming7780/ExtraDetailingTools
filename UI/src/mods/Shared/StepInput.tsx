@@ -20,20 +20,12 @@ export interface StepInputProps {
 	layout?: "stacked" | "inline";
 }
 
-// Canonicalizes to 6 decimal places so repeated *//10 stepping (and float32 round-trips through the C#
-// binding) can't leave a binary-floating-point artifact like 0.009999999776482582 in the displayed text.
+// Rounded to 6 decimals to hide float artifacts.
 function round6(v: number): number {
 	return Math.round(v * 1e6) / 1e6;
 }
 
-// Scroll/drag/edit numeric field shared by TransformPanel's increment fields (POS_I/ROT_I/SCALE_I) and
-// the Transform Gizmo Tool's grid step fields. Scroll, or drag the label horizontally, to step the value
-// with the classic increment heuristic (>=1: +/-1, else *//10). Click into the input to type an exact
-// value, committed on Enter or blur.
-//
-// Call directly as a function (StepInput({...}), not <StepInput .../>) when a parent renders several of
-// these per render (as TransformPanel's Inputs() does for X/Y/Z siblings): the hooks below then keep a
-// stable call order across renders, same convention already used throughout this codebase.
+// Scroll / drag the label to step, click to type. Call as a function when rendered several times per render.
 export function StepInput(props: StepInputProps): JSX.Element {
 	const { id, value, onCommit, min, tooltip, label, showHandle, className, layout } = props;
 	const inline = layout === "inline";
@@ -133,8 +125,7 @@ export function StepInput(props: StepInputProps): JSX.Element {
 						onFocus={() => setEditing(true)}
 						onBlur={(e) => { setEditing(false); commit(e.target.value); }}
 						onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
-							// cohtml doesn't remap e.key per the OS keyboard layout, so "a" only matches on
-							// QWERTY. AZERTY swaps A/Q, so also accept "q" for the same physical select-all key.
+							// cohtml ignores the keyboard layout: also accept "q" for AZERTY.
 							console.log(`StepInput ${id} keydown: key=${e.key}, code=${e.code}, ctrl=${e.ctrlKey}, meta=${e.metaKey}`);
 							if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "a" || e.key.toLowerCase() === "q")) {
 								e.stopPropagation();

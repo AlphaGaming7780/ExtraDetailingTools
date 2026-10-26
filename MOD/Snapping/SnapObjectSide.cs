@@ -22,15 +22,7 @@ namespace ExtraDetailingTools.Snapping
     // Object Side snap shared by the tools' SnapJobs (ExtraSnap ObjectTool, TransformToolSnapJob, ...).
     public static class SnapObjectSide
     {
-        // Finds the nearest object by bounds proximity and snaps controlPoint's position/rotation against
-        // it in the given mode, writing the result into bestSnapPosition via ToolUtils.AddSnapPosition.
-        //
-        // The search already excludes any entity currently Overridden (e.g. something with an active
-        // Temp/preview elsewhere, including the very entity being dragged by TransformGizmoTool, which the
-        // game marks Overridden while its own Temp exists) - see BoundsObjectIterator.
-        //
-        // placedRotation is the caller's current desired rotation for the placed/dragged object (ObjectTool
-        // reads this from its own RotationRef; TransformGizmoTool would use its raw candidate rotation).
+        // Snaps controlPoint against the nearest object (bounds proximity, Overridden excluded) in the given mode.
         public static void Apply(
             ref SnapContext context,
             ObjectSideSnapMode mode,
@@ -66,8 +58,7 @@ namespace ExtraDetailingTools.Snapping
             quaternion snappedWorldRotation = math.mul(targetTransform.m_Rotation, snappedRelativeRotation);
             float snappedYaw = math.Euler(snappedWorldRotation).y;
 
-            // ===== Snap validity test (shared by FreeMove and SnapToCenter - both pick among the target's
-            // edges based on cursor proximity/overlap) =====
+            // ===== Snap validity test =====
             Quad2 placedQuadAtTarget = ObjectUtils.CalculateBaseCorners(
                 targetTransform.m_Position,
                 targetTransform.m_Rotation,
@@ -88,8 +79,7 @@ namespace ExtraDetailingTools.Snapping
             {
                 case ObjectSideSnapMode.SnapToCenter:
                 {
-                    // Still an edge snap, like FreeMove - just fixed at the middle of whichever edge is
-                    // closest instead of sliding with the cursor.
+                    // Edge snap fixed at the middle of the closest edge.
                     CheckSnapLineCenter(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, new Line2(targetQuad.a, targetQuad.b), snappedYaw, allowSnap);
                     CheckSnapLineCenter(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, new Line2(targetQuad.b, targetQuad.c), snappedYaw, allowSnap);
                     CheckSnapLineCenter(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, new Line2(targetQuad.c, targetQuad.d), snappedYaw, allowSnap);
@@ -99,11 +89,7 @@ namespace ExtraDetailingTools.Snapping
 
                 case ObjectSideSnapMode.SnapToCorner:
                 {
-                    // Same idea as FreeMove's per-edge check, but for the 4 corners: offset outward from
-                    // the corner (away from the target's center) by the placed object's own half-extent
-                    // along that diagonal, so it tucks flush against both edges meeting there. Whichever
-                    // corner ends up closest to the cursor wins, via the same AddSnapPosition priority
-                    // comparison.
+                    // Corner snap: pushed out along the diagonal by the half extent, flush with both edges.
                     float2 targetCenterXZ = (targetQuad.a + targetQuad.c) * 0.5f;
                     CheckSnapCorner(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, targetQuad.a, targetCenterXZ, snappedYaw);
                     CheckSnapCorner(placedBounds, targetTransform, controlPoint, ref bestSnapPosition, targetQuad.b, targetCenterXZ, snappedYaw);
@@ -142,11 +128,7 @@ namespace ExtraDetailingTools.Snapping
             return iterator.m_BestEntity;
         }
 
-        // Adapted from Game.Tools.ObjectToolSystem.ParentObjectIterator's non-building/asset-stamp branch -
-        // the generic "does this candidate's volume overlap the placed object's volume" test, stripped of
-        // the building/asset-stamp special-casing that's specific to vanilla's AutoParent feature. Finds
-        // the closest nearby object by volume proximity instead of requiring the raycast to hit its
-        // geometry.
+        // From ObjectToolSystem.ParentObjectIterator (volume overlap), without the building / asset stamp cases.
         private struct BoundsObjectIterator : INativeQuadTreeIterator<Entity, QuadTreeBoundsXZ>
         {
             public ControlPoint m_ControlPoint;
@@ -163,10 +145,7 @@ namespace ExtraDetailingTools.Snapping
 
             public bool Intersect(QuadTreeBoundsXZ bounds)
             {
-                // Entities with an active Temp/preview elsewhere (e.g. something else currently being
-                // dragged/edited) stay in the tree but lose this mask bit instead of being removed - same
-                // check Game.Objects.ValidationHelpers uses. Free: the mask is already on the bounds we're
-                // handed, no extra lookup.
+                // Entities with an active Temp lose the mask bit (same check as ValidationHelpers).
                 if ((bounds.m_Mask & BoundsMask.NotOverridden) == 0)
                 {
                     return false;
@@ -318,9 +297,7 @@ namespace ExtraDetailingTools.Snapping
                  math.abs(math.dot(axisX, edgeDir)) * halfSize.x +
                  math.abs(math.dot(axisZ, edgeDir)) * halfSize.y;
 
-            // Project mouse position onto edge. controlPoint.m_HitPosition (not m_Position) - RaycastSystem
-            // sets m_Position to the HIT ENTITY's own transform position when the raycast hits an object
-            // directly, while m_HitPosition is the real ray/surface intersection point.
+            // m_HitPosition, not m_Position: on an object hit m_Position is that object position.
             MathUtils.Distance(line, controlPoint.m_HitPosition.xz, out float t);
 
             float lineLength = math.distance(line.a, line.b);
@@ -330,11 +307,7 @@ namespace ExtraDetailingTools.Snapping
             // Position along the edge (THIS is what allows sliding)
             float2 pointOnLine = math.lerp(line.a, line.b, t / lineLength);
 
-            // pointOnLine + normal * offset is where the placed object's own GEOMETRIC CENTER needs to end
-            // up (pushed out from the line by its own half-extent so its near face is flush with it).
-            // m_Position is the object's PIVOT, not its center, so convert center -> pivot by subtracting
-            // the full centerOffset vector (not just its normal component - the tangential part matters
-            // too whenever the prefab's local bounds aren't centered on its pivot).
+            // Target of the geometric center, minus the full centerOffset to get the pivot (bounds may be off pivot).
             float2 worldCenter = pointOnLine + normal * offset;
             float2 snappedXZ = worldCenter - centerOffset;
 
@@ -360,10 +333,7 @@ namespace ExtraDetailingTools.Snapping
             ToolUtils.AddSnapPosition(ref bestPosition, snapPosition);
         }
 
-        // Same OBB-onto-edge-normal projection as CheckSnapLineGeneric, but the position along the edge is
-        // fixed at the midpoint instead of following the cursor - still an edge snap, just without the
-        // sliding. Whichever of the target's 4 edges ends up closest to the cursor wins via the same
-        // AddSnapPosition priority comparison FreeMove uses.
+        // Like CheckSnapLineGeneric, but at the edge midpoint instead of following the cursor.
         private static void CheckSnapLineCenter(
             Bounds3 bounds,                    // Bounds of the PLACED prefab
             Transform targetTransform,          // Transform of the TARGET object
@@ -439,19 +409,15 @@ namespace ExtraDetailingTools.Snapping
             float2 axisX = math.normalize(math.mul(rotation, new float3(1f, 0f, 0f)).xz);
             float2 axisZ = math.normalize(math.mul(rotation, new float3(0f, 0f, 1f)).xz);
 
-            // Direction pointing away from the target's center, through this corner - the placed object
-            // gets tucked into the corner along this diagonal.
+            // Diagonal away from the target center, through this corner.
             float2 outward = math.normalizesafe(corner - targetCenterXZ, new float2(1f, 0f));
 
-            // Project the placed object's OBB half-extent onto that outward diagonal, same technique
-            // CheckSnapLineGeneric uses to project onto an edge normal.
+            // Half extent projected on that diagonal.
             float offset =
                 math.abs(math.dot(axisX, outward)) * halfSize.x +
                 math.abs(math.dot(axisZ, outward)) * halfSize.y;
 
-            // corner + outward * offset is the placed object's GEOMETRIC CENTER; subtract the full
-            // centerOffset to convert to its pivot (m_Position) - see CheckSnapLineGeneric for why the
-            // full vector (not just one projected component) is needed.
+            // Geometric center minus the full centerOffset gives the pivot.
             float2 worldCenter = corner + outward * offset;
             float2 snappedXZ = worldCenter - centerOffset;
 

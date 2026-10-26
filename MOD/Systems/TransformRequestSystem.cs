@@ -10,10 +10,7 @@ using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Systems
 {
-    // Transform changes asked by the UI (Transform panel of the gizmo tool and of the SIP). The UI runs after the
-    // Modification phases, so it only queues them. They're applied here, in ToolUpdate whatever the active tool, through
-    // the ToolOutputBarrier like a tool: the Modification phases handle the Updated entities in the same frame (bounds,
-    // culling, search tree...).
+    // Applies the UI transform requests in ToolUpdate through the ToolOutputBarrier, so Modification handles them the same frame.
     internal partial class TransformRequestSystem : GameSystemBase
     {
         private struct Request

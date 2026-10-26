@@ -21,12 +21,7 @@ namespace ExtraDetailingTools.Systems.Tools
             public quaternion m_Rotation;
         }
 
-        // The whole drag of a frame: drag plane intersection, grid, FollowSurface (surface snap + tilt, same code as
-        // ExtraSnap), Object Side, then the delta applied to every entity around its pivot. The main thread only gives
-        // the camera ray and the raycast result, and reads m_Results / m_Gizmo (see TransformGizmoTool.UpdateDrag).
-        //
-        // Snaps compete through the vanilla ControlPoint / ToolUtils.AddSnapPosition machinery (same as ObjectTool),
-        // the raw unsnapped point being the baseline (m_SnapPriority = default).
+        // Whole drag of a frame (plane, grid, FollowSurface, Object Side, delta per entity), snaps compete via ToolUtils.AddSnapPosition.
 #if RELEASE
         [BurstCompile]
 #endif
@@ -64,8 +59,7 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public float m_PosOffset;
             [ReadOnly] public float m_RotOffset;
 
-            // Object Side Snap - test wiring for SnapObjectSide (MOD/Snapping/SnapObjectSide.cs), not enabled by the
-            // tool yet. Move mode only (no "side" concept for a rotation delta).
+            // Object Side Snap, Move only. Not enabled by the tool yet.
             [ReadOnly] public bool m_ObjectSideSnapEnabled;
             [ReadOnly] public ObjectSideSnapMode m_ObjectSideSnapMode;
 
@@ -87,8 +81,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 // Raw (unsnapped) angle, used when each entity snaps on its own.
                 public float Angle;
                 public bool3 MovedAxes;
-                // FollowSurface in Individual: terrain the primary entity is on, the others are put on it too.
-                // Null when it's on an object / underground: the others just follow its delta.
+                // FollowSurface Individual: terrain under the primary, Null on an object / underground (the others just follow).
                 public Entity SurfaceTerrain;
             }
 
@@ -126,24 +119,19 @@ namespace ExtraDetailingTools.Systems.Tools
                 ControlPoint raw = m_ControlPoint;
                 bool onWater = FixWaterHit(ref raw);
 
-                // Same baseline as the vanilla SnapJob: the hit entity is only kept if the surface snap uses it
-                // (AlignToSurface reads the terrain from the raw point).
+                // Same baseline as the vanilla SnapJob: the hit entity is kept only if the surface snap uses it.
                 ControlPoint best = raw;
                 best.m_OriginalEntity = Entity.Null;
                 SnapObjectSurface.SnapSurface(ref m_Context, raw, ref best);
 
-                // Tilt only for a single object, or in Individual (every entity tilts on its own, see FollowSurfaceEach).
-                // A group just has its pivot following the hit.
+                // Tilt only for a single object or in Individual, a group just moves its pivot on the hit.
                 if ((m_StartTransforms.Length != 1 && !m_SnapEach) || !m_Context.m_PrefabRefData.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef))
                 {
                     delta.Position = best.m_Position - m_DragStartGizmoPos;
                     return true;
                 }
 
-                // No CalculateHeight (unlike ExtraSnap): the object stays where the raycast hits (water surface,
-                // underground, object), the height is not recomputed from the terrain.
-                // No 45 degrees alignment on the parent: the gizmo keeps the rotation of the object.
-                // Upright on water, the terrain under it doesn't matter.
+                // Unlike ExtraSnap: no CalculateHeight (stays on the hit) and no 45 degrees alignment on the parent.
                 quaternion parentRotation = quaternion.identity;
                 SnapObjectSurface.AlignToSurface(ref m_Context, prefabRef.m_Prefab, true, m_Upright || onWater, m_EditorMode, raw, ref best, ref parentRotation, false);
 
@@ -159,8 +147,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 return true;
             }
 
-            // FollowSurface in Individual, entities other than the primary one: same XZ move as the primary, then put on
-            // the terrain / water under it and tilted like the primary (AlignToSurface).
+            // FollowSurface Individual, non primary: same XZ move, then put on the surface and tilted like the primary.
             private Transform FollowSurfaceEach(int index, Delta delta)
             {
                 Transform start = m_StartTransforms[index];
@@ -192,11 +179,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 return new Transform(best.m_Position, best.m_Rotation);
             }
 
-            // The water raycast (WaterUtils.Raycast) works on the coarse water grid: on a dry slope it hits above the
-            // terrain, earlier on the line than the terrain raycast, and wins. Both hits have the terrain entity as
-            // owner, but only the terrain hit has a normal. Without real water at the water hit (same depth threshold as
-            // CalculateHeight), take the terrain hit.
-            // Returns true when the point is on real water.
+            // On a dry slope the coarse water grid hits above the terrain: keep the terrain hit unless on real water (returns true).
             private bool FixWaterHit(ref ControlPoint raw)
             {
                 // Terrain hit (or water not raycasted): nothing to fix, no extra raycast.
@@ -238,8 +221,7 @@ namespace ExtraDetailingTools.Systems.Tools
                         ControlPoint gridCandidate = raw;
                         gridCandidate.m_Position = SnapPosition(m_DragStartGizmoPos, newPos, delta.MovedAxes);
                         gridCandidate.m_HitPosition = gridCandidate.m_Position;
-                        // Position-offset-based scoring (same formula ObjectTool's edge/corner snaps use), level 1 so
-                        // it always beats the raw point, and a closer object snap can still outrank it.
+                        // Same scoring as ObjectTool edge snaps, level 1 so it beats the raw point.
                         gridCandidate.m_SnapPriority = ToolUtils.CalculateSnapPriority(1f, 1f, 1f, gridCandidate.m_Position - newPos);
                         ToolUtils.AddSnapPosition(ref best, gridCandidate);
                     }
@@ -342,8 +324,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
-        // Intersection of the camera ray with the drag plane. axisIsNormal (Rotate, sphere handle): the plane is
-        // perpendicular to the axis. Otherwise it contains the axis and faces the camera as much as possible.
+        // Ray / drag plane: perpendicular to the axis if axisIsNormal, else containing it and facing the camera.
         private static bool RaycastDragPlane(float3 rayOrigin, float3 rayDirection, float3 axisDir, float3 center, bool axisIsNormal, float3 cameraRight, float3 cameraForward, out float3 hitPos)
         {
             hitPos = default;

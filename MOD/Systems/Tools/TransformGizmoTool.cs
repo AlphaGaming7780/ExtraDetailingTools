@@ -64,8 +64,7 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly]
             public Entity m_Primary;
 
-            // Originals that already got a definition, so overlapping selections (two upgrades of the same
-            // building, an attached object and its parent, ...) don't create the same temp twice.
+            // Originals that already got a definition, so overlapping selections don't create the same temp twice.
             public NativeParallelHashSet<Entity> m_Added;
 
             private Entity m_Entity;
@@ -230,8 +229,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 }
                 else if (m_AllowHighlight)
                 {
-                    // TempFlags.Parent is drawn with the owner color (green): marks the primary of a multi-selection.
-                    // GenerateObjectsSystem ignores Parent when Select is set, so it replaces it.
+                    // TempFlags.Parent (green highlight) marks the primary, replacing Select which GenerateObjectsSystem would ignore it with.
                     component.m_Flags |= entity == m_Primary ? CreationFlags.Parent : CreationFlags.Select;
                 }
                 m_CommandBuffer.AddComponent(e, default(Updated));
@@ -497,7 +495,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private void UpdateMoveHandle(float3 pos, quaternion rot, float3 size)
             {
-                float radius = math.cmax(size) * 0.1f; //(math.csum(size) / 3f) * 0.115f;
+                float radius = math.cmax(size) * 0.1f;
                 float3 xAxis = new float3(1, 0, 0);
                 float3 yAxis = new float3(0, 1, 0);
                 float3 zAxis = new float3(0, 0, 1);
@@ -655,8 +653,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
-        // Lookups of UpdateObjectJob, one set per system that schedules it (TransformGizmoTool, TransformRequestSystem).
-        // Created in OnCreate so the types are part of that system's dependency, updated before each schedule.
+        // Lookups of UpdateObjectJob, one set per scheduling system, created in OnCreate for its dependency.
         internal struct UpdateObjectLookups
         {
             public ComponentLookup<Transform> m_Transform;
@@ -932,8 +929,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 };
             }
 
-            // Create: Entities / Entity are the duplicates and their primary, PreviousSelection / SelectedEntity
-            // the sources they were duplicated from. The same entry goes to the redo stack.
+            // Create: Entities / Entity are the duplicates, PreviousSelection / SelectedEntity their sources.
             public static ActionHistory NewCreate(Entity[] created, Entity createdPrimary, Entity[] sources, Entity sourcePrimary)
             {
                 return new ActionHistory(ActionType.Create, createdPrimary, sourcePrimary, default, default)
@@ -1326,8 +1322,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground;
                         m_ToolRaycastSystem.typeMask |= TypeMask.Terrain;
-                        // Any object can snap on water. The false water hits on a dry slope (coarse water grid) are fixed
-                        // in TransformToolSnapJob.FixWaterHit. Vanilla alternative, not used: "&& IsPrimaryPlacedOnWater()".
+                        // Any object can snap on water, false water hits on dry slopes are fixed in TransformToolSnapJob.FixWaterHit.
                         if(!m_RaycastFilter.HasFlag(RaycastFilter.Water))
                         {
                             m_ToolRaycastSystem.typeMask |= TypeMask.Water;
@@ -1421,8 +1416,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         m_UndoHistory.Push(ActionHistory.NewTransform(entities.ToArray(), transforms.ToArray()));
 
-                        // Individual: every entity is put on the ground. Otherwise the pivot is, and the others follow
-                        // with the same delta (the group keeps its shape).
+                        // Individual: every entity is put on the ground, otherwise the pivot is and the others keep their offset.
                         TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
                         ComputeGroupPivots(transforms, primaryIndex, out float3 groupPivot, out _, null);
                         float groupDelta = TerrainUtils.SampleHeight(ref heightData, groupPivot) - groupPivot.y;
@@ -1714,8 +1708,7 @@ namespace ExtraDetailingTools.Systems.Tools
                         }
                     }
 
-                    // Object under the cursor (target of Shift+Click / Alt+Click), not while hovering a gizmo
-                    // handle: a drag starts from there and must not carry this extra temp.
+                    // Object under the cursor (Shift/Alt+Click target), not over a handle: a drag must not carry this temp.
                     Entity hovered = Entity.Null;
                     if (m_SelectedHandle == Handle.None && GetRaycastResult(out Entity hit, out RaycastHit _))
                     {
@@ -1754,8 +1747,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 && (placeableObjectData.m_Flags & (Game.Objects.PlacementFlags.Shoreline | Game.Objects.PlacementFlags.Floating | Game.Objects.PlacementFlags.Hovering)) != 0;
         }
 
-        // The whole drag (snaps included) runs in TransformToolSnapJob. The main thread gives the camera ray and the
-        // raycast result, then applies the result to the temps. Without hit, the objects / gizmo keep the last value.
+        // The drag runs in TransformToolSnapJob, the main thread gives the ray / hit and applies the results.
         private JobHandle UpdateDrag(JobHandle inputDeps)
         {
             bool followSurface = m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ;
@@ -1975,8 +1967,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
             jobHandle.Complete();
 
-            // With the whole selection highlighted, the vanilla job returns the last Select temp it finds, not
-            // necessarily the hovered one. Nothing hovered keeps the old behaviour (the selection is clicked).
+            // With the selection highlighted, the vanilla job returns any Select temp: prefer the hovered one.
             Entity hovered = m_LastRaycastEntity;
             Entity selectedEntity;
             if (hovered == Entity.Null) selectedEntity = m_SelectedEntity;
@@ -2223,8 +2214,7 @@ namespace ExtraDetailingTools.Systems.Tools
             return jobHandle;
         }
 
-        // entities / transforms: one per entity, a default position / rotation keeps the current one. The main thread
-        // part of UpdateObject (non Temp entities) is not done here.
+        // One transform per entity, a default position / rotation keeps the current one. Temp entities only.
         private JobHandle ScheduleUpdateObjects(JobHandle inputDeps, NativeArray<Entity> entities, NativeArray<Transform> transforms, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
         {
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateObjectJob
@@ -2754,9 +2744,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
-        // Transform panel with more than one entity selected: the primary entity goes to primaryTarget, and the same
-        // world offset / rotation delta is applied to each selection root, rotating around the current pivots like a
-        // gizmo drag would. lookups: those of the calling system, already updated.
+        // Panel edit of a group: the primary goes to primaryTarget, the others get the same delta around their pivots.
         internal JobHandle TransformSelection(JobHandle inputDeps, Transform primaryTarget, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
         {
             List<Entity> entities = new();
@@ -2780,8 +2768,7 @@ namespace ExtraDetailingTools.Systems.Tools
             return inputDeps;
         }
 
-        // The whole selection is duplicated, so every entity in it must be copyable. Shared by the
-        // Duplicate shortcut and the UI button.
+        // Every entity of the selection must be copyable to be duplicated.
         public bool CanDuplicateSelection()
         {
             if (m_SelectedEntities.Count == 0) return false;
