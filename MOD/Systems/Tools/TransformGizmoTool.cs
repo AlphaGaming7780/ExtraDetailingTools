@@ -453,21 +453,6 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public float m_TanFOV;
             [ReadOnly] public float m_HandleScreenSize;
 
-            // Grid preview. m_GridOrigin: where the incremental steps start (drag start, or the gizmo when idle).
-            [ReadOnly] public bool m_GridEnabled;
-            [ReadOnly] public float3 m_GridOrigin;
-            [ReadOnly] public float3 m_PosStep;
-            [ReadOnly] public float3 m_RotStep;
-            [ReadOnly] public float3 m_DragAxis;
-            [ReadOnly] public quaternion m_DragStartGizmoRot;
-            [ReadOnly] public quaternion m_DragStartPrimaryRot;
-            [ReadOnly] public float3 m_DragStartDir;
-
-            private const float kReferenceScreenHeight = 1080f;
-            // Grid lines / rotation ticks drawn on each side of the current step.
-            private const int kGridHalfCount = 2;
-            private static readonly Color kGridColor = new(1f, 1f, 1f, 0.3f);
-            private static readonly Color kGridCenterColor = new(1f, 1f, 1f, 0.6f);
             // Tube radius of the rotate circles, relative to their radius: scales with the camera like the other handles.
             private const float kRotateArcThickness = 0.03f;
 
@@ -485,9 +470,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 float3 pos = m_UseDragGizmo ? m_DragGizmo.Value.m_Position : m_Position;
                 quaternion rot = m_UseDragGizmo ? m_DragGizmo.Value.m_Rotation : m_Rotation;
 
-                float distance = math.distance(pos, m_CameraPosition);
-                float targetFraction = m_HandleScreenSize / kReferenceScreenHeight;
-                float handleSize = math.max(distance * m_TanFOV * 2f * targetFraction, 0.01f);
+                float handleSize = GetHandleSize(pos, m_CameraPosition, m_TanFOV, m_HandleScreenSize);
                 float3 size = new(handleSize, handleSize, handleSize);
 
                 switch (m_Mode)
@@ -502,12 +485,6 @@ namespace ExtraDetailingTools.Systems.Tools
                         break;
                     default:
                         break;
-                }
-
-                if (m_GridEnabled)
-                {
-                    if (m_Mode == Mode.Move) UpdateMoveGrid(pos, rot);
-                    else if (m_Mode == Mode.Rotate && m_UseDragGizmo) UpdateRotateTicks(pos, rot, handleSize);
                 }
 
                 DestroyAllEntities();
@@ -620,90 +597,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 return perp;
             }
 
-
-            // Lines of the plane the drag moves in, around the current step. Same rules as SnapGrid.SnapPosition.
-            private void UpdateMoveGrid(float3 pos, quaternion rot)
-            {
-                if (m_UseDragGizmo && m_SelectedHandle == Handle.XZ && m_XZHandleMode == XZHandleMode.FollowSurface) return;
-
-                float3x3 axes = m_UseLocalAxis ? new float3x3(rot) : float3x3.identity;
-                int normal = 1;
-                if (m_SelectedHandle == Handle.Y)
-                {
-                    // Vertical plane, the one facing the camera the most.
-                    float3 view = math.normalizesafe(pos - m_CameraPosition);
-                    normal = math.abs(math.dot(axes.c0, view)) > math.abs(math.dot(axes.c2, view)) ? 0 : 2;
-                }
-                else if (m_SelectedHandle == Handle.XZ)
-                {
-                    normal = m_XZHandleMode == XZHandleMode.FixedX ? 0 : m_XZHandleMode == XZHandleMode.FixedZ ? 2 : 1;
-                }
-
-                int u = (normal + 1) % 3;
-                int v = (normal + 2) % 3;
-                float su = m_PosStep[u];
-                float sv = m_PosStep[v];
-                if (su <= 0f || sv <= 0f) return;
-
-                float3 axisU = axes[u];
-                float3 axisV = axes[v];
-                float3 axisN = axes[normal];
-
-                // Global: X / Z on the world grid, Y relative to the drag start.
-                float3 latticeOrigin = m_UseLocalAxis ? m_GridOrigin : new float3(0f, m_GridOrigin.y, 0f);
-                float3 rel = pos - latticeOrigin;
-                float3 center = latticeOrigin
-                    + axisU * math.round(math.dot(rel, axisU) / su) * su
-                    + axisV * math.round(math.dot(rel, axisV) / sv) * sv
-                    + axisN * math.dot(rel, axisN);
-
-                float3 halfU = axisU * su * kGridHalfCount;
-                float3 halfV = axisV * sv * kGridHalfCount;
-                for (int i = -kGridHalfCount; i <= kGridHalfCount; i++)
-                {
-                    Color color = i == 0 ? kGridCenterColor : kGridColor;
-                    float3 lineU = center + axisU * su * i;
-                    float3 lineV = center + axisV * sv * i;
-                    UpdateGridLine(lineU - halfV, lineU + halfV, color);
-                    UpdateGridLine(lineV - halfU, lineV + halfU, color);
-                }
-            }
-
-            // Ticks on the dragged ring at the allowed angles around the current one. Same rules as SnapGrid.SnapAngle.
-            private void UpdateRotateTicks(float3 pos, quaternion rot, float radius)
-            {
-                if (m_SelectedHandle != Handle.X && m_SelectedHandle != Handle.Y && m_SelectedHandle != Handle.Z) return;
-                float step = math.radians(GetRotStep(m_RotStep, m_SelectedHandle));
-                if (step <= 0f) return;
-
-                float3 axis = m_DragAxis;
-                float3 startDir = math.normalizesafe(m_DragStartDir - axis * math.dot(m_DragStartDir, axis));
-                if (math.lengthsq(startDir) < 1e-6f) return;
-
-                // Angle so far, from the gizmo rotation written by TransformToolSnapJob.
-                float3 currentDir = math.rotate(math.mul(rot, math.inverse(m_DragStartGizmoRot)), startDir);
-                float angle = math.atan2(math.dot(axis, math.cross(startDir, currentDir)), math.dot(startDir, currentDir));
-
-                // Global Y snaps the final yaw: ticks shifted by the start yaw.
-                float yaw = !m_UseLocalAxis && m_SelectedHandle == Handle.Y ? SnapMath.GetYaw(m_DragStartPrimaryRot) : 0f;
-                float current = math.round((angle + yaw) / step);
-
-                for (int i = -kGridHalfCount; i <= kGridHalfCount; i++)
-                {
-                    float3 dir = math.rotate(quaternion.AxisAngle(axis, (current + i) * step - yaw), startDir);
-                    float length = i == 0 ? 0.2f : 0.12f;
-                    UpdateGridLine(pos + dir * radius * (1f - length), pos + dir * radius * (1f + length), i == 0 ? kGridCenterColor : kGridColor);
-                }
-            }
-
-            // Not a handle (Handle.None, never highlighted), but tagged to be reused / destroyed with the handles.
-            private void UpdateGridLine(float3 a, float3 b, Color color)
-            {
-                Entity gizmos = GetOrCreateEntity();
-                m_CommandBuffer.AddComponent(gizmos, GizmosUtils.DrawLine(a, b, color));
-                AddHandleComponent(Handle.None, gizmos);
-                if (m_HighlightedLookup.HasComponent(gizmos)) m_CommandBuffer.RemoveComponent<Highlighted>(gizmos);
-            }
 
             private void UpdateScaleGizmos(float3 pos, quaternion rot, float3 size)
             {
@@ -1107,6 +1000,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private WaterSystem m_WaterSystem;
         private Game.Objects.SearchSystem m_ObjectSearchSystem;
         private GizmosRaycastSystem m_GimzosRaycastSystem;
+        private Colossal.GizmosSystem m_GizmosSystem;
         private ToolOutputBarrier m_ToolOutputBarrier;
         private SelectedInfoUISystem m_SelectedInfoUISystem;
         private DuplicateEntitySystem m_DuplicateEntitySystem;
@@ -1153,7 +1047,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private readonly List<DragEntry> m_DragEntries = new();
         private int m_DragPrimaryIndex;
         private quaternion m_DragStartPrimaryRot;
-        // Gizmo of the drag: written by TransformToolSnapJob, read by UpdateGizmosJob, never on the main thread.
+        // Gizmo of the drag: written by TransformToolSnapJob, read by UpdateGizmosJob and TransformToolMarkingJob, never on the main thread.
         private NativeReference<DragGizmoResult> m_DragGizmo;
         private JobHandle m_DragGizmoDeps;
 
@@ -1259,6 +1153,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_ToolOutputBarrier = World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_AudioManager = World.GetOrCreateSystemManaged<AudioManager>();
             m_GimzosRaycastSystem = World.GetOrCreateSystemManaged<GizmosRaycastSystem>();
+            m_GizmosSystem = World.GetOrCreateSystemManaged<Colossal.GizmosSystem>();
             m_SelectedInfoUISystem = World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
             m_DuplicateEntitySystem = World.GetOrCreateSystemManaged<DuplicateEntitySystem>();
 
@@ -2247,19 +2142,22 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_CameraPosition = cam.transform.position,
                 m_TanFOV = tanFOV,
                 m_HandleScreenSize = EDT.m_Settings.HandleScreenSize,
-                m_GridEnabled = m_GridEnabled,
-                m_GridOrigin = useDragGizmo ? m_DragStartGizmoPos : position,
-                m_PosStep = m_PosOffset,
-                m_RotStep = m_RotOffset,
-                m_DragAxis = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot),
-                m_DragStartGizmoRot = m_DragStartGizmoRot,
-                m_DragStartPrimaryRot = m_DragStartPrimaryRot,
-                m_DragStartDir = m_DragStartMouseHitPos,
             }, JobHandle.CombineDependencies(inputDeps, dep, m_DragGizmoDeps));
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
             m_DragGizmoDeps = jobHandle;
             jobHandle = c.Dispose(jobHandle);
-            return jobHandle;
+
+            JobHandle markingHandle = UpdateMarkings(inputDeps, hasGizmo, position, rotation, useDragGizmo, cam, tanFOV);
+            return JobHandle.CombineDependencies(jobHandle, markingHandle);
+        }
+
+        private const float kReferenceScreenHeight = 1080f;
+
+        // World size of the handles: handleScreenSize pixels at 1080p, whatever the distance.
+        private static float GetHandleSize(float3 pos, float3 cameraPosition, float tanFOV, float handleScreenSize)
+        {
+            float distance = math.distance(pos, cameraPosition);
+            return math.max(distance * tanFOV * 2f * (handleScreenSize / kReferenceScreenHeight), 0.01f);
         }
 
         private JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position)
@@ -2653,7 +2551,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 return;
             }
 
-            if (!EntityManager.TryGetComponent<TransformGizmosHandle>(raycastHit.m_HitEntity, out var component) || component.Handle == Handle.None)
+            if (!EntityManager.TryGetComponent<TransformGizmosHandle>(raycastHit.m_HitEntity, out var component))
             {
                 SetState(State.Idle);
                 return;
