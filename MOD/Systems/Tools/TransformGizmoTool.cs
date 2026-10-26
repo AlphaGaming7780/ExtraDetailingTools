@@ -64,8 +64,7 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly]
             public Entity m_Primary;
 
-            // Originals that already got a definition, so overlapping selections (two upgrades of the same
-            // building, an attached object and its parent, ...) don't create the same temp twice.
+            // Originals that already got a definition, so overlapping selections don't create the same temp twice.
             public NativeParallelHashSet<Entity> m_Added;
 
             private Entity m_Entity;
@@ -230,8 +229,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 }
                 else if (m_AllowHighlight)
                 {
-                    // TempFlags.Parent is drawn with the owner color (green): marks the primary of a multi-selection.
-                    // GenerateObjectsSystem ignores Parent when Select is set, so it replaces it.
+                    // TempFlags.Parent (green highlight) marks the primary, replacing Select which GenerateObjectsSystem would ignore it with.
                     component.m_Flags |= entity == m_Primary ? CreationFlags.Parent : CreationFlags.Select;
                 }
                 m_CommandBuffer.AddComponent(e, default(Updated));
@@ -455,7 +453,8 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public float m_TanFOV;
             [ReadOnly] public float m_HandleScreenSize;
 
-            private const float kReferenceScreenHeight = 1080f;
+            // Tube radius of the rotate circles, relative to their radius: scales with the camera like the other handles.
+            private const float kRotateArcThickness = 0.03f;
 
             private int m_ReuseIndex;
 
@@ -471,9 +470,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 float3 pos = m_UseDragGizmo ? m_DragGizmo.Value.m_Position : m_Position;
                 quaternion rot = m_UseDragGizmo ? m_DragGizmo.Value.m_Rotation : m_Rotation;
 
-                float distance = math.distance(pos, m_CameraPosition);
-                float targetFraction = m_HandleScreenSize / kReferenceScreenHeight;
-                float handleSize = math.max(distance * m_TanFOV * 2f * targetFraction, 0.01f);
+                float handleSize = GetHandleSize(pos, m_CameraPosition, m_TanFOV, m_HandleScreenSize);
                 float3 size = new(handleSize, handleSize, handleSize);
 
                 switch (m_Mode)
@@ -495,7 +492,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private void UpdateMoveHandle(float3 pos, quaternion rot, float3 size)
             {
-                float radius = math.cmax(size) * 0.1f; //(math.csum(size) / 3f) * 0.115f;
+                float radius = math.cmax(size) * 0.1f;
                 float3 xAxis = new float3(1, 0, 0);
                 float3 yAxis = new float3(0, 1, 0);
                 float3 zAxis = new float3(0, 0, 1);
@@ -582,7 +579,7 @@ namespace ExtraDetailingTools.Systems.Tools
             private void UpdateRotateArc(Handle handle, float3 center, float3 normal, float3 from, float radius, Color color)
             {
                 Entity gizmos = GetOrCreateEntity();
-                GizmosData data = GizmosUtils.DrawWireArc(center, normal, from, 360, radius, color);
+                GizmosData data = GizmosUtils.DrawWireArc(center, normal, from, 360, radius, color, thickness: radius * kRotateArcThickness, flags: GizmoFlags.CullBackHalf);
                 m_CommandBuffer.AddComponent(gizmos, data);
 
                 AddHandleComponent(handle, gizmos);
@@ -653,8 +650,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
-        // Lookups of UpdateObjectJob, one set per system that schedules it (TransformGizmoTool, TransformRequestSystem).
-        // Created in OnCreate so the types are part of that system's dependency, updated before each schedule.
+        // Lookups of UpdateObjectJob, one set per scheduling system, created in OnCreate for its dependency.
         internal struct UpdateObjectLookups
         {
             public ComponentLookup<Transform> m_Transform;
@@ -930,8 +926,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 };
             }
 
-            // Create: Entities / Entity are the duplicates and their primary, PreviousSelection / SelectedEntity
-            // the sources they were duplicated from. The same entry goes to the redo stack.
+            // Create: Entities / Entity are the duplicates, PreviousSelection / SelectedEntity their sources.
             public static ActionHistory NewCreate(Entity[] created, Entity createdPrimary, Entity[] sources, Entity sourcePrimary)
             {
                 return new ActionHistory(ActionType.Create, createdPrimary, sourcePrimary, default, default)
@@ -1005,6 +1000,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private WaterSystem m_WaterSystem;
         private Game.Objects.SearchSystem m_ObjectSearchSystem;
         private GizmosRaycastSystem m_GimzosRaycastSystem;
+        private Colossal.GizmosSystem m_GizmosSystem;
         private ToolOutputBarrier m_ToolOutputBarrier;
         private SelectedInfoUISystem m_SelectedInfoUISystem;
         private DuplicateEntitySystem m_DuplicateEntitySystem;
@@ -1043,6 +1039,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private int m_LastSelectedIndex;
         private int m_SelectedIndex;
         private float3 m_DragStartGizmoPos;
+        private float3 m_DragStartSurfacePos;
         private quaternion m_DragStartGizmoRot;
         private float3 m_DragStartMouseHitPos;
 
@@ -1050,7 +1047,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private readonly List<DragEntry> m_DragEntries = new();
         private int m_DragPrimaryIndex;
         private quaternion m_DragStartPrimaryRot;
-        // Gizmo of the drag: written by TransformToolSnapJob, read by UpdateGizmosJob, never on the main thread.
+        // Gizmo of the drag: written by TransformToolSnapJob, read by UpdateGizmosJob and TransformToolMarkingJob, never on the main thread.
         private NativeReference<DragGizmoResult> m_DragGizmo;
         private JobHandle m_DragGizmoDeps;
 
@@ -1061,8 +1058,11 @@ namespace ExtraDetailingTools.Systems.Tools
 
         // Grid
         internal bool m_GridEnabled = false;
-        internal double m_PosOffset = 1;
-        internal double m_RotOffset = 45;
+        internal float3 m_PosOffset = new(1f, 1f, 1f);
+        internal float3 m_RotOffset = new(45f, 45f, 45f);
+        // UI only: editing one axis step sets the three.
+        internal bool m_PosOffsetLinked = true;
+        internal bool m_RotOffsetLinked = true;
 
         // Bindings
         private ProxyAction m_UndoAction;
@@ -1111,6 +1111,7 @@ namespace ExtraDetailingTools.Systems.Tools
         public XZHandleMode xzHandleMode { get { return m_XZHandleMode; } internal set { m_XZHandleMode = value; } }
         public RaycastFilter raycastFilter { get { return m_RaycastFilter; } internal set { m_RaycastFilter = value; } }
         public PivotAggregation pivotAggregation { get { return m_PivotSettings.Aggregation; } internal set { m_PivotSettings.Aggregation = value; } }
+        public PivotSource pivotSource { get { return m_PivotSettings.Source; } internal set { m_PivotSettings.Source = value; } }
 
         public Entity SelectedTempEntity => m_SelectedTempEntity;
 
@@ -1152,6 +1153,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_ToolOutputBarrier = World.GetOrCreateSystemManaged<ToolOutputBarrier>();
             m_AudioManager = World.GetOrCreateSystemManaged<AudioManager>();
             m_GimzosRaycastSystem = World.GetOrCreateSystemManaged<GizmosRaycastSystem>();
+            m_GizmosSystem = World.GetOrCreateSystemManaged<Colossal.GizmosSystem>();
             m_SelectedInfoUISystem = World.GetOrCreateSystemManaged<SelectedInfoUISystem>();
             m_DuplicateEntitySystem = World.GetOrCreateSystemManaged<DuplicateEntitySystem>();
 
@@ -1289,7 +1291,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 {
                     m_Type = GizmosRaycastType.ALL,
                     m_Line = ToolRaycastSystem.CalculateRaycastLine(Camera.main),
-                    m_Tolerance = m_Mode == Mode.Rotate ? 0.15f : 0,
+                    m_Tolerance = 0, // The handles have their own volume, scaled with the camera.
                     m_Debug = false
                 };
                 m_GimzosRaycastSystem.AddInput(this, input);
@@ -1324,8 +1326,7 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground;
                         m_ToolRaycastSystem.typeMask |= TypeMask.Terrain;
-                        // Any object can snap on water. The false water hits on a dry slope (coarse water grid) are fixed
-                        // in TransformToolSnapJob.FixWaterHit. Vanilla alternative, not used: "&& IsPrimaryPlacedOnWater()".
+                        // Any object can snap on water, false water hits on dry slopes are fixed in TransformToolSnapJob.FixWaterHit.
                         if(!m_RaycastFilter.HasFlag(RaycastFilter.Water))
                         {
                             m_ToolRaycastSystem.typeMask |= TypeMask.Water;
@@ -1419,10 +1420,9 @@ namespace ExtraDetailingTools.Systems.Tools
                     {
                         m_UndoHistory.Push(ActionHistory.NewTransform(entities.ToArray(), transforms.ToArray()));
 
-                        // Individual: every entity is put on the ground. Otherwise the pivot is, and the others follow
-                        // with the same delta (the group keeps its shape).
+                        // Individual: every entity is put on the ground, otherwise the pivot is and the others keep their offset.
                         TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
-                        ComputeGroupPivots(transforms, primaryIndex, out float3 groupPivot, out _, null);
+                        ComputeGroupPivots(null, transforms, primaryIndex, out float3 groupPivot, out _, null);
                         float groupDelta = TerrainUtils.SampleHeight(ref heightData, groupPivot) - groupPivot.y;
                         bool individual = m_PivotSettings.Aggregation == PivotAggregation.Individual;
                         for (int i = 0; i < entities.Count; i++)
@@ -1712,8 +1712,7 @@ namespace ExtraDetailingTools.Systems.Tools
                         }
                     }
 
-                    // Object under the cursor (target of Shift+Click / Alt+Click), not while hovering a gizmo
-                    // handle: a drag starts from there and must not carry this extra temp.
+                    // Object under the cursor (Shift/Alt+Click target), not over a handle: a drag must not carry this temp.
                     Entity hovered = Entity.Null;
                     if (m_SelectedHandle == Handle.None && GetRaycastResult(out Entity hit, out RaycastHit _))
                     {
@@ -1752,8 +1751,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 && (placeableObjectData.m_Flags & (Game.Objects.PlacementFlags.Shoreline | Game.Objects.PlacementFlags.Floating | Game.Objects.PlacementFlags.Hovering)) != 0;
         }
 
-        // The whole drag (snaps included) runs in TransformToolSnapJob. The main thread gives the camera ray and the
-        // raycast result, then applies the result to the temps. Without hit, the objects / gizmo keep the last value.
+        // The drag runs in TransformToolSnapJob, the main thread gives the ray / hit and applies the results.
         private JobHandle UpdateDrag(JobHandle inputDeps)
         {
             bool followSurface = m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ;
@@ -1800,6 +1798,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_RaycastLine = ToolRaycastSystem.CalculateRaycastLine(camera),
                 m_AxisDir = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot),
                 m_DragStartGizmoPos = m_DragStartGizmoPos,
+                m_DragStartSurfacePos = m_DragStartSurfacePos,
                 m_DragStartGizmoRot = m_DragStartGizmoRot,
                 m_DragStartPrimaryRot = m_DragStartPrimaryRot,
                 m_DragStartMouseHitPos = m_DragStartMouseHitPos,
@@ -1810,8 +1809,8 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_EditorMode = m_ToolSystem.actionMode.IsEditor(),
                 m_GridEnabled = m_GridEnabled,
                 m_SnapEach = m_PivotSettings.Aggregation == PivotAggregation.Individual,
-                m_PosOffset = (float)m_PosOffset,
-                m_RotOffset = (float)m_RotOffset,
+                m_PosOffset = m_PosOffset,
+                m_RotOffset = m_RotOffset,
                 m_Context = context,
                 m_Originals = originals,
                 m_StartTransforms = startTransforms,
@@ -1973,8 +1972,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
             jobHandle.Complete();
 
-            // With the whole selection highlighted, the vanilla job returns the last Select temp it finds, not
-            // necessarily the hovered one. Nothing hovered keeps the old behaviour (the selection is clicked).
+            // With the selection highlighted, the vanilla job returns any Select temp: prefer the hovered one.
             Entity hovered = m_LastRaycastEntity;
             Entity selectedEntity;
             if (hovered == Entity.Null) selectedEntity = m_SelectedEntity;
@@ -2113,7 +2111,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 return UpdateGizmos(inputDeps, false, default, quaternion.identity);
             }
 
-            ComputeGroupPivots(transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, null);
+            ComputeGroupPivots(entities, transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, null);
             return UpdateGizmos(inputDeps, true, gizmoPos, gizmoRot);
         }
 
@@ -2148,7 +2146,18 @@ namespace ExtraDetailingTools.Systems.Tools
             m_ToolOutputBarrier.AddJobHandleForProducer(jobHandle);
             m_DragGizmoDeps = jobHandle;
             jobHandle = c.Dispose(jobHandle);
-            return jobHandle;
+
+            JobHandle markingHandle = UpdateMarkings(inputDeps, hasGizmo, position, rotation, useDragGizmo, cam, tanFOV);
+            return JobHandle.CombineDependencies(jobHandle, markingHandle);
+        }
+
+        private const float kReferenceScreenHeight = 1080f;
+
+        // World size of the handles: handleScreenSize pixels at 1080p, whatever the distance.
+        private static float GetHandleSize(float3 pos, float3 cameraPosition, float tanFOV, float handleScreenSize)
+        {
+            float distance = math.distance(pos, cameraPosition);
+            return math.max(distance * tanFOV * 2f * (handleScreenSize / kReferenceScreenHeight), 0.01f);
         }
 
         private JobHandle UpdateObject(JobHandle inputDeps, Entity entity, float3 position)
@@ -2221,8 +2230,7 @@ namespace ExtraDetailingTools.Systems.Tools
             return jobHandle;
         }
 
-        // entities / transforms: one per entity, a default position / rotation keeps the current one. The main thread
-        // part of UpdateObject (non Temp entities) is not done here.
+        // One transform per entity, a default position / rotation keeps the current one. Temp entities only.
         private JobHandle ScheduleUpdateObjects(JobHandle inputDeps, NativeArray<Entity> entities, NativeArray<Transform> transforms, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
         {
             JobHandle jobHandle = IJobExtensions.Schedule(new UpdateObjectJob
@@ -2441,16 +2449,25 @@ namespace ExtraDetailingTools.Systems.Tools
             return entities.Count - 1;
         }
 
-        private void ComputeGroupPivots(List<Transform> transforms, int primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, float3[] pivots)
+        // entities: null to use the origins whatever the pivot source.
+        private void ComputeGroupPivots(List<Entity> entities, List<Transform> transforms, int primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, float3[] pivots)
         {
             NativeArray<Transform> transformArray = new(transforms.Count, Allocator.Temp);
+            NativeArray<Bounds3> boundsArray = new(entities != null ? transforms.Count : 0, Allocator.Temp);
             NativeArray<float3> pivotArray = new(transforms.Count, Allocator.Temp);
             for (int i = 0; i < transforms.Count; i++)
             {
                 transformArray[i] = transforms[i];
             }
+            for (int i = 0; i < boundsArray.Length; i++)
+            {
+                if (EntityManager.TryGetComponent(entities[i], out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
+                {
+                    boundsArray[i] = geometryData.m_Bounds;
+                }
+            }
 
-            ComputePivots(transformArray, primaryIndex, m_PivotSettings, out gizmoPos, out gizmoRot, pivotArray);
+            ComputePivots(transformArray, boundsArray, primaryIndex, m_PivotSettings, out gizmoPos, out gizmoRot, pivotArray);
 
             if (pivots != null)
             {
@@ -2461,6 +2478,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             transformArray.Dispose();
+            boundsArray.Dispose();
             pivotArray.Dispose();
         }
 
@@ -2485,6 +2503,19 @@ namespace ExtraDetailingTools.Systems.Tools
                 inputDeps = UpdateObject(inputDeps, entity, transform.m_Position, transform.m_Rotation);
             }
             return inputDeps;
+        }
+
+        // Local geometry size of the primary selected object, false without geometry.
+        public bool TryGetPrimaryObjectSize(out float3 size)
+        {
+            size = default;
+            List<Entity> entities = new();
+            List<Transform> transforms = new();
+            int primaryIndex = CollectRootTransforms(false, entities, transforms);
+            if (primaryIndex < 0) return false;
+            if (!EntityManager.TryGetComponent(entities[primaryIndex], out PrefabRef prefabRef) || !EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData)) return false;
+            size = MathUtils.Size(geometryData.m_Bounds);
+            return true;
         }
 
         public void SnapOnGround()
@@ -2582,7 +2613,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             // Pivots are frozen until StopDragging, recomputing them would make them follow the objects.
             float3[] pivots = new float3[entities.Count];
-            ComputeGroupPivots(transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, pivots);
+            ComputeGroupPivots(entities, transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, pivots);
 
             for (int i = 0; i < entities.Count; i++)
             {
@@ -2600,6 +2631,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_SelectedHandle = component.Handle;
 
             m_DragStartGizmoPos = gizmoPos;
+            ComputeGroupPivots(null, transforms, primaryIndex, out m_DragStartSurfacePos, out _, null);
             m_DragStartGizmoRot = gizmoRot;
             m_DragStartPrimaryRot = transforms[primaryIndex].m_Rotation;
             // The gizmo jobs of the previous frames may still use it.
@@ -2677,6 +2709,12 @@ namespace ExtraDetailingTools.Systems.Tools
         }
 
         // rot: the gizmo rotation (identity in Global orientation).
+        // Rotation step (degrees) of the ring of handle.
+        private static float GetRotStep(float3 rotStep, Handle handle)
+        {
+            return handle == Handle.X ? rotStep.x : handle == Handle.Z ? rotStep.z : rotStep.y;
+        }
+
         private float3 GetSelectedAxisDirection(Handle handle, quaternion rot)
         {
             if (handle == Handle.X)
@@ -2752,9 +2790,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
         }
 
-        // Transform panel with more than one entity selected: the primary entity goes to primaryTarget, and the same
-        // world offset / rotation delta is applied to each selection root, rotating around the current pivots like a
-        // gizmo drag would. lookups: those of the calling system, already updated.
+        // Panel edit of a group: the primary goes to primaryTarget, the others get the same delta around their pivots.
         internal JobHandle TransformSelection(JobHandle inputDeps, Transform primaryTarget, SafeCommandBufferSystem ecb, UpdateObjectLookups lookups)
         {
             List<Entity> entities = new();
@@ -2766,7 +2802,7 @@ namespace ExtraDetailingTools.Systems.Tools
             quaternion rotationDelta = math.mul(primaryTarget.m_Rotation, math.inverse(transforms[primaryIndex].m_Rotation));
 
             float3[] pivots = new float3[entities.Count];
-            ComputeGroupPivots(transforms, primaryIndex, out _, out _, pivots);
+            ComputeGroupPivots(entities, transforms, primaryIndex, out _, out _, pivots);
 
             for (int i = 0; i < entities.Count; i++)
             {
@@ -2778,8 +2814,7 @@ namespace ExtraDetailingTools.Systems.Tools
             return inputDeps;
         }
 
-        // The whole selection is duplicated, so every entity in it must be copyable. Shared by the
-        // Duplicate shortcut and the UI button.
+        // Every entity of the selection must be copyable to be duplicated.
         public bool CanDuplicateSelection()
         {
             if (m_SelectedEntities.Count == 0) return false;

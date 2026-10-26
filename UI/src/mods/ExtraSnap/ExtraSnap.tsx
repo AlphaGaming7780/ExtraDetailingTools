@@ -34,17 +34,14 @@ export function setExtraSnap(value: number) {
     trigger(kGroupName, "SetExtraSnap", value);
 }
 
-// Each ExtraSnapBase subclass (identified by its C# GetType().FullName, i.e. __Type) registers its
-// own renderer here instead of this file needing to know about every subclass that will ever exist.
+// Renderer per ExtraSnapBase subclass, keyed by its C# __Type.
 const extraSnapRenderers: { [type: string]: (props: any) => JSX.Element } = {};
 
 export function registerExtraSnapRenderer(type: string, component: (props: any) => JSX.Element) {
     extraSnapRenderers[type] = component;
 }
 
-// C# already resolves which (if any) registered ExtraSnapBase matches the active tool
-// (ExtraSnapUISystem.OnToolChanged) - a null extraSnap here just means "nothing for this tool",
-// no need to re-check activeTool.id like TransformGizmoTool does.
+// C# resolves the ExtraSnap of the active tool, null means none.
 export const ExtraSnapToolOptions: ModuleRegistryExtend = (Component: any) => {
     return (props) => {
         const extraSnap = useActiveExtraSnap();

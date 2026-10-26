@@ -39,9 +39,7 @@ function ObjectToolExtraSnapRenderer(extraSnap: ObjectToolExtra): JSX.Element {
     }
 
 
-    // Mask math can involve the high bit (SelectedSnap starts as ALL minus a couple of flags), and JS
-    // bitwise operators return signed 32-bit results - >>> 0 forces the result back to the unsigned
-    // representation the underlying C# uint expects.
+    // >>> 0 keeps the mask unsigned like the C# uint.
     const toggleFlag = (flag: ObjectToolExtraSnap) => {
         const current = extraSnap.SelectedSnap;
         const next = isSelected(flag) ? current & ~flag : current | flag;

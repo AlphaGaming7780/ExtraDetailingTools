@@ -11,9 +11,7 @@ using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Snapping
 {
-    // Everything the shared snap functions read, grouped so their signatures stay short.
-    // Put it as a field of the SnapJob and pass it by ref. [ReadOnly] on the fields inside the struct is
-    // honored by the job safety system.
+    // Data read by the shared snap functions, as a SnapJob field passed by ref ([ReadOnly] is honored).
     public struct SnapContext
     {
         [ReadOnly] public ComponentLookup<Owner> m_OwnerData;

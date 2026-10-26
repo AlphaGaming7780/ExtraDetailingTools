@@ -9,15 +9,13 @@ using Transform = Game.Objects.Transform;
 
 namespace ExtraDetailingTools.Snapping
 {
-    // Surface snapping shared by the tools (ExtraSnap ObjectTool, TransformGizmoTool FollowSurface, ...).
-    // Static and unmanaged so it can run inside a Burst job.
+    // Surface snap shared by the tools, Burst compatible.
     public static class SnapObjectSurface
     {
         // Below a heightmap cell (~3.5 m), the 4 samples fall in the same cell and the slope gets noisy.
         public const float kMinTerrainSampleHalfSize = 1f;
 
-        // Snaps on the surface of the object hit by the raycast. Sub-objects are resolved to their top owner,
-        // the mesh index is kept in m_ElementIndex.x (same as the vanilla ObjectToolSystem SnapJob).
+        // Snaps on the hit object surface (top owner), mesh index in m_ElementIndex.x like the vanilla SnapJob.
         public static void SnapSurface(ref SnapContext context, ControlPoint controlPoint, ref ControlPoint bestSnapPosition)
         {
             if (!context.m_TransformData.HasComponent(controlPoint.m_OriginalEntity)) return;
@@ -45,8 +43,7 @@ namespace ExtraDetailingTools.Snapping
             ToolUtils.AddSnapPosition(ref bestSnapPosition, snapPosition);
         }
 
-        // Height of the snapped point: placement offset on an object, terrain / water height otherwise.
-        // Adapted from the vanilla ObjectToolSystem SnapJob.CalculateHeight.
+        // Placement offset on an object, terrain / water height otherwise (from vanilla SnapJob.CalculateHeight).
         public static void CalculateHeight(ref SnapContext context, Entity prefab, ref ControlPoint controlPoint)
         {
             if (!context.m_PlaceableObjectData.HasComponent(prefab))
@@ -98,13 +95,7 @@ namespace ExtraDetailingTools.Snapping
             controlPoint.m_Position.y = height;
         }
 
-        // Tilts the object to the surface it's on (or keeps it upright), then applies the vertical offset of
-        // Wall / Hanging objects.
-        //
-        // raw: the raycast point before the snaps. The vanilla SnapJob clears m_OriginalEntity of the snapped
-        // point unless it snapped on an object, so the terrain is read from it.
-        // parentRotation: set to the rotation of the object the point is on (identity otherwise).
-        // alignRotation: snaps the rotation around the normal to 45 degrees steps of parentRotation.
+        // Tilts to the surface (or upright) and applies the Wall / Hanging offset, terrain read from raw (pre snap point).
         public static void AlignToSurface(ref SnapContext context, Entity prefab, bool objectSurface, bool upright, bool editorMode, ControlPoint raw, ref ControlPoint controlPoint, ref quaternion parentRotation, bool alignRotation)
         {
             context.m_PlaceableObjectData.TryGetComponent(prefab, out PlaceableObjectData placeableObjectData);
@@ -132,12 +123,7 @@ namespace ExtraDetailingTools.Snapping
             }
         }
 
-        // The terrain raycast normal (TerrainUtils.Raycast / SampleHeight(out normal)) is computed in heightmap
-        // space (cells / raw height units) and never scaled back to world space, so it's unusable. Instead,
-        // sample the world height at the 4 corners of the object's footprint and use the plane through them.
-        //
-        // localBounds: ObjectGeometryData.m_Bounds of the object, relative to its origin.
-        // Only the yaw of rotation is used, so the result doesn't depend on the current tilt.
+        // The terrain raycast normal is in heightmap space: use the plane through 4 footprint heights (yaw only).
         public static float3 CalculateTerrainNormal(ref TerrainHeightData terrain, float3 position, quaternion rotation, Bounds3 localBounds, float minHalfSize = kMinTerrainSampleHalfSize)
         {
             float3 forward = math.forward(rotation);
@@ -161,8 +147,7 @@ namespace ExtraDetailingTools.Snapping
             return math.normalizesafe(normal, math.up());
         }
 
-        // Adapted from the vanilla ObjectToolSystem SnapJob.AlignObject: Wall objects face the hit normal,
-        // the others get their up axis on it (or stay upright).
+        // From vanilla SnapJob.AlignObject: Wall objects face the normal, the others align their up axis (or stay upright).
         private static void AlignObject(ref SnapContext context, Entity prefab, bool upright, ref ControlPoint controlPoint, ref quaternion parentRotation, bool alignRotation)
         {
             PlaceableObjectData placeableObjectData = default(PlaceableObjectData);

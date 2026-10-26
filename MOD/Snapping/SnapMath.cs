@@ -23,8 +23,7 @@ namespace ExtraDetailingTools.Snapping
             return math.atan2(forward.x, forward.z);
         }
 
-        // Copy of the vanilla ObjectToolSystem.AlignRotation (private): snaps the rotation around the surface
-        // normal to the closest 45 degrees step of the parent rotation.
+        // Copy of the private ObjectToolSystem.AlignRotation: 45 degrees steps of the parent rotation around the normal.
         public static void AlignRotation(ref quaternion rotation, quaternion parentRotation, bool zAxis)
         {
             if (zAxis)

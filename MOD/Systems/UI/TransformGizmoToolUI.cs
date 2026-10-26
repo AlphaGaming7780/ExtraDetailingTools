@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 
 namespace ExtraDetailingTools.Systems.UI
 {
@@ -40,12 +41,15 @@ namespace ExtraDetailingTools.Systems.UI
 
         // Multi selection bindings
         private GetterValueBinding<int> m_PivotAggregationValueGetter;
+        private GetterValueBinding<int> m_PivotSourceValueGetter;
         private ValueBinding<int> m_SelectionCountValueBinding;
 
         // Grid bindings
         private GetterValueBinding<bool> m_GridEnabledValueGetter;
-        private GetterValueBinding<double> m_PosOffsetValueGetter;
-        private GetterValueBinding<double> m_RotOffsetValueGetter;
+        private GetterValueBinding<float3> m_PosOffsetValueGetter;
+        private GetterValueBinding<float3> m_RotOffsetValueGetter;
+        private GetterValueBinding<bool> m_PosOffsetLinkedValueGetter;
+        private GetterValueBinding<bool> m_RotOffsetLinkedValueGetter;
 
         protected override void OnCreate()
         {
@@ -92,14 +96,21 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.SelectTransformGizmosTool", EnableTransformGizmoTool));
 
             AddBinding(m_GridEnabledValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.GridEnabled", () => m_TransformGizmoTool.m_GridEnabled));
-            AddBinding(m_PosOffsetValueGetter = new GetterValueBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffset", () => m_TransformGizmoTool.m_PosOffset));
-            AddBinding(m_RotOffsetValueGetter = new GetterValueBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffset", () => m_TransformGizmoTool.m_RotOffset));
+            AddBinding(m_PosOffsetValueGetter = new GetterValueBinding<float3>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffset", () => m_TransformGizmoTool.m_PosOffset));
+            AddBinding(m_RotOffsetValueGetter = new GetterValueBinding<float3>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffset", () => m_TransformGizmoTool.m_RotOffset));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.GridEnabled", SetGridEnabled));
-            AddBinding(new TriggerBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffset", SetPosOffset));
-            AddBinding(new TriggerBinding<double>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffset", SetRotOffset));
+            AddBinding(new TriggerBinding<float3>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffset", SetPosOffset));
+            AddBinding(new TriggerBinding<float3>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffset", SetRotOffset));
+            AddBinding(m_PosOffsetLinkedValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffsetLinked", () => m_TransformGizmoTool.m_PosOffsetLinked));
+            AddBinding(m_RotOffsetLinkedValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffsetLinked", () => m_TransformGizmoTool.m_RotOffsetLinked));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.PosOffsetLinked", SetPosOffsetLinked));
+            AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.RotOffsetLinked", SetRotOffsetLinked));
+            AddBinding(new TriggerBinding("EDT", $"{m_TransformGizmoTool.toolID}.PosOffsetFromObject", SetPosOffsetFromObject));
 
             AddBinding(m_PivotAggregationValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotAggregation", () => (int)m_TransformGizmoTool.pivotAggregation));
             AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotAggregation", SetPivotAggregation));
+            AddBinding(m_PivotSourceValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotSource", () => (int)m_TransformGizmoTool.pivotSource));
+            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotSource", SetPivotSource));
             AddBinding(m_SelectionCountValueBinding = new ValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.SelectionCount", m_TransformGizmoTool.SelectionCount));
         }
 
@@ -237,22 +248,50 @@ namespace ExtraDetailingTools.Systems.UI
             m_GridEnabledValueGetter.Update();
         }
 
-        public void SetPosOffset(double value)
+        public void SetPosOffset(float3 value)
         {
             m_TransformGizmoTool.m_PosOffset = value;
             m_PosOffsetValueGetter.Update();
         }
 
-        public void SetRotOffset(double value)
+        public void SetRotOffset(float3 value)
         {
             m_TransformGizmoTool.m_RotOffset = value;
             m_RotOffsetValueGetter.Update();
+        }
+
+        public void SetPosOffsetLinked(bool linked)
+        {
+            m_TransformGizmoTool.m_PosOffsetLinked = linked;
+            m_PosOffsetLinkedValueGetter.Update();
+        }
+
+        public void SetRotOffsetLinked(bool linked)
+        {
+            m_TransformGizmoTool.m_RotOffsetLinked = linked;
+            m_RotOffsetLinkedValueGetter.Update();
+        }
+
+        // Grid of the size of the primary object. Flat axes (decals...) keep their step.
+        // Unlinks different steps, the next edit would make them equal again.
+        public void SetPosOffsetFromObject()
+        {
+            if (!m_TransformGizmoTool.TryGetPrimaryObjectSize(out float3 size)) return;
+            float3 step = math.select(m_TransformGizmoTool.m_PosOffset, math.round(size * 1000f) / 1000f, size > 0.001f);
+            SetPosOffset(step);
+            if (step.x != step.y || step.y != step.z) SetPosOffsetLinked(false);
         }
 
         public void SetPivotAggregation(int value)
         {
             m_TransformGizmoTool.pivotAggregation = (TransformGizmoTool.PivotAggregation)value;
             m_PivotAggregationValueGetter.Update();
+        }
+
+        public void SetPivotSource(int value)
+        {
+            m_TransformGizmoTool.pivotSource = (TransformGizmoTool.PivotSource)value;
+            m_PivotSourceValueGetter.Update();
         }
     }
 }

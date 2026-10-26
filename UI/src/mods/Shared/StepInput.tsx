@@ -1,9 +1,9 @@
 import classNames from "classnames";
 import { trigger } from "cs2/api";
 import { Tooltip } from "cs2/ui";
-import { ChangeEvent, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, ReactNode, WheelEvent, useEffect, useState } from "react";
-import { EditorItemSCSS } from "../../../game-ui/editor/widgets/item/editor-item.module.scss";
+import { MouseEvent as ReactMouseEvent, ReactNode, WheelEvent } from "react";
 import { remToPx } from "../RemHelper";
+import { NumberInput, startHorizontalDrag } from "./NumberInput";
 import styles from "./StepInput.module.scss";
 
 export interface StepInputProps {
@@ -20,30 +20,15 @@ export interface StepInputProps {
 	layout?: "stacked" | "inline";
 }
 
-// Canonicalizes to 6 decimal places so repeated *//10 stepping (and float32 round-trips through the C#
-// binding) can't leave a binary-floating-point artifact like 0.009999999776482582 in the displayed text.
+// Rounded to 6 decimals to hide float artifacts.
 function round6(v: number): number {
 	return Math.round(v * 1e6) / 1e6;
 }
 
-// Scroll/drag/edit numeric field shared by TransformPanel's increment fields (POS_I/ROT_I/SCALE_I) and
-// the Transform Gizmo Tool's grid step fields. Scroll, or drag the label horizontally, to step the value
-// with the classic increment heuristic (>=1: +/-1, else *//10). Click into the input to type an exact
-// value, committed on Enter or blur.
-//
-// Call directly as a function (StepInput({...}), not <StepInput .../>) when a parent renders several of
-// these per render (as TransformPanel's Inputs() does for X/Y/Z siblings): the hooks below then keep a
-// stable call order across renders, same convention already used throughout this codebase.
+// Scroll / drag the label to step, click to type.
 export function StepInput(props: StepInputProps): JSX.Element {
 	const { id, value, onCommit, min, tooltip, label, showHandle, className, layout } = props;
 	const inline = layout === "inline";
-
-	const [text, setText] = useState(round6(value).toString());
-	const [editing, setEditing] = useState(false);
-
-	useEffect(() => {
-		if (!editing) setText(round6(value).toString());
-	}, [value]);
 
 	function clamp(v: number): number {
 		return round6(min !== undefined ? Math.max(min, v) : v);
@@ -51,19 +36,10 @@ export function StepInput(props: StepInputProps): JSX.Element {
 
 	function step(current: number, direction: number): number {
 		let next = current;
-		if (direction > 0) next = current >= 1 ? current + 1 : current * 10;
+		if (direction > 0) next = current >= 1 ? current + 1 : current > 0 ? current * 10 : 0.001;
 		else if (current > 1) next = current - 1;
 		else if (current > 0.001) next = current / 10;
 		return clamp(next);
-	}
-
-	function commit(raw: string) {
-		const parsed = parseFloat(raw);
-		if (Number.isNaN(parsed)) {
-			setText(value.toString());
-			return;
-		}
-		onCommit(clamp(parsed));
 	}
 
 	function onWheel(e: WheelEvent) {
@@ -75,47 +51,21 @@ export function StepInput(props: StepInputProps): JSX.Element {
 	}
 
 	function onLabelMouseDown(e: ReactMouseEvent) {
-		e.preventDefault();
-		let lastX = e.clientX;
 		const pixelsPerStep = remToPx(15);
 		let accumulated = 0;
 		let currentValue = value;
-		let lastSoundTime = 0;
-		const soundThrottleMs = 80;
 
-		const onMouseMove = (moveEvent: globalThis.MouseEvent) => {
-			accumulated += moveEvent.clientX - lastX;
-			lastX = moveEvent.clientX;
+		startHorizontalDrag(e, (deltaX) => {
+			accumulated += deltaX;
 			let lastDirection = 0;
-			let stepped = false;
-
 			while (Math.abs(accumulated) >= pixelsPerStep) {
-				const direction = Math.sign(accumulated);
-				accumulated -= direction * pixelsPerStep;
-				lastDirection = direction;
-				stepped = true;
-				currentValue = step(currentValue, direction);
+				lastDirection = Math.sign(accumulated);
+				accumulated -= lastDirection * pixelsPerStep;
+				currentValue = step(currentValue, lastDirection);
 			}
-
-			if (stepped) {
-				onCommit(currentValue);
-				const now = Date.now();
-				if (now - lastSoundTime > soundThrottleMs) {
-					trigger("audio", "playSound", lastDirection > 0 ? "increase-elevation" : "decrease-elevation", 1);
-					lastSoundTime = now;
-				}
-			}
-		};
-
-		const onMouseUp = () => {
-			document.removeEventListener('mousemove', onMouseMove);
-			document.removeEventListener('mouseup', onMouseUp);
-			document.body.style.cursor = '';
-		};
-
-		document.body.style.cursor = 'url(cursor://horizontal-can-resize)';
-		document.addEventListener('mousemove', onMouseMove);
-		document.addEventListener('mouseup', onMouseUp);
+			if (lastDirection !== 0) onCommit(currentValue);
+			return lastDirection;
+		});
 	}
 
 	return <>
@@ -124,30 +74,13 @@ export function StepInput(props: StepInputProps): JSX.Element {
 			<div className={inline ? styles.inlineWrapper : styles.wrapper}>
 				<span className={classNames(inline ? styles.inlineLabelRow : styles.row, styles.draggableLabel)} onMouseDown={onLabelMouseDown}>{label}</span>
 				<span className={inline ? styles.inlineInputRow : styles.row}>
-					<input
+					<NumberInput
 						id={id}
-						value={text}
-						multiple={false}
-						className={classNames(EditorItemSCSS.input, styles.input, className)}
-						onChange={(e: ChangeEvent<HTMLInputElement>) => setText(e.target.value)}
-						onFocus={() => setEditing(true)}
-						onBlur={(e) => { setEditing(false); commit(e.target.value); }}
-						onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
-							// cohtml doesn't remap e.key per the OS keyboard layout, so "a" only matches on
-							// QWERTY. AZERTY swaps A/Q, so also accept "q" for the same physical select-all key.
-							console.log(`StepInput ${id} keydown: key=${e.key}, code=${e.code}, ctrl=${e.ctrlKey}, meta=${e.metaKey}`);
-							if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "a" || e.key.toLowerCase() === "q")) {
-								e.stopPropagation();
-								e.currentTarget.select();
-								return;
-							}
-							if (e.key === "Enter") {
-								commit((e.target as HTMLInputElement).value);
-								(e.target as HTMLInputElement).blur();
-							}
-						}}
+						value={value}
+						onCommit={(v) => onCommit(clamp(v))}
 						onWheel={onWheel}
-						onMouseEnter={() => trigger("audio", "playSound", "hover-item", 1)}
+						format={(v) => round6(v).toString()}
+						className={classNames(styles.input, className)}
 					/>
 				</span>
 			</div>

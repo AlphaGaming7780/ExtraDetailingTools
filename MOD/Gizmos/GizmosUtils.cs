@@ -94,15 +94,30 @@ namespace ExtraDetailingTools.Gizmos
             };
         }
 
-        public static GizmosData DrawWireArc(float3 center, float3 normal, float3 from, float angle, float radius, Color color, int segmentsCount = 36)
+        // Below this, a circle faces the camera: it has no back half.
+        private const float kMinBackHalfProjection = 0.1f;
+
+        // Whether point, on the circle (center, normal), is on its half behind the center seen from viewPoint (GizmoFlags.CullBackHalf).
+        public static bool IsOnBackHalf(float3 center, float3 normal, float3 point, float3 viewPoint)
+        {
+            float3 view = math.normalizesafe(center - viewPoint);
+            float3 n = math.normalizesafe(normal);
+            float3 viewInPlane = view - n * math.dot(view, n);
+            if (math.length(viewInPlane) < kMinBackHalfProjection) return false;
+            return math.dot(point - center, viewInPlane) > 0f;
+        }
+
+        // thickness: radius of the tube drawn around the arc, also its raycast volume. 0 draws a plain line.
+        public static GizmosData DrawWireArc(float3 center, float3 normal, float3 from, float angle, float radius, Color color, int segmentsCount = 36, float thickness = 0f, GizmoFlags flags = GizmoFlags.None)
         {
             return new GizmosData()
             {
                 Type = GizmoType.WireArc,
+                Flags = (int)flags,
                 A = center,
                 B = normal,
                 C = from,
-                Params0 = new float4(angle, radius, 0, 0),
+                Params0 = new float4(angle, radius, thickness, 0),
                 Color = color,
                 Segments = segmentsCount
             };

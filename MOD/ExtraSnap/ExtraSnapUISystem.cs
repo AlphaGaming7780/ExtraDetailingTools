@@ -60,12 +60,7 @@ namespace ExtraDetailingTools.ExtraSnap
             m_ActiveExtraSnapBinding.Update();
         }
 
-        // ExtraSnapBase instances are mutated in place, never replaced - m_ActiveExtraSnap is the same
-        // object reference every frame. GetterValueBinding<T>'s default comparer (EqualityComparer<T>.
-        // Default, which for a plain class falls back to reference equality) would see "same reference"
-        // and silently skip every push after the very first one, no matter how many times we call
-        // .Update(). We already gate when to call .Update() via IsDirty ourselves, so the binding's own
-        // internal check should never be the one deciding - this comparer just always says "changed".
+        // The instance is mutated in place: always report a change, IsDirty already gates the updates.
         private class AlwaysChangedComparer : EqualityComparer<ExtraSnapBase>
         {
             public static readonly AlwaysChangedComparer Instance = new();

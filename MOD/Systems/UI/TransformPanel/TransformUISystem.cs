@@ -50,8 +50,7 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
         private GetterValueBinding<bool> m_AllowScalingBinding;
 
         private double3 increment = new(1, 45, 1);
-        // What the panel shows: read from the ECS (Process), and set right away by the panel changes, which are only
-        // applied by TransformRequestSystem in the next ToolUpdate.
+        // Read from the ECS, and set right away by panel edits (applied in the next ToolUpdate).
         private Transform transform;
         private float3 m_Scale = 1f;
         private bool UseLocalAxis => m_TransformGizmoTool.m_UseLocalAxis;
@@ -164,9 +163,7 @@ namespace ExtraDetailingTools.Systems.UI.TransformPanel
             transformGetScale.Update();
         }
 
-        // Moves the selected entity to (position, rotation), in the next ToolUpdate (TransformRequestSystem). In the gizmo
-        // tool with several entities selected, the rest of the group follows: same offset, and the same rotation delta
-        // around the current pivots.
+        // Applied in the next ToolUpdate by TransformRequestSystem, a gizmo tool group follows the primary.
         private void UpdateObject(float3 position, quaternion rotation)
         {
             bool group = m_ToolSystem.activeTool == m_TransformGizmoTool && m_TransformGizmoTool.SelectionCount > 1;
