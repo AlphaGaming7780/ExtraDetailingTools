@@ -1,3 +1,4 @@
+using Colossal.Mathematics;
 using Unity.Collections;
 using Unity.Mathematics;
 using Transform = Game.Objects.Transform;
@@ -10,8 +11,8 @@ namespace ExtraDetailingTools.Systems.Tools
         public enum PivotSource
         {
             Origin = 0,
-            GeometryCenter,     // Falls back to Origin
-            GeometryBottom,     // Falls back to Origin
+            GeometryCenter,
+            GeometryBottom,
         }
 
         public enum PivotAggregation
@@ -37,8 +38,22 @@ namespace ExtraDetailingTools.Systems.Tools
             public PivotOrientation Orientation;
         }
 
+        // World point of an entity used as its pivot. localBounds: ObjectGeometryData.m_Bounds, default without geometry (origin).
+        internal static float3 GetSourcePoint(Transform transform, Bounds3 localBounds, PivotSource source)
+        {
+            float3 center = MathUtils.Center(localBounds);
+            float3 local = source switch
+            {
+                PivotSource.GeometryCenter => center,
+                PivotSource.GeometryBottom => new float3(center.x, localBounds.min.y, center.z),
+                _ => float3.zero,
+            };
+            return transform.m_Position + math.rotate(transform.m_Rotation, local);
+        }
+
         // Burst compatible. Frozen during a drag, otherwise the pivot would follow the moved objects.
-        internal static void ComputePivots(NativeArray<Transform> transforms, int primaryIndex, PivotSettings settings, out float3 gizmoPos, out quaternion gizmoRot, NativeArray<float3> pivotPerEntity)
+        // localBounds: one per transform, or empty to use the origins.
+        internal static void ComputePivots(NativeArray<Transform> transforms, NativeArray<Bounds3> localBounds, int primaryIndex, PivotSettings settings, out float3 gizmoPos, out quaternion gizmoRot, NativeArray<float3> pivotPerEntity)
         {
             gizmoPos = default;
             gizmoRot = quaternion.identity;
@@ -49,23 +64,28 @@ namespace ExtraDetailingTools.Systems.Tools
             primaryIndex = math.clamp(primaryIndex, 0, count - 1);
             Transform primary = transforms[primaryIndex];
 
-            // Source: only Origin (Transform.m_Position) for now.
+            NativeArray<float3> points = new(count, Allocator.Temp);
+            for (int i = 0; i < count; i++)
+            {
+                points[i] = i < localBounds.Length ? GetSourcePoint(transforms[i], localBounds[i], settings.Source) : transforms[i].m_Position;
+            }
+
             float3 groupPivot;
             switch (settings.Aggregation)
             {
                 case PivotAggregation.Primary:
                 case PivotAggregation.Individual: // The gizmo is drawn on the primary entity.
-                    groupPivot = primary.m_Position;
+                    groupPivot = points[primaryIndex];
                     break;
 
                 case PivotAggregation.BoundsCenter:
                     {
-                        float3 min = transforms[0].m_Position;
+                        float3 min = points[0];
                         float3 max = min;
                         for (int i = 1; i < count; i++)
                         {
-                            min = math.min(min, transforms[i].m_Position);
-                            max = math.max(max, transforms[i].m_Position);
+                            min = math.min(min, points[i]);
+                            max = math.max(max, points[i]);
                         }
                         groupPivot = (min + max) * 0.5f;
                         break;
@@ -76,7 +96,7 @@ namespace ExtraDetailingTools.Systems.Tools
                         float3 sum = float3.zero;
                         for (int i = 0; i < count; i++)
                         {
-                            sum += transforms[i].m_Position;
+                            sum += points[i];
                         }
                         groupPivot = sum / count;
                         break;
@@ -85,8 +105,9 @@ namespace ExtraDetailingTools.Systems.Tools
 
             for (int i = 0; i < count && i < pivotPerEntity.Length; i++)
             {
-                pivotPerEntity[i] = settings.Aggregation == PivotAggregation.Individual ? transforms[i].m_Position : groupPivot;
+                pivotPerEntity[i] = settings.Aggregation == PivotAggregation.Individual ? points[i] : groupPivot;
             }
+            points.Dispose();
 
             gizmoPos = groupPivot;
             gizmoRot = settings.Orientation == PivotOrientation.Global ? quaternion.identity : primary.m_Rotation;

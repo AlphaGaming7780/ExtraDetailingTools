@@ -70,6 +70,15 @@ enum PivotAggregation {
 }
 
 const pivotAggregation$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.PivotAggregation`, 0);
+
+// Mirrors TransformGizmoTool.PivotSource (C#).
+enum PivotSource {
+	Origin = 0,
+	GeometryCenter = 1,
+	GeometryBottom = 2,
+}
+
+const pivotSource$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.PivotSource`, 0);
 const selectionCount$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.SelectionCount`, 0);
 
 export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
@@ -92,6 +101,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const posOffset : number = useValue(posOffset$);
 		const rotOffset : number = useValue(rotOffset$);
 		const pivotAggregation : number = useValue(pivotAggregation$);
+		const pivotSource : number = useValue(pivotSource$);
 		const selectionCount : number = useValue(selectionCount$);
 
 		const [snapExpanded, setSnapExpanded] = useState(() => getPersistedExpanded("TransformGizmoTool.SnapOptions") ?? false);
@@ -159,6 +169,11 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const SetPivotAggregation = (value : number) =>
 		{
 			trigger(kGroupName, `${kTransformGizmoToolId}.PivotAggregation`, value);
+		}
+
+		const SetPivotSource = (value : number) =>
+		{
+			trigger(kGroupName, `${kTransformGizmoToolId}.PivotSource`, value);
 		}
 
 		// Grid step row, StepInput as JSX (own fiber) since it sits after an early return.
@@ -250,6 +265,42 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 				<AnarchyButtons />
 
 			</Section>
+
+			{ selectionCount > 0 &&
+				<Section
+					title={translate("Tool.TransformGizmoTool.PivotSource", "Origin")}
+				>
+					<Tooltip tooltip={translate("Tool.TransformGizmoTool.PivotSource.Origin.Tooltip", "Tool.TransformGizmoTool.PivotSource.Origin.Tooltip")}>
+						<ValueToolButton<number>
+							focusKey={FOCUS_DISABLED$}
+							value={PivotSource.Origin}
+							selected={pivotSource === PivotSource.Origin}
+							onSelect={(v) => SetPivotSource(v)}
+							src="coui://extradetailingtools/Icons/TransformGizmosTool/PivotSource_Origin.svg"
+						/>
+					</Tooltip>
+
+					<Tooltip tooltip={translate("Tool.TransformGizmoTool.PivotSource.Center.Tooltip", "Tool.TransformGizmoTool.PivotSource.Center.Tooltip")}>
+						<ValueToolButton<number>
+							focusKey={FOCUS_DISABLED$}
+							value={PivotSource.GeometryCenter}
+							selected={pivotSource === PivotSource.GeometryCenter}
+							onSelect={(v) => SetPivotSource(v)}
+							src="coui://extradetailingtools/Icons/TransformGizmosTool/PivotSource_Center.svg"
+						/>
+					</Tooltip>
+
+					<Tooltip tooltip={translate("Tool.TransformGizmoTool.PivotSource.Bottom.Tooltip", "Tool.TransformGizmoTool.PivotSource.Bottom.Tooltip")}>
+						<ValueToolButton<number>
+							focusKey={FOCUS_DISABLED$}
+							value={PivotSource.GeometryBottom}
+							selected={pivotSource === PivotSource.GeometryBottom}
+							onSelect={(v) => SetPivotSource(v)}
+							src="coui://extradetailingtools/Icons/TransformGizmosTool/PivotSource_Bottom.svg"
+						/>
+					</Tooltip>
+				</Section>
+			}
 
 			{ selectionCount > 1 &&
 				<Section

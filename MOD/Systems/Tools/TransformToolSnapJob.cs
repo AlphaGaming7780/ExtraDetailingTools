@@ -42,6 +42,7 @@ namespace ExtraDetailingTools.Systems.Tools
             // Drag start, see StartDragging.
             [ReadOnly] public float3 m_AxisDir;
             [ReadOnly] public float3 m_DragStartGizmoPos;
+            [ReadOnly] public float3 m_DragStartSurfacePos; // Group pivot from the origins, put on the surface by FollowSurface.
             [ReadOnly] public quaternion m_DragStartGizmoRot;
             [ReadOnly] public quaternion m_DragStartPrimaryRot;
             [ReadOnly] public float3 m_DragStartMouseHitPos;
@@ -127,7 +128,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 // Tilt only for a single object or in Individual, a group just moves its pivot on the hit.
                 if ((m_StartTransforms.Length != 1 && !m_SnapEach) || !m_Context.m_PrefabRefData.TryGetComponent(m_SelectedEntity, out PrefabRef prefabRef))
                 {
-                    delta.Position = best.m_Position - m_DragStartGizmoPos;
+                    delta.Position = best.m_Position - m_DragStartSurfacePos;
                     return true;
                 }
 

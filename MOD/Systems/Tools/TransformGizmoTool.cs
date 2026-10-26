@@ -1041,6 +1041,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private int m_LastSelectedIndex;
         private int m_SelectedIndex;
         private float3 m_DragStartGizmoPos;
+        private float3 m_DragStartSurfacePos;
         private quaternion m_DragStartGizmoRot;
         private float3 m_DragStartMouseHitPos;
 
@@ -1109,6 +1110,7 @@ namespace ExtraDetailingTools.Systems.Tools
         public XZHandleMode xzHandleMode { get { return m_XZHandleMode; } internal set { m_XZHandleMode = value; } }
         public RaycastFilter raycastFilter { get { return m_RaycastFilter; } internal set { m_RaycastFilter = value; } }
         public PivotAggregation pivotAggregation { get { return m_PivotSettings.Aggregation; } internal set { m_PivotSettings.Aggregation = value; } }
+        public PivotSource pivotSource { get { return m_PivotSettings.Source; } internal set { m_PivotSettings.Source = value; } }
 
         public Entity SelectedTempEntity => m_SelectedTempEntity;
 
@@ -1418,7 +1420,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
                         // Individual: every entity is put on the ground, otherwise the pivot is and the others keep their offset.
                         TerrainHeightData heightData = m_TerrainSystem.GetHeightData();
-                        ComputeGroupPivots(transforms, primaryIndex, out float3 groupPivot, out _, null);
+                        ComputeGroupPivots(null, transforms, primaryIndex, out float3 groupPivot, out _, null);
                         float groupDelta = TerrainUtils.SampleHeight(ref heightData, groupPivot) - groupPivot.y;
                         bool individual = m_PivotSettings.Aggregation == PivotAggregation.Individual;
                         for (int i = 0; i < entities.Count; i++)
@@ -1794,6 +1796,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_RaycastLine = ToolRaycastSystem.CalculateRaycastLine(camera),
                 m_AxisDir = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot),
                 m_DragStartGizmoPos = m_DragStartGizmoPos,
+                m_DragStartSurfacePos = m_DragStartSurfacePos,
                 m_DragStartGizmoRot = m_DragStartGizmoRot,
                 m_DragStartPrimaryRot = m_DragStartPrimaryRot,
                 m_DragStartMouseHitPos = m_DragStartMouseHitPos,
@@ -2106,7 +2109,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 return UpdateGizmos(inputDeps, false, default, quaternion.identity);
             }
 
-            ComputeGroupPivots(transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, null);
+            ComputeGroupPivots(entities, transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, null);
             return UpdateGizmos(inputDeps, true, gizmoPos, gizmoRot);
         }
 
@@ -2433,16 +2436,25 @@ namespace ExtraDetailingTools.Systems.Tools
             return entities.Count - 1;
         }
 
-        private void ComputeGroupPivots(List<Transform> transforms, int primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, float3[] pivots)
+        // entities: null to use the origins whatever the pivot source.
+        private void ComputeGroupPivots(List<Entity> entities, List<Transform> transforms, int primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, float3[] pivots)
         {
             NativeArray<Transform> transformArray = new(transforms.Count, Allocator.Temp);
+            NativeArray<Bounds3> boundsArray = new(entities != null ? transforms.Count : 0, Allocator.Temp);
             NativeArray<float3> pivotArray = new(transforms.Count, Allocator.Temp);
             for (int i = 0; i < transforms.Count; i++)
             {
                 transformArray[i] = transforms[i];
             }
+            for (int i = 0; i < boundsArray.Length; i++)
+            {
+                if (EntityManager.TryGetComponent(entities[i], out PrefabRef prefabRef) && EntityManager.TryGetComponent(prefabRef.m_Prefab, out ObjectGeometryData geometryData))
+                {
+                    boundsArray[i] = geometryData.m_Bounds;
+                }
+            }
 
-            ComputePivots(transformArray, primaryIndex, m_PivotSettings, out gizmoPos, out gizmoRot, pivotArray);
+            ComputePivots(transformArray, boundsArray, primaryIndex, m_PivotSettings, out gizmoPos, out gizmoRot, pivotArray);
 
             if (pivots != null)
             {
@@ -2453,6 +2465,7 @@ namespace ExtraDetailingTools.Systems.Tools
             }
 
             transformArray.Dispose();
+            boundsArray.Dispose();
             pivotArray.Dispose();
         }
 
@@ -2574,7 +2587,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             // Pivots are frozen until StopDragging, recomputing them would make them follow the objects.
             float3[] pivots = new float3[entities.Count];
-            ComputeGroupPivots(transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, pivots);
+            ComputeGroupPivots(entities, transforms, primaryIndex, out float3 gizmoPos, out quaternion gizmoRot, pivots);
 
             for (int i = 0; i < entities.Count; i++)
             {
@@ -2592,6 +2605,7 @@ namespace ExtraDetailingTools.Systems.Tools
             m_SelectedHandle = component.Handle;
 
             m_DragStartGizmoPos = gizmoPos;
+            ComputeGroupPivots(null, transforms, primaryIndex, out m_DragStartSurfacePos, out _, null);
             m_DragStartGizmoRot = gizmoRot;
             m_DragStartPrimaryRot = transforms[primaryIndex].m_Rotation;
             // The gizmo jobs of the previous frames may still use it.
@@ -2756,7 +2770,7 @@ namespace ExtraDetailingTools.Systems.Tools
             quaternion rotationDelta = math.mul(primaryTarget.m_Rotation, math.inverse(transforms[primaryIndex].m_Rotation));
 
             float3[] pivots = new float3[entities.Count];
-            ComputeGroupPivots(transforms, primaryIndex, out _, out _, pivots);
+            ComputeGroupPivots(entities, transforms, primaryIndex, out _, out _, pivots);
 
             for (int i = 0; i < entities.Count; i++)
             {

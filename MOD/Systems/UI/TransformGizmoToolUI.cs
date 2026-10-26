@@ -40,6 +40,7 @@ namespace ExtraDetailingTools.Systems.UI
 
         // Multi selection bindings
         private GetterValueBinding<int> m_PivotAggregationValueGetter;
+        private GetterValueBinding<int> m_PivotSourceValueGetter;
         private ValueBinding<int> m_SelectionCountValueBinding;
 
         // Grid bindings
@@ -100,6 +101,8 @@ namespace ExtraDetailingTools.Systems.UI
 
             AddBinding(m_PivotAggregationValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotAggregation", () => (int)m_TransformGizmoTool.pivotAggregation));
             AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotAggregation", SetPivotAggregation));
+            AddBinding(m_PivotSourceValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotSource", () => (int)m_TransformGizmoTool.pivotSource));
+            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.PivotSource", SetPivotSource));
             AddBinding(m_SelectionCountValueBinding = new ValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.SelectionCount", m_TransformGizmoTool.SelectionCount));
         }
 
@@ -253,6 +256,12 @@ namespace ExtraDetailingTools.Systems.UI
         {
             m_TransformGizmoTool.pivotAggregation = (TransformGizmoTool.PivotAggregation)value;
             m_PivotAggregationValueGetter.Update();
+        }
+
+        public void SetPivotSource(int value)
+        {
+            m_TransformGizmoTool.pivotSource = (TransformGizmoTool.PivotSource)value;
+            m_PivotSourceValueGetter.Update();
         }
     }
 }
