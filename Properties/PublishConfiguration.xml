@@ -28,10 +28,12 @@ If you want example of builds that use this mod, you can check the about screens
 ## Transform Tool
 * The Transform Gizmos tool lets you move and rotate object using handles like in common 3D software like Unity, Blender, ...
  * Multi-selection: Shift + Click to add or remove an object, Alt + Click to set the primary object.
- * Pivot modes: Median, Bounds center, Primary object or Individual.
+ * Pivot modes: Median, Bounds center, Primary object or Individual, using the origin, the center or the bottom of each object.
  * Follow Surface: drag the sphere handle to move the object on terrain, objects or water, following the slope of the terrain or kept upright.
- * Grid snapping in local or global axis, Snap on ground, Duplicate and Undo/Redo.
+ * Grid snapping in local or global axis, with a step per axis (or linked), a step matching the size of the object, and a preview of the grid and of the allowed angles.
+ * Snap on ground, Duplicate and Undo/Redo.
 * The Transform UI appears when you select a compatible asset. This allows you to change the positioning and rotation of the object along the XYZ axis. You are also able to change the increment (↕) value. This can provide a lot more precision for positioning and rotation.
+* Number inputs accept math, like 200 + 30 or (4 - 1) * 2.5.
 
 This menu also has a new 'delete' button, for all objects.
 
@@ -107,36 +109,29 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.3.0.10" />
+	<ModVersion Value="1.3.0.11" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
 	<Dependency Id="75724" />
 	<Dependency Id="75250" />
-	<Dependency Id="146114" />
+	<Dependency Id="74604" />
 	<!-- Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture" -->
 	<RequiredDLC Value=""/>
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
 	<ChangeLog>
 ### Features
-* Transform Gizmo Tool: multi-selection. Shift + Click adds an object to the selection (or removes it), Alt + Click makes it the primary object. Both are rebindable in Settings.
-  * The selection can be changed in Move and Rotate mode too, without going back to the Default mode.
-  * New Pivot setting: Median, Bounds center, Primary object or Individual (each object moves and rotates around its own origin).
-  * Move, rotate, Duplicate, Snap on ground, Undo/Redo and the Transform panel work on the whole selection.
-  * Snap on ground keeps the shape of the group (the pivot is put on the ground and the other objects follow). In Individual, every object is put on the ground.
-* Follow Surface (sphere handle): the object now follows the slope of the terrain.
-  * New Upright toggle to keep the object straight instead of tilting it.
-  * In Individual, each object follows the surface under it.
-* Grid: steps follow the axis mode. Local axis is relative to the current position, Global axis snaps X/Z to the world grid.
-* Closing the Transform panel (X) also closes the Transform Gizmo Tool.
-* The Transform Gizmo Tool can now be opened in the editor too.
-* Extra Snap is now available when moving an existing object with the vanilla Move tool, not only when placing a new one.
+* Transform Gizmo Tool: new Origin setting, to choose the point each object moves and rotates around: its origin, the center of its bounding box or the bottom of its bounding box.
+* Grid: position and rotation steps can now be set per axis (X, Y, Z). 0 disables the snap on that axis.
+  * Link button (on by default): editing one axis sets the same step on all three.
+  * Object Size button: uses the size of the selected object as the position step, to move it on a grid of its own size.
+  * The grid is now shown around the gizmo in Move mode, and the allowed angles are shown on the ring while rotating.
+* Number inputs (Transform panel, Grid steps) accept math: 200 + 30, (4 - 1) * 2.5, 2^3... Both "," and "." work as decimal separator.
+  * Ctrl + Left / Right jumps between numbers, separators and operators. Add Shift to select.
+* Rotate handles: the rings keep the same thickness on screen, and their back half is faded and can't be grabbed, so you always grab the side you see.
 ### Fixes
-* Follow Surface: the object no longer floats above the ground on slopes.
-* Selection highlights are kept when switching between the Default, Move, Rotate and Scale modes.
-* Smoother dragging with the gizmo, especially with many objects selected.
-* Moving an object from the Transform panel now updates it correctly, like the gizmo does.
+* Rotate handles are easier to grab: the clickable area now matches the thickness of the ring.
 	</ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
