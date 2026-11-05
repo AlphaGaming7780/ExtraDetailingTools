@@ -26,13 +26,6 @@ enum Mode {
 	Scale = 3,
 }
 
-enum XZHandleMode {
-	FollowSurface = 0,
-	FixedX,
-	FixedY,
-	FixedZ,
-}
-
 enum RaycastFilter {
 	None = 0,
 	StaticObject = 1,
@@ -48,7 +41,6 @@ const pos$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Position`, 
 const rot$ = bindValue<Float3>(kGroupName, `${kTransformGizmoToolId}.Rotation`, {x: 0, y: 0, z:0});
 // const scale$ = bindValue<Float3>(kGroupName, `${kToolId}.Scale`, {x: 0, y: 0, z:0});
 const localAxis$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.LocalAxis`, false);
-const xzHandleMode$ = bindValue<number>(kGroupName, `${kTransformGizmoToolId}.XZHandleMode`, 0);
 const upright$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.Upright`, false);
 const snapToSurface$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.SnapToSurface`, false);
 const moveSubBuildings$ = bindValue<boolean>(kGroupName, `${kTransformGizmoToolId}.MoveSubBuildings`, false);
@@ -96,7 +88,6 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 		const hasSubBuildings : boolean = useValue(haSubBuildings$);
 		const isCopyable : boolean = useValue(isCopyable$);
 		const currentMode : number = useValue(toolMode$);
-		const currentXZHandleMode : number = useValue(xzHandleMode$);
 		const upright : boolean = useValue(upright$);
 		const raycastFilter : number = useValue(raycastFilter$);
 		const gridEnabled : boolean = useValue(gridEnabled$);
@@ -145,11 +136,6 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			trigger(kGroupName, `${kTransformGizmoToolId}.Duplicate`);
 		}
 		
-		const SetXZHandleMode = (xzHandleMode : number) =>
-		{
-			trigger(kGroupName, `${kTransformGizmoToolId}.XZHandleMode`, xzHandleMode);
-		}
-
 		const SetUpright = (enabled : boolean) =>
 		{
 			trigger(kGroupName, `${kTransformGizmoToolId}.Upright`, enabled);
@@ -429,53 +415,8 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 			{ currentMode === Mode.Move &&
 				<>
 					<SectionOrFoldout	
-						title={translate("Tool.TransformGizmoTool.XZHandleModes", "Sphere Handle Modes")}
-						headerRight={
-							<>
-								<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FollowSurface.Tooltip", "Follow Surface")}>
-									<ValueToolButton<number>
-										focusKey={FOCUS_DISABLED$}
-										value={XZHandleMode.FollowSurface}
-										selected={currentXZHandleMode === XZHandleMode.FollowSurface}
-										onSelect={(v) => SetXZHandleMode(v)}
-										src="Media/Tools/Snap Options/ObjectSurface.svg"
-									/>
-								</Tooltip>
-
-								<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedX.Tooltip", "Fixed X")}>
-									<ValueToolButton<number>
-										focusKey={FOCUS_DISABLED$}
-										value={XZHandleMode.FixedX}
-										selected={currentXZHandleMode === XZHandleMode.FixedX}
-										onSelect={(v) => SetXZHandleMode(v)}
-										src="coui://extradetailingtools/Icons/TransformGizmosTool/FixedX.svg"
-									/>
-								</Tooltip>
-
-								<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedY.Tooltip", "Fixed Y")}>
-									<ValueToolButton<number>
-										focusKey={FOCUS_DISABLED$}
-										value={XZHandleMode.FixedY}
-										selected={currentXZHandleMode === XZHandleMode.FixedY}
-										onSelect={(v) => SetXZHandleMode(v)}
-										src="coui://extradetailingtools/Icons/TransformGizmosTool/FixedY.svg"
-									/>
-								</Tooltip>
-
-								<Tooltip tooltip={translate("Tool.TransformGizmoTool.XZHandleModes.FixedZ.Tooltip", "Fixed Z")}>
-									<ValueToolButton<number>
-										focusKey={FOCUS_DISABLED$}
-										value={XZHandleMode.FixedZ}
-										selected={currentXZHandleMode === XZHandleMode.FixedZ}
-										onSelect={(v) => SetXZHandleMode(v)}
-										src="coui://extradetailingtools/Icons/TransformGizmosTool/FixedZ.svg"
-									/>
-								</Tooltip>
-							</>
-						}
+						title={translate("Tool.TransformGizmoTool.SphereHandle", "Sphere Handle")}
 					>
-					
-					{ currentXZHandleMode === XZHandleMode.FollowSurface &&
 						<Section
 							title={translate("Toolbar.SNAPPING_TITLE", "Snapping")}
 						>
@@ -487,9 +428,7 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 								onSelect={() => SetUpright(!upright)}
 							/>
 						</Section>
-					}
 
-					{ currentXZHandleMode === XZHandleMode.FollowSurface &&
 						<Section
 							title={translate("Tool.TransformGizmoTool.RaycastFilter", "Raycast Filter")}
 						>
@@ -543,7 +482,6 @@ export const TransformGizmoTool: ModuleRegistryExtend = (Component: any) => {
 								onSelect={() => toggleFlag(RaycastFilter.Water)}
 							/>
 						</Section>
-					}
 					</SectionOrFoldout>
 				</>
 

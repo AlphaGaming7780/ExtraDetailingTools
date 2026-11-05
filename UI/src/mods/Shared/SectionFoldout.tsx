@@ -1,11 +1,26 @@
 import classNames from "classnames";
 import { FocusKey } from "cs2/bindings";
 import { FOCUS_AUTO } from "cs2/ui";
-import { ReactNode } from "react";
+import { Fragment, ReactNode, isValidElement } from "react";
 import { InfoSectionFoldout } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section-foldout";
 import { InfoSectionSCSS } from "../../../game-ui/game/components/selected-info-panel/shared-components/info-section/info-section.module.scss";
 import { MouseToolOptionsSCSS } from "../../../game-ui/game/components/tool-options/mouse-tool-options/mouse-tool-options.module.scss";
+import { ToolButtonSCSS } from "../../../game-ui/game/components/tool-options/tool-button/tool-button.module.scss";
 import styles from "./SectionFoldout.module.scss";
+
+// Whether the children render nothing (falsy or empty Fragment, recursively).
+export function isEmptyChildren(node: ReactNode): boolean {
+    if (node === null || node === undefined || node === false || node === true || node === "") {
+        return true;
+    }
+    if (Array.isArray(node)) {
+        return node.every(isEmptyChildren);
+    }
+    if (isValidElement(node) && node.type === Fragment) {
+        return isEmptyChildren((node.props as { children?: ReactNode }).children);
+    }
+    return false;
+}
 
 const persistedExpanded = new Map<string, boolean>();
 
@@ -39,7 +54,10 @@ export function SectionFoldout(props: SectionFoldoutProps): JSX.Element {
 					{title}
 				</div>
 				<div className={classNames(MouseToolOptionsSCSS.content, styles.headerContent)}>
-					{headerRight}
+					{isEmptyChildren(headerRight)
+						// Invisible box with the game tool button size: without buttons, the row keeps the height of a classic Section.
+						? <div className={classNames(ToolButtonSCSS.button, styles.placeholder)} />
+						: headerRight}
 				</div>
 			</div>
 		}

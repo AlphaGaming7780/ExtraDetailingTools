@@ -24,6 +24,11 @@
     margin-bottom: 0;
 }
 
+.placeholder {
+    opacity: 0;
+    pointer-events: none;
+}
+
 .content {
     display: flex;
     flex-direction: column;

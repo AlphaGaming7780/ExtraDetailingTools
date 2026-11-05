@@ -21,7 +21,6 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public Mode m_Mode;
             [ReadOnly] public Handle m_SelectedHandle;
             [ReadOnly] public bool m_UseLocalAxis;
-            [ReadOnly] public XZHandleMode m_XZHandleMode;
             [ReadOnly] public float3 m_Position;
             [ReadOnly] public quaternion m_Rotation;
             // Dragging: the gizmo written by TransformToolSnapJob is used instead of m_Position / m_Rotation.
@@ -59,7 +58,7 @@ namespace ExtraDetailingTools.Systems.Tools
             // Grid of the plane the drag moves in.
             private void DrawMoveGrid(float3 pos, quaternion rot)
             {
-                if (m_UseDragGizmo && m_SelectedHandle == Handle.XZ && m_XZHandleMode == XZHandleMode.FollowSurface) return;
+                if (m_UseDragGizmo && m_SelectedHandle == Handle.XZ) return;
 
                 int normal = 1;
                 if (m_SelectedHandle == Handle.Y)
@@ -69,9 +68,9 @@ namespace ExtraDetailingTools.Systems.Tools
                     float3 view = math.normalizesafe(pos - m_CameraPosition);
                     normal = math.abs(math.dot(axes.c0, view)) > math.abs(math.dot(axes.c2, view)) ? 0 : 2;
                 }
-                else if (m_SelectedHandle == Handle.XZ)
+                else if (IsPlaneHandle(m_SelectedHandle))
                 {
-                    normal = m_XZHandleMode == XZHandleMode.FixedX ? 0 : m_XZHandleMode == XZHandleMode.FixedZ ? 2 : 1;
+                    normal = m_SelectedHandle == Handle.PlaneX ? 0 : m_SelectedHandle == Handle.PlaneZ ? 2 : 1;
                 }
 
                 SnapGrid.DrawPositionGrid(m_Batcher, m_GridOrigin, pos, m_PosStep, m_UseLocalAxis, rot, normal);
@@ -105,7 +104,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_Mode = m_Mode,
                 m_SelectedHandle = m_SelectedHandle,
                 m_UseLocalAxis = m_UseLocalAxis,
-                m_XZHandleMode = m_XZHandleMode,
                 m_Position = position,
                 m_Rotation = rotation,
                 m_UseDragGizmo = useDragGizmo,

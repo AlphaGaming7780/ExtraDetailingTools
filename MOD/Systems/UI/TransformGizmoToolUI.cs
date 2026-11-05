@@ -32,7 +32,6 @@ namespace ExtraDetailingTools.Systems.UI
         private ValueBinding<bool> m_IsCopyableValueBinding;
         private ValueBinding<bool> m_HasSubBuildingsValueBinding;
         private GetterValueBinding<bool> m_MoveSubBuildingsValueGetter;
-        private GetterValueBinding<int> m_XZHandleModeValueGetter;
         private GetterValueBinding<bool> m_UprightValueGetter;
         private GetterValueBinding<int> m_RaycastFilterValueGetter;
         private GetterValueBinding<bool> m_AnarchyAvailableValueGetter;
@@ -76,8 +75,6 @@ namespace ExtraDetailingTools.Systems.UI
             AddBinding(m_ToolModeValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.ToolMode", () => m_TransformGizmoTool.uiModeIndex));
             AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.ToolMode", SetMode));
 
-            AddBinding(m_XZHandleModeValueGetter = new GetterValueBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.XZHandleMode", () => (int)m_TransformGizmoTool.xzHandleMode));
-            AddBinding(new TriggerBinding<int>("EDT", $"{m_TransformGizmoTool.toolID}.XZHandleMode", SetXZHandleMode));
             AddBinding(m_UprightValueGetter = new GetterValueBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.Upright", () => m_TransformGizmoTool.m_Upright));
             AddBinding(new TriggerBinding<bool>("EDT", $"{m_TransformGizmoTool.toolID}.Upright", SetUpright));
 
@@ -190,17 +187,6 @@ namespace ExtraDetailingTools.Systems.UI
             m_TransformGizmoTool.m_MoveSubBuildings = enabled;
             m_TransformExtraPanel.RequestUpdate();
             m_MoveSubBuildingsValueGetter.Update();
-        }
-
-        public void SetXZHandleMode(int value)
-        {
-            SetXZHandleMode((TransformGizmoTool.XZHandleMode)value);
-        }
-
-        public void SetXZHandleMode(TransformGizmoTool.XZHandleMode value)
-        {
-            m_TransformGizmoTool.xzHandleMode = value;
-            m_XZHandleModeValueGetter.Update();
         }
 
         public void SetUpright(bool enabled)

@@ -47,8 +47,7 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public quaternion m_DragStartPrimaryRot;
             [ReadOnly] public float3 m_DragStartMouseHitPos;
 
-            // Sphere Mode. FollowSurface: m_ControlPoint is built from the raycast hit, with the drag start rotation.
-            [ReadOnly] public XZHandleMode m_XZHandleMode;
+            // Sphere (Handle.XZ) follows the surface: m_ControlPoint is built from the raycast hit, with the drag start rotation.
             [ReadOnly] public bool m_HasHit;
             [ReadOnly] public ControlPoint m_ControlPoint;
             [ReadOnly] public bool m_Upright;
@@ -110,7 +109,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private bool IsFollowSurface()
             {
-                return m_XZHandleMode == XZHandleMode.FollowSurface && m_Handle == Handle.XZ;
+                return m_Handle == Handle.XZ;
             }
 
             private bool FollowSurface(ref Delta delta)
@@ -199,7 +198,7 @@ namespace ExtraDetailingTools.Systems.Tools
 
             private bool DragPlane(ref Delta delta)
             {
-                bool axisIsNormal = m_Mode == Mode.Rotate || m_Handle == Handle.XZ;
+                bool axisIsNormal = m_Mode == Mode.Rotate || IsPlaneHandle(m_Handle);
                 if (!RaycastDragPlane(m_RayOrigin, m_RayDirection, m_AxisDir, m_DragStartGizmoPos, axisIsNormal, m_CameraRight, m_CameraForward, out float3 hitPos)) return false;
 
                 delta.MovedAxes = GetMovedAxes(m_Handle, m_AxisDir);
@@ -207,7 +206,7 @@ namespace ExtraDetailingTools.Systems.Tools
                 if (m_Mode == Mode.Move)
                 {
                     float3 mouseDelta = hitPos - m_DragStartMouseHitPos;
-                    float3 newPos = m_Handle == Handle.XZ
+                    float3 newPos = IsPlaneHandle(m_Handle)
                         ? m_DragStartGizmoPos + mouseDelta
                         : m_DragStartGizmoPos + math.dot(mouseDelta, m_AxisDir) * m_AxisDir;
 
@@ -355,7 +354,7 @@ namespace ExtraDetailingTools.Systems.Tools
         private static bool3 GetMovedAxes(Handle handle, float3 axisDir)
         {
             float3 absAxis = math.abs(axisDir);
-            return handle == Handle.XZ ? absAxis < 0.5f : absAxis > 0.5f;
+            return IsPlaneHandle(handle) ? absAxis < 0.5f : absAxis > 0.5f;
         }
     }
 }
