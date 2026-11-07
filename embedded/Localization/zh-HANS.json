@@ -83,7 +83,7 @@
 	"ExtraSnap.ObjectSide.SnapToCenter.Tooltip": "将物体吸附并对齐到最近物体最近一侧的中心。",
 	"ExtraSnap.ObjectSide.SnapToCorner.Tooltip": "将物体吸附并对齐至最近物体的顶角。",
 	"ExtraPanelHeaderName[ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel]": "变换面板",
-	"ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel": "打开 EDT 的变换操控器工具。",
+	"ExtraPanelTooltip[ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel]": "Open EDT's Transform Gizmo Tool.",
 	"TransformPanel.COPY_POS": "复制位置。",
 	"TransformPanel.PAST_POS": "粘贴位置。",
 	"TransformPanel.PAST_POS_X": "仅粘贴 X 轴坐标位置。",
