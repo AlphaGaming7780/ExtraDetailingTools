@@ -4,6 +4,8 @@ import { Number2 } from "cs2/ui";
 
 export interface ExtraPanelType extends Typed < "" > {
     icon: string;
+    // Localization key, ExtraPanelHeaderName[{ID}] by default, see ExtraPanelBase.Title in ExtraLib.
+    title: string;
     visible: boolean;
     isExpanded: boolean;
     canFullScreen: boolean;

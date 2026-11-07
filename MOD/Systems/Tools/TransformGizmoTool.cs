@@ -436,7 +436,6 @@ namespace ExtraDetailingTools.Systems.Tools
             [ReadOnly] public ComponentLookup<Highlighted> m_HighlightedLookup;
 
             [ReadOnly] public bool m_UseLocalAxis;
-            [ReadOnly] public XZHandleMode m_XZHandleMode;
             [ReadOnly] public float3 m_Position;
             [ReadOnly] public quaternion m_Rotation;
             // Dragging: the gizmo written by TransformToolSnapJob is used instead of m_Position / m_Rotation.
@@ -512,24 +511,40 @@ namespace ExtraDetailingTools.Systems.Tools
                 UpdateMoveArrow(Handle.Y, pos, pos + yAxis, Color.green);
                 UpdateMoveArrow(Handle.Z, pos, pos + zAxis, Color.blue);
 
-                switch(m_XZHandleMode)
-                {
-                    case XZHandleMode.FollowSurface:
-                        UpdateMoveSphere(Handle.XZ, pos, radius, Color.cyan);
-                        break;
+                UpdateMoveSphere(Handle.XZ, pos, radius, Color.cyan);
 
-                    case XZHandleMode.FixedX:
-                        UpdateMoveSphere(Handle.XZ, pos, radius, Color.red);
-                        break;
+                // Plane squares, colored by their normal, on the camera side of the two axes they move along.
+                quaternion planeRot = m_UseLocalAxis ? rot : quaternion.identity;
+                float3 xSide = xAxis * GetCameraSide(pos, xAxis);
+                float3 ySide = yAxis * GetCameraSide(pos, yAxis);
+                float3 zSide = zAxis * GetCameraSide(pos, zAxis);
+                float squareSize = math.cmax(size) * kPlaneSquareSize;
+                float thickness = squareSize * kPlaneSquareThickness;
 
-                    case XZHandleMode.FixedY:
-                        UpdateMoveSphere(Handle.XZ, pos, radius, Color.green);
-                        break;
+                UpdateMovePlane(Handle.PlaneX, pos + (ySide + zSide) * kPlaneSquareOffset, planeRot, new float3(thickness, squareSize, squareSize), Color.red);
+                UpdateMovePlane(Handle.PlaneY, pos + (xSide + zSide) * kPlaneSquareOffset, planeRot, new float3(squareSize, thickness, squareSize), Color.green);
+                UpdateMovePlane(Handle.PlaneZ, pos + (xSide + ySide) * kPlaneSquareOffset, planeRot, new float3(squareSize, squareSize, thickness), Color.blue);
+            }
 
-                    case XZHandleMode.FixedZ:
-                        UpdateMoveSphere(Handle.XZ, pos, radius, Color.blue);
-                        break;
-                }
+            // Plane squares: center along both axes and side, relative to the axis length.
+            private const float kPlaneSquareOffset = 0.3f;
+            private const float kPlaneSquareSize = 0.18f;
+            // Raycast volume across the square, relative to its side: flat enough to be drawn as a square.
+            private const float kPlaneSquareThickness = 0.02f;
+
+            private float GetCameraSide(float3 pos, float3 axis)
+            {
+                return math.dot(axis, m_CameraPosition - pos) >= 0f ? 1f : -1f;
+            }
+
+            private void UpdateMovePlane(Handle handle, float3 center, quaternion rot, float3 size, Color color)
+            {
+                Entity gizmos = GetOrCreateEntity();
+                GizmosData data = GizmosUtils.DrawWireCube(float4x4.TRS(center, rot, new float3(1, 1, 1)), float3.zero, size, color);
+                m_CommandBuffer.AddComponent(gizmos, data);
+
+                AddHandleComponent(handle, gizmos);
+                UpdateHighlight(handle, gizmos);
             }
 
             private void UpdateMoveArrow(Handle handle, float3 A, float3 B, Color color)
@@ -948,7 +963,13 @@ namespace ExtraDetailingTools.Systems.Tools
 
         public enum Handle
         {
-            None, X, Y, Z, XZ,
+            // XZ: center sphere, follows the surface. PlaneX/Y/Z: squares, move in the plane of normal X/Y/Z.
+            None, X, Y, Z, XZ, PlaneX, PlaneY, PlaneZ,
+        }
+
+        private static bool IsPlaneHandle(Handle handle)
+        {
+            return handle == Handle.PlaneX || handle == Handle.PlaneY || handle == Handle.PlaneZ;
         }
 
         public enum AllowHightlightState
@@ -964,14 +985,6 @@ namespace ExtraDetailingTools.Systems.Tools
             Move,
             Rotate,
             Scale
-        }
-
-        public enum XZHandleMode
-        {
-            FollowSurface = 0,
-            FixedX,
-            FixedY,
-            FixedZ,
         }
 
         public enum State
@@ -1006,7 +1019,6 @@ namespace ExtraDetailingTools.Systems.Tools
         private DuplicateEntitySystem m_DuplicateEntitySystem;
 
         private Mode m_Mode = Mode.Default;
-        private XZHandleMode m_XZHandleMode = XZHandleMode.FollowSurface;
 
         private State m_State = State.Idle;
 
@@ -1108,7 +1120,6 @@ namespace ExtraDetailingTools.Systems.Tools
 
         public Mode mode => m_Mode;
 
-        public XZHandleMode xzHandleMode { get { return m_XZHandleMode; } internal set { m_XZHandleMode = value; } }
         public RaycastFilter raycastFilter { get { return m_RaycastFilter; } internal set { m_RaycastFilter = value; } }
         public PivotAggregation pivotAggregation { get { return m_PivotSettings.Aggregation; } internal set { m_PivotSettings.Aggregation = value; } }
         public PivotSource pivotSource { get { return m_PivotSettings.Source; } internal set { m_PivotSettings.Source = value; } }
@@ -1316,7 +1327,7 @@ namespace ExtraDetailingTools.Systems.Tools
                         m_ToolRaycastSystem.typeMask |= TypeMask.MovingObjects;
                 }
 
-                if (m_XZHandleMode == XZHandleMode.FollowSurface)
+                // Surfaces the sphere handle (FollowSurface) can be dragged on.
                 {
                     if (m_Underground)
                     {
@@ -1525,7 +1536,7 @@ namespace ExtraDetailingTools.Systems.Tools
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
                             if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
-                            m_SelectedInfoUISystem.Focus(m_SelectedEntity);
+                            else m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
                         else if (actionType == ActionType.Transform)
                         {
@@ -1549,7 +1560,7 @@ namespace ExtraDetailingTools.Systems.Tools
                                 m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
                                 if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
-                                m_SelectedInfoUISystem.Focus(m_SelectedEntity);
+                                else m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                             }
                         }
                         else
@@ -1588,7 +1599,7 @@ namespace ExtraDetailingTools.Systems.Tools
                             m_SelectedIndex = -1; // Note: if in future we support Net, fix this.
 
                             if (m_SelectedEntity == Entity.Null) SetMode(Mode.Default); // Keeps the current mode otherwise.
-                            m_SelectedInfoUISystem.Focus(m_SelectedEntity);
+                            else m_SelectedInfoUISystem.Focus(m_SelectedEntity);
                         }
                         else if (actionType == ActionType.Transform)
                         {
@@ -1754,7 +1765,7 @@ namespace ExtraDetailingTools.Systems.Tools
         // The drag runs in TransformToolSnapJob, the main thread gives the ray / hit and applies the results.
         private JobHandle UpdateDrag(JobHandle inputDeps)
         {
-            bool followSurface = m_XZHandleMode == XZHandleMode.FollowSurface && m_SelectedHandle == Handle.XZ;
+            bool followSurface = m_SelectedHandle == Handle.XZ;
             ControlPoint raw = default;
             bool hasHit = false;
             if (followSurface && GetRaycastResult(out Entity entity, out RaycastHit hit))
@@ -1802,7 +1813,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_DragStartGizmoRot = m_DragStartGizmoRot,
                 m_DragStartPrimaryRot = m_DragStartPrimaryRot,
                 m_DragStartMouseHitPos = m_DragStartMouseHitPos,
-                m_XZHandleMode = m_XZHandleMode,
                 m_HasHit = hasHit,
                 m_ControlPoint = raw,
                 m_Upright = m_Upright,
@@ -2132,7 +2142,6 @@ namespace ExtraDetailingTools.Systems.Tools
                 m_GizmosDataLookup = SystemAPI.GetComponentLookup<GizmosData>(true),
                 m_HighlightedLookup = SystemAPI.GetComponentLookup<Highlighted>(true),
                 m_UseLocalAxis = m_UseLocalAxis,
-                m_XZHandleMode = m_XZHandleMode,
                 m_Position = position,
                 m_Rotation = rotation,
                 m_UseDragGizmo = useDragGizmo,
@@ -2638,12 +2647,12 @@ namespace ExtraDetailingTools.Systems.Tools
             m_DragGizmoDeps.Complete();
             m_DragGizmo.Value = new DragGizmoResult { m_Position = gizmoPos, m_Rotation = gizmoRot };
 
-            if(m_XZHandleMode != XZHandleMode.FollowSurface || m_SelectedHandle != Handle.XZ)
+            if(m_SelectedHandle != Handle.XZ)
             {
                 float3 axisDir = GetSelectedAxisDirection(m_SelectedHandle, m_DragStartGizmoRot);
                 Camera camera = Camera.main;
                 Ray ray = camera.ScreenPointToRay(Input.mousePosition);
-                bool axisIsNormal = m_Mode == Mode.Rotate || m_SelectedHandle == Handle.XZ;
+                bool axisIsNormal = m_Mode == Mode.Rotate || IsPlaneHandle(m_SelectedHandle);
 
                 if (RaycastDragPlane(ray.origin, ray.direction, axisDir, m_DragStartGizmoPos, axisIsNormal, camera.transform.right, camera.transform.forward, out float3 hitPos))
                 {
@@ -2717,30 +2726,17 @@ namespace ExtraDetailingTools.Systems.Tools
 
         private float3 GetSelectedAxisDirection(Handle handle, quaternion rot)
         {
-            if (handle == Handle.X)
+            if (handle == Handle.X || handle == Handle.PlaneX)
                 return math.rotate(rot, new float3(1, 0, 0));
 
-            if (handle == Handle.Y)
+            if (handle == Handle.Y || handle == Handle.PlaneY)
                 return math.rotate(rot, new float3(0, 1, 0));
 
-            if (handle == Handle.Z)
+            if (handle == Handle.Z || handle == Handle.PlaneZ)
                 return math.rotate(rot, new float3(0, 0, 1));
 
             if (handle == Handle.XZ)
-            {
-                switch(m_XZHandleMode)
-                {
-                    case XZHandleMode.FollowSurface:
-                    case XZHandleMode.FixedY:
-                        return new float3(0, 1, 0);
-
-                    case XZHandleMode.FixedX:
-                        return math.rotate(rot, new float3(1, 0, 0));
-
-                    case XZHandleMode.FixedZ:
-                        return math.rotate(rot, new float3(0, 0, 1));
-                }
-            }
+                return new float3(0, 1, 0);
 
             return float3.zero;
         }
