@@ -83,7 +83,7 @@
 	"ExtraSnap.ObjectSide.SnapToCenter.Tooltip": "Aligner l’objet au centre du côté le plus proche de l’objet le plus proche.",
 	"ExtraSnap.ObjectSide.SnapToCorner.Tooltip": "Aligner l’objet à plat contre le coin de l’objet le plus proche.",
 	"ExtraPanelHeaderName[ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel]": "Outil de transformation",
-	"ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel": "Open EDT's Transform Gizmo Tool.",
+	"ExtraPanelTooltip[ExtraDetailingTools.Systems.UI.TransformPanel.TransformExtraPanel]": "Open EDT's Transform Gizmo Tool.",
 	"TransformPanel.COPY_POS": "Copier la position.",
 	"TransformPanel.PAST_POS": "Coller la position.",
 	"TransformPanel.PAST_POS_X": "Coller la position, seulement l’axe X.",
