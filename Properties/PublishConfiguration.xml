@@ -109,7 +109,7 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.3.0.11" />
+	<ModVersion Value="1.3.0.12" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -122,16 +122,12 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--<ChangeLog Value="" />-->
 	<ChangeLog>
 ### Features
-* Transform Gizmo Tool: new Origin setting, to choose the point each object moves and rotates around: its origin, the center of its bounding box or the bottom of its bounding box.
-* Grid: position and rotation steps can now be set per axis (X, Y, Z). 0 disables the snap on that axis.
-  * Link button (on by default): editing one axis sets the same step on all three.
-  * Object Size button: uses the size of the selected object as the position step, to move it on a grid of its own size.
-  * The grid is now shown around the gizmo in Move mode, and the allowed angles are shown on the ring while rotating.
-* Number inputs (Transform panel, Grid steps) accept math: 200 + 30, (4 - 1) * 2.5, 2^3... Both "," and "." work as decimal separator.
-  * Ctrl + Left / Right jumps between numbers, separators and operators. Add Shift to select.
-* Rotate handles: the rings keep the same thickness on screen, and their back half is faded and can't be grabbed, so you always grab the side you see.
+* Transform Gizmo Tool: new plane handles in Move mode. Three small squares (red, green, blue) move the object in the plane of the matching axis, they follow the Local Axis setting and stay on the side facing the camera.
+* The Sphere handle now always follows the surface. The Sphere Handle Modes buttons (Fixed X / Y / Z) are removed, the plane handles replace them. The Snapping and Raycast Filter options are always shown in the Sphere Handle section.
+* The Transform Panel button in the panel selector now has its own tooltip.
 ### Fixes
-* Rotate handles are easier to grab: the clickable area now matches the thickness of the ring.
+* Undo / Redo: undoing the very first change no longer makes the camera try to focus on nothing.
+* Foldout sections without header buttons keep the same height as the other sections.
 	</ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
