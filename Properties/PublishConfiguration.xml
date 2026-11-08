@@ -109,7 +109,7 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.3.0.12" />
+	<ModVersion Value="1.3.0.13" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -121,13 +121,8 @@ I also have to thank all the content creators who tried the mod and build amazin
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<!--<ChangeLog Value="" />-->
 	<ChangeLog>
-### Features
-* Transform Gizmo Tool: new plane handles in Move mode. Three small squares (red, green, blue) move the object in the plane of the matching axis, they follow the Local Axis setting and stay on the side facing the camera.
-* The Sphere handle now always follows the surface. The Sphere Handle Modes buttons (Fixed X / Y / Z) are removed, the plane handles replace them. The Snapping and Raycast Filter options are always shown in the Sphere Handle section.
-* The Transform Panel button in the panel selector now has its own tooltip.
 ### Fixes
-* Undo / Redo: undoing the very first change no longer makes the camera try to focus on nothing.
-* Foldout sections without header buttons keep the same height as the other sections.
+* Fixed an incompatibility with Platter (and other mods patching the Object Tool snapping): they failed to load with a Harmony "open type" error when EDT was loaded first.
 	</ChangeLog>
 	<!--External link. supported types are discord, github, youtube, twitch, x, paypal, patreon-->
 	<ExternalLink Type="youtube" Url="https://youtu.be/aALkRFdWOhM?si=nd_caJkElHPi6thE" />
